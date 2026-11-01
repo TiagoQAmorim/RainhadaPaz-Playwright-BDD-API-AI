@@ -1,0 +1,38 @@
+[
+  {
+    "pct": 100,
+    "width": 283,
+    "height": 736,
+    "heightRatio": 2.6007067137809186
+  },
+  {
+    "pct": 80,
+    "width": 262,
+    "height": 553,
+    "heightRatio": 2.1106870229007635
+  },
+  {
+    "pct": 60,
+    "width": 257,
+    "height": 429,
+    "heightRatio": 1.6692607003891051
+  },
+  {
+    "pct": 40,
+    "width": 261,
+    "height": 313,
+    "heightRatio": 1.1992337164750957
+  },
+  {
+    "pct": 20,
+    "width": 252,
+    "height": 219,
+    "heightRatio": 0.8690476190476191
+  },
+  {
+    "pct": 5,
+    "width": 248,
+    "height": 167,
+    "heightRatio": 0.6733870967741935
+  }
+]

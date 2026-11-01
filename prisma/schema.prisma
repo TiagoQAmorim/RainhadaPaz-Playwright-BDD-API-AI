@@ -1,0 +1,231 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Admin {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime @default(now())
+}
+
+model SiteSettings {
+  id              Int    @id @default(1)
+  parishName      String
+  diocese         String
+  address         String
+  phone           String
+  email           String?
+  whatsapp        String?
+  heroTitle       String
+  heroSubtitle    String
+  aboutHtml       String
+  massScheduleHtml String
+  pixKey          String?
+  instagramUrl    String?
+  youtubeUrl      String?
+  facebookUrl     String?
+  logoUrl         String?
+  heroImageUrl    String?
+  matrizImageUrl  String?
+  capelaImageUrl  String?
+  youtubeChannelUrl String?
+  tercoOnlineSchedule String?
+  tercoOnlineLink     String?
+  candleDurationAmount Int     @default(8)
+  candleDurationUnit   String   @default("hours")
+  candlesNotifyEmail   String?
+}
+
+model Post {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  excerpt     String
+  body        String
+  coverImage  String?
+  published   Boolean  @default(false)
+  publishedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Event {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  startsAt    DateTime
+  location    String?
+  published   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+}
+
+model Page {
+  id             String   @id @default(cuid())
+  slug           String   @unique
+  title          String
+  body           String
+  featuredImage  String?
+  updatedAt      DateTime @updatedAt
+}
+
+model Notice {
+  id          String    @id @default(cuid())
+  title       String
+  body        String
+  coverImage  String?
+  published   Boolean   @default(true)
+  publishedAt DateTime?
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model MassLocation {
+  id           String   @id @default(cuid())
+  name         String
+  address      String
+  scheduleText String
+  sortOrder    Int      @default(0)
+  published    Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// Terço online: dias/horário + link por bloco
+model TercoOnlineSlot {
+  id           String   @id @default(cuid())
+  title        String   @default("Terço online")
+  scheduleText String
+  meetingUrl   String
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model VirtualCandle {
+  id              String         @id @default(cuid())
+  donorName       String
+  intention       String
+  prayer          String?
+  intentionPublic Boolean        @default(false)
+  prayerPublic    Boolean        @default(false)
+  email           String?
+  parishNotifiedAt DateTime?
+  amountCents     Int
+  status          String         @default("PENDING")
+  paymentMethod   String?
+  mercadoPagoId   String?        @unique
+  preferenceId    String?
+  litAt           DateTime?
+  expiresAt       DateTime?
+  createdAt       DateTime       @default(now())
+}
+
+// ——— Rifa dos Santos ———
+
+model Saint {
+  id          Int            @id @default(autoincrement())
+  name        String
+  feastDay    Int
+  feastMonth  Int
+  celebration String
+  description String
+  createdAt   DateTime       @default(now())
+  tickets     RaffleTicket[]
+
+  @@unique([name, feastDay, feastMonth])
+  @@index([feastMonth, feastDay])
+  @@index([name])
+}
+
+model Raffle {
+  id                   String         @id @default(cuid())
+  slug                 String         @unique
+  title                String
+  description          String
+  purpose              String?
+  coverImageUrl        String?
+  prizeTitle           String
+  prizeDescription     String?
+  prizeImageUrl        String?
+  ticketPriceCents     Int
+  totalTickets         Int
+  status               String         @default("DRAFT")
+  featuredOnHome       Boolean        @default(false)
+  startsAt             DateTime?
+  endsAt               DateTime?
+  drawScheduledAt      DateTime?
+  reservationMinutes   Int            @default(15)
+  drawWinningNumber    Int?
+  drawWinnerName       String?
+  drawWinnerContact    String?
+  drawNotes            String?
+  drawRecordedAt       DateTime?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  tickets              RaffleTicket[]
+  orders               RaffleOrder[]
+}
+
+model RaffleTicket {
+  id                   String       @id @default(cuid())
+  raffleId             String
+  raffle               Raffle       @relation(fields: [raffleId], references: [id], onDelete: Cascade)
+  saintId              Int
+  saint                Saint        @relation(fields: [saintId], references: [id])
+  ticketNumber         Int
+  status               String       @default("AVAILABLE")
+  reservationExpiresAt DateTime?
+  reservedSessionId    String?
+  soldAt               DateTime?
+  orderLine            RaffleOrderTicket?
+
+  @@unique([raffleId, ticketNumber])
+  @@unique([raffleId, saintId])
+  @@index([raffleId, status])
+}
+
+model RaffleOrder {
+  id             String              @id @default(cuid())
+  raffleId       String
+  raffle         Raffle              @relation(fields: [raffleId], references: [id], onDelete: Cascade)
+  buyerName      String
+  buyerEmail     String
+  buyerPhone     String
+  buyerCpf       String?
+  totalCents     Int
+  status         String              @default("PENDING")
+  idempotencyKey String?             @unique
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  lines          RaffleOrderTicket[]
+  payments       RafflePayment[]
+}
+
+model RaffleOrderTicket {
+  id       String        @id @default(cuid())
+  orderId  String
+  order    RaffleOrder   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  ticketId String        @unique
+  ticket   RaffleTicket  @relation(fields: [ticketId], references: [id])
+}
+
+model RafflePayment {
+  id                   String      @id @default(cuid())
+  orderId              String
+  order                RaffleOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  provider             String      @default("mercadopago")
+  externalPaymentId    String?     @unique
+  externalPreferenceId String?
+  status               String      @default("PENDING")
+  confirmedAt          DateTime?
+  rawPayload           String?
+  createdAt            DateTime    @default(now())
+}
