@@ -71,6 +71,10 @@ export function RaffleExperience({
   const [cart, setCart] = useState<CartItem[]>([]);
   const [modalTicket, setModalTicket] = useState<TicketRow | null>(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [bulkNamesText, setBulkNamesText] = useState("");
+  const [bulkMessage, setBulkMessage] = useState<string | null>(null);
+  const [bulkLoading, setBulkLoading] = useState(false);
   const [buyer, setBuyer] = useState({ name: "", email: "", phone: "" });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -172,6 +176,54 @@ export function RaffleExperience({
     setModalTicket(t);
   }
 
+  function toggleTicketInCart(t: TicketRow) {
+    if (t.status !== "AVAILABLE") {
+      openTicket(t);
+      return;
+    }
+    if (cartIds.has(t.id)) removeFromCart(t.id);
+    else addToCart(t);
+  }
+
+  async function bulkAddByNames() {
+    setBulkMessage(null);
+    setBulkLoading(true);
+    try {
+      const res = await fetch(`/api/rifas/${slug}/tickets/bulk-resolve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ namesText: bulkNamesText }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setBulkMessage(data.error ?? "Não foi possível buscar os nomes.");
+        return;
+      }
+      let added = 0;
+      setCart((prev) => {
+        const ids = new Set(prev.map((p) => p.id));
+        const next = [...prev];
+        for (const t of data.tickets as TicketRow[]) {
+          if (!ids.has(t.id) && t.status === "AVAILABLE") {
+            next.push(t);
+            ids.add(t.id);
+            added++;
+          }
+        }
+        return next;
+      });
+      const parts: string[] = [];
+      if (added > 0) parts.push(`${added} cota(s) adicionada(s) ao carrinho.`);
+      if (data.notFound?.length) {
+        parts.push(`Não encontradas (indisponíveis ou sem correspondência): ${data.notFound.join(", ")}.`);
+      }
+      setBulkMessage(parts.join(" ") || "Nenhuma cota nova para adicionar.");
+      if (added > 0) setCheckoutOpen(false);
+    } finally {
+      setBulkLoading(false);
+    }
+  }
+
   const filterInputClass =
     "rounded-lg border-2 border-parish-300 bg-white px-3 py-2 text-sm font-medium text-parish-900 shadow-sm";
 
@@ -242,6 +294,41 @@ export function RaffleExperience({
         </span>
       </div>
 
+      <div className="rounded-xl border-2 border-gold-300/60 bg-gold-50/40 p-4">
+        <h3 className="text-sm font-bold text-parish-900">Comprar vários nomes de uma vez</h3>
+        <p className="mt-1 text-xs text-parish-700">
+          Digite um santo por linha (ou separados por vírgula). Todas as cotas vão para o mesmo
+          carrinho e um único pagamento.
+        </p>
+        <textarea
+          value={bulkNamesText}
+          onChange={(e) => setBulkNamesText(e.target.value)}
+          rows={3}
+          placeholder={"Ex.:\nSão Francisco\nSanta Teresinha\nNossa Senhora Aparecida"}
+          className={`mt-3 w-full ${filterInputClass}`}
+        />
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            disabled={bulkLoading || !bulkNamesText.trim()}
+            onClick={() => void bulkAddByNames()}
+            className="rounded-full bg-parish-600 px-4 py-2 text-sm font-bold text-white hover:bg-parish-500 disabled:opacity-50"
+          >
+            {bulkLoading ? "Buscando…" : "Adicionar nomes ao carrinho"}
+          </button>
+          <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-parish-800">
+            <input
+              type="checkbox"
+              checked={selectMode}
+              onChange={(e) => setSelectMode(e.target.checked)}
+              className="h-4 w-4 rounded border-parish-400"
+            />
+            Modo seleção: clique nas cotas para marcar várias
+          </label>
+        </div>
+        {bulkMessage ? <p className="mt-2 text-xs text-parish-700">{bulkMessage}</p> : null}
+      </div>
+
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div className="flex-1">
           <label className="text-sm font-semibold text-parish-900">Procure seu santo de devoção…</label>
@@ -305,15 +392,27 @@ export function RaffleExperience({
                 key={t.id}
                 role="button"
                 tabIndex={0}
-                onClick={() => openTicket(t)}
+                onClick={() => (selectMode ? toggleTicketInCart(t) : openTicket(t))}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
-                    openTicket(t);
+                    if (selectMode) toggleTicketInCart(t);
+                    else openTicket(t);
                   }
                 }}
                 className={ticketCardClass(t.status, cartIds.has(t.id))}
               >
+                {selectMode && t.status === "AVAILABLE" ? (
+                  <span
+                    className={`mb-1 inline-flex w-fit items-center rounded-md px-2 py-0.5 text-[10px] font-bold uppercase ${
+                      cartIds.has(t.id)
+                        ? "bg-gold-500 text-parish-950"
+                        : "bg-parish-100 text-parish-700"
+                    }`}
+                  >
+                    {cartIds.has(t.id) ? "Selecionada" : "Toque para selecionar"}
+                  </span>
+                ) : null}
                 <p
                   className={`text-[11px] font-bold uppercase tracking-wide ${
                     t.status === "SOLD"
@@ -381,7 +480,12 @@ export function RaffleExperience({
 
       {cart.length > 0 ? (
         <aside className="sticky bottom-4 z-20 rounded-2xl border border-gold-400/40 bg-white p-5 shadow-xl">
-          <h2 className="font-semibold text-parish-900">Meus santos escolhidos</h2>
+          <h2 className="font-semibold text-parish-900">
+            Meus santos escolhidos ({cart.length})
+          </h2>
+          <p className="mt-1 text-xs text-parish-600">
+            Um único pagamento para todas as cotas abaixo (até 50 por compra).
+          </p>
           <ul className="mt-3 space-y-2 text-sm">
             {cart.map((c) => (
               <li key={c.id} className="flex justify-between gap-2">
@@ -485,7 +589,19 @@ export function RaffleExperience({
                 }}
                 className="rounded-full bg-parish-600 px-6 py-2.5 text-sm font-bold text-white hover:bg-parish-500 disabled:cursor-not-allowed disabled:bg-parish-200"
               >
-                {cartIds.has(modalTicket.id) ? "Já no carrinho" : "Adicionar e continuar compra"}
+                {cartIds.has(modalTicket.id) ? "Já no carrinho" : "Adicionar ao carrinho"}
+              </button>
+              <button
+                type="button"
+                disabled={modalTicket.status !== "AVAILABLE"}
+                onClick={() => {
+                  addToCart(modalTicket);
+                  setModalTicket(null);
+                  setCheckoutOpen(false);
+                }}
+                className="rounded-full bg-gold-500 px-6 py-2.5 text-sm font-bold text-parish-950 hover:bg-gold-400 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Adicionar e escolher mais
               </button>
               <button
                 type="button"

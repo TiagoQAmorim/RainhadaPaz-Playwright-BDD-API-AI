@@ -1,7 +1,4 @@
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-
-const COOKIE_NAME = "admin_flash";
 
 export type AdminFlashKind = "created" | "updated" | "deleted" | "drawn";
 
@@ -16,30 +13,15 @@ export function adminFlashMessage(kind: AdminFlashKind): string {
   return MESSAGES[kind];
 }
 
-export async function setAdminFlash(kind: AdminFlashKind) {
-  const store = await cookies();
-  store.set(COOKIE_NAME, kind, {
-    httpOnly: true,
-    path: "/admin",
-    maxAge: 120,
-    sameSite: "lax",
-  });
+export function isAdminFlashKind(value: string | null): value is AdminFlashKind {
+  return value !== null && value in MESSAGES;
 }
 
-/** Define o aviso e redireciona (use após `revalidatePath`). */
+/** Redireciona com parâmetro `flash` na URL (compatível com RSC). */
 export async function redirectWithAdminFlash(
   path: string,
   kind: AdminFlashKind,
 ): Promise<never> {
-  await setAdminFlash(kind);
-  redirect(path);
-}
-
-/** Lê e remove o aviso (uma vez por requisição). */
-export async function consumeAdminFlash(): Promise<string | null> {
-  const store = await cookies();
-  const raw = store.get(COOKIE_NAME)?.value;
-  if (!raw || !(raw in MESSAGES)) return null;
-  store.delete(COOKIE_NAME);
-  return adminFlashMessage(raw as AdminFlashKind);
+  const sep = path.includes("?") ? "&" : "?";
+  redirect(`${path}${sep}flash=${kind}`);
 }

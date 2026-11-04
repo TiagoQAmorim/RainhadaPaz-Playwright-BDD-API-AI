@@ -14,6 +14,14 @@
     "db:sync-saints": "tsx scripts/sync-saints-to-db.ts",
     "db:refresh-client": "prisma db push && prisma generate",
     "test": "vitest run",
+    "test:e2e": "bddgen && playwright test --project=portal",
+    "test:e2e:all": "bddgen && playwright test",
+    "test:e2e:api": "playwright test --project=api",
+    "test:e2e:ai": "bddgen && playwright test --project=ai",
+    "test:e2e:ui:ai": "bddgen && playwright test --ui --project=ai",
+    "test:e2e:ui": "bddgen && playwright test --ui --project=portal",
+    "test:e2e:ui:all": "bddgen && playwright test --ui",
+    "bddgen": "bddgen",
     "postinstall": "prisma generate"
   },
   "dependencies": {
@@ -32,15 +40,18 @@
     "seed": "tsx prisma/seed.ts"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^26.6.6",
     "@types/nodemailer": "^8.0.2",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "dotenv": "^18.0.9",
     "eslint": "^9.39.5",
     "eslint-config-next": "^16.4.3",
     "pdf-parse": "^1.1.1",
+    "playwright-bdd": "^9.2.1",
     "postcss": "^8.5.32",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.23.15",

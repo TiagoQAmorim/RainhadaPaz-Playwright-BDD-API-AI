@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { AdminLogoutButton } from "@/components/AdminLogoutButton";
 import { AdminFlashBanner } from "@/components/admin/AdminFlashBanner";
@@ -49,7 +50,9 @@ export default async function AdminLayout({
             </nav>
           ) : null}
         </div>
-        <AdminFlashBanner />
+        <Suspense fallback={null}>
+          <AdminFlashBanner />
+        </Suspense>
         {children}
       </div>
     </div>
