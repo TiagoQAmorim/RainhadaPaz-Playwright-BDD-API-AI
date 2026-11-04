@@ -1,5 +1,7 @@
 # RainhadaPaz — Playwright-BDD · API · AI testing
 
+**Repository:** [github.com/TiagoQAmorim/RainhadaPaz-Playwright-BDD-API-AI](https://github.com/TiagoQAmorim/RainhadaPaz-Playwright-BDD-API-AI)
+
 Parish portal (Next.js). **This README focuses on automated tests:** Playwright + Gherkin (BDD), HTTP API examples, and AI-assisted checks.
 
 ## Requirements

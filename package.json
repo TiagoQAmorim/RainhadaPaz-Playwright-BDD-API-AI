@@ -1,6 +1,7 @@
 {
-  "name": "rainhada-paz",
+  "name": "rainhada-paz-playwright-bdd-api-ai",
   "version": "0.1.0",
+  "description": "Parish portal (Next.js) with Playwright-BDD E2E, API tests, and AI testing examples",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
