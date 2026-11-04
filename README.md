@@ -168,6 +168,7 @@ Vitest covers isolated library logic under `src/**/*.test.ts` (raffle rules, can
 - **Stale steps / missing scenarios:** run `npx bddgen`.
 - **Port 3000 busy:** stop other dev servers or set `PLAYWRIGHT_BASE_URL`.
 - **Prisma client out of date:** `npm run db:refresh-client` (restart dev server if EPERM on Windows).
+- **Remove `cursoragent` from future commits:** Cursor Settings → **Git & Pull Requests** → turn off **Commit Attribution**. Optional repo hook (once per clone): `git config core.hooksPath githooks` (uses `githooks/commit-msg` in this repo).
 
 ## App setup (short)
 
