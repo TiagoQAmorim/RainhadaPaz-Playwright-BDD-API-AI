@@ -1,4 +1,4 @@
-# RainhadaPaz — End-to-end testing
+# RainhadaPaz — Playwright-BDD · API · AI testing
 
 Parish portal (Next.js). **This README focuses on automated tests:** Playwright + Gherkin (BDD), HTTP API examples, and AI-assisted checks.
 
