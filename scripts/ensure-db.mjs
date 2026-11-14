@@ -48,11 +48,17 @@ try {
   }
 
   try {
+    const stale = async () => {
+      const posts = await prisma.post.findMany({ select: { coverImage: true } });
+      const notices = await prisma.notice.findMany({ select: { coverImage: true } });
+      const bad = (u) => u && /^\/uploads\/\d/.test(u);
+      return posts.some((p) => bad(p.coverImage)) || notices.some((n) => bad(n.coverImage));
+    };
     const raffles = await prisma.raffle.count();
     const bundleExpected =
       (await import(path.join(appRoot, "src", "data", "site-bundle.json"), { assert: { type: "json" } }))
         .default?.raffles?.length ?? 0;
-    if (bundleExpected > 0 && raffles === 0) {
+    if ((bundleExpected > 0 && raffles === 0) || (await stale())) {
       console.log("[ensure-db] Importando site-bundle (rifas, velas, posts)…");
       runNode(["--import", "tsx", path.join(appRoot, "prisma", "import-bundle.ts")], "site bundle");
     }

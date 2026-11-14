@@ -2,6 +2,7 @@
  * Exporta conteúdo do dev.db para src/data/site-bundle.json (deploy / seed).
  * Uso: node scripts/export-site-bundle.mjs
  */
+import { spawnSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -39,3 +40,9 @@ console.log(`[export] ${out} (${(JSON.stringify(bundle).length / 1024).toFixed(1
 console.log(
   `[export] posts=${bundle.posts.length} notices=${bundle.notices.length} candles=${bundle.virtualCandles.length} raffles=${bundle.raffles.length} tickets=${bundle.raffleTickets.length}`,
 );
+
+const sync = spawnSync(process.execPath, [path.join(root, "scripts", "sync-bundle-uploads.mjs")], {
+  cwd: root,
+  stdio: "inherit",
+});
+if (sync.status !== 0) process.exit(sync.status ?? 1);

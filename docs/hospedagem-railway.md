@@ -66,6 +66,7 @@ O **seed básico** só traz páginas institucionais. O site completo do seu PC e
 ```bash
 npm run export:site-bundle
 git add src/data/site-bundle.json public/uploads/migrated
+# (o export já roda sync:bundle-uploads — capas do admin em uploads/migrated)
 git commit -m "conteúdo site"
 git push
 ```

@@ -31,10 +31,27 @@ export function runPrismaSeedFromDisk(): void {
 }
 
 /** Site no repo inclui bundle local; produção sem rifa = import pendente. */
+function isStaleAdminUploadUrl(url: string | null | undefined): boolean {
+  return Boolean(url && /^\/uploads\/\d/.test(url));
+}
+
+/** Capas ainda apontando para /uploads/123... (não versionadas no deploy). */
+export async function databaseHasStaleUploadPaths(prisma: PrismaClient): Promise<boolean> {
+  const [posts, notices] = await Promise.all([
+    prisma.post.findMany({ select: { coverImage: true } }),
+    prisma.notice.findMany({ select: { coverImage: true } }),
+  ]);
+  return (
+    posts.some((p) => isStaleAdminUploadUrl(p.coverImage)) ||
+    notices.some((n) => isStaleAdminUploadUrl(n.coverImage))
+  );
+}
+
 export async function databaseNeedsBundleImport(prisma: PrismaClient): Promise<boolean> {
   const expected = siteBundle.raffles?.length ?? 0;
-  if (expected === 0) return false;
   try {
+    if (await databaseHasStaleUploadPaths(prisma)) return true;
+    if (expected === 0) return false;
     const raffles = await prisma.raffle.count();
     return raffles === 0;
   } catch {
