@@ -57,7 +57,7 @@ No painel **Variables** do serviço (produção):
      ./node_modules/.bin/prisma db seed
      ```
    - Do seu PC (com [Railway CLI](https://docs.railway.com/guides/cli) linkado ao projeto): `railway run npm run db:seed`
-   O `preDeployCommand` no `railway.toml` já roda `db push` em deploys seguintes.
+   Em cada subida, `scripts/ensure-db.mjs` roda `db push` e seed (se não houver admin) antes do Next.
 
 4. Teste `/admin/login` com `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
 

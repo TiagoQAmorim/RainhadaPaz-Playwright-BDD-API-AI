@@ -4,5 +4,5 @@
 buildCommand = "npm run build"
 
 [deploy]
-preDeployCommand = "npx prisma db push"
+# Schema/seed no boot (scripts/ensure-db.mjs) — pre-deploy não usa o volume /data em alguns projetos.
 startCommand = "node scripts/ensure-db.mjs"
