@@ -4,6 +4,7 @@ import { AdminLogoutButton } from "@/components/AdminLogoutButton";
 import { AdminFlashBanner } from "@/components/admin/AdminFlashBanner";
 import { SiteHeader } from "@/components/SiteHeader";
 import { TopBar } from "@/components/TopBar";
+import { headers } from "next/headers";
 import { getSessionAdmin } from "@/lib/auth";
 import { getSiteSettings } from "@/lib/settings";
 
@@ -27,6 +28,18 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const h = await headers();
+  const pathname = h.get("x-pathname") ?? "";
+  const isLogin = pathname === "/admin/login";
+
+  if (isLogin) {
+    return (
+      <div className="flex min-h-screen flex-1 items-center justify-center bg-parish-100 px-4 py-12">
+        {children}
+      </div>
+    );
+  }
+
   const [admin, settings] = await Promise.all([getSessionAdmin(), getSiteSettings()]);
 
   return (

@@ -5,15 +5,15 @@ import { prisma } from "@/lib/prisma";
 
 const COOKIE_NAME = "paroquia_session";
 
-function authSecret() {
-  const secret = process.env.AUTH_SECRET;
-  if (!secret || secret.length < 32) {
-    if (process.env.NODE_ENV === "production") {
-      throw new Error("AUTH_SECRET must be set in production");
-    }
-    return new TextEncoder().encode("dev-only-secret-change-in-production-32");
+function authSecret(): Uint8Array {
+  const secret = process.env.AUTH_SECRET?.trim();
+  if (secret && secret.length >= 32) {
+    return new TextEncoder().encode(secret);
   }
-  return new TextEncoder().encode(secret);
+  if (process.env.NODE_ENV === "production") {
+    console.error("[auth] AUTH_SECRET ausente ou curto — sessões admin desativadas até corrigir.");
+  }
+  return new TextEncoder().encode("dev-only-secret-change-in-production-32");
 }
 
 export async function hashAdminPassword(password: string): Promise<string> {

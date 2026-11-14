@@ -44,20 +44,15 @@ No painel **Variables** do serviço (produção):
 
 1. Faça o deploy (push no GitHub ou **Deploy** manual).
 2. Abra **Settings** → confira que o **domínio** `*.up.railway.app` está ativo (para testes).
-3. **Uma vez**, popular o banco:
-   - **Console** do serviço (pasta `/app`). Se `npx` não existir, use `npm` ou o binário direto:
+3. **Popular o banco** (automático + manual se precisar):
+   - Em **cada boot**, `scripts/ensure-db.mjs` roda `db push` e **seed** quando falta admin, páginas ou `aboutHtml` vazio (banco “oco”).
+   - **Sem Console Node** na Railway: depois do deploy, do seu PC:
      ```bash
-     cd /app
-     npm run db:push
-     npm run db:seed
+     curl -X POST "https://SEU-SERVICO.up.railway.app/api/setup/seed" \
+       -H "Authorization: Bearer SEU_AUTH_SECRET"
      ```
-     Alternativa:
-     ```bash
-     ./node_modules/.bin/prisma db push
-     ./node_modules/.bin/prisma db seed
-     ```
-   - Do seu PC (com [Railway CLI](https://docs.railway.com/guides/cli) linkado ao projeto): `railway run npm run db:seed`
-   Em cada subida, `scripts/ensure-db.mjs` roda `db push` e seed (se não houver admin) antes do Next.
+     Use o mesmo valor de `AUTH_SECRET` das Variables. Resposta `{"ok":true,...}` = seed aplicado.
+   - Com [Railway CLI](https://docs.railway.com/guides/cli): `railway run npm run db:seed`
 
 4. Teste `/admin/login` com `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
 
@@ -89,6 +84,8 @@ Push na branch conectada → Railway faz build, `prisma db push` e sobe de novo.
 | Admin não loga | Rodou `prisma db seed`? `AUTH_SECRET` definido? |
 | Dados sumiram | `DATABASE_URL` aponta para `/data/...` e volume montado em `/data` |
 | PIX não libera vela/rifa | Admin confirma pagamento recebido (ver `pagamentos-producao.md`) |
+| Páginas vazias (institucional, padroeira) | Seed não rodou ou banco “oco” (`aboutHtml` vazio). Redeploy ou `POST /api/setup/seed` com `Authorization: Bearer AUTH_SECRET`. |
+| `/admin/login` erro 500 | `AUTH_SECRET` ≥ 32 chars; seed + volume `/data`; redeploy com deploy **Success**. |
 | Build falha | Logs no Railway; Node 20+ (`engines` no `package.json`) |
 | `DATABASE_URL` not found no build | Adicione `DATABASE_URL=file:/data/rainhadapaz.db` nas Variables **e** volume em `/data`. |
 | `SiteSettings` does not exist no build | O script `scripts/next-build.mjs` cria SQLite temporário na Railway; **faça push** deste commit no GitHub e redeploy. |
@@ -111,7 +108,7 @@ Depois de corrigir, abra de novo o domínio que aparece em **Networking** do ser
 - A **home** pode mostrar conteúdo do **build** (banco temporário) enquanto o **volume** `/data` ainda está vazio — parece desatualizada.
 - **`/admin/login` com erro 500** quase sempre é **banco em runtime** sem tabelas ou sem **seed** (Prisma não acha `SiteSettings` / `Admin`).
 
-O **Console** da Railway às vezes não tem `npm`/`npx`. O app já roda `db push` + **seed automático** (só se não houver admin) em cada boot via `scripts/ensure-db.mjs`.
+O **Console** da Railway às vezes não tem `npm`/`npx`. Use o boot automático (`ensure-db`) ou `POST /api/setup/seed` (ver seção 4).
 
 Se precisar rodar seed manualmente, use o binário do Node no container (com o app em `/app`):
 

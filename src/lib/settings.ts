@@ -1,20 +1,60 @@
+import type { SiteSettings } from "@prisma/client";
 import { PARISH_LOGO_PATH } from "@/lib/parish-brand";
 import { prisma } from "@/lib/prisma";
+
+const DEFAULT_SITE_SETTINGS: SiteSettings = {
+  id: 1,
+  parishName: "Paróquia Nossa Senhora Rainha da Paz",
+  diocese: "Diocese de Santo Amaro",
+  address: "São Paulo — SP",
+  phone: "",
+  email: null,
+  whatsapp: null,
+  heroTitle: "Unidos pela fé, guiados por Maria.",
+  heroSubtitle: "Uma comunidade que acolhe, celebra e vive o amor de Cristo.",
+  aboutHtml: "",
+  massScheduleHtml: "",
+  pixKey: null,
+  instagramUrl: null,
+  youtubeUrl: null,
+  facebookUrl: null,
+  logoUrl: PARISH_LOGO_PATH,
+  heroImageUrl: null,
+  heroImageUrl2: null,
+  heroImageUrl3: null,
+  matrizImageUrl: null,
+  capelaImageUrl: null,
+  youtubeChannelUrl: null,
+  tercoOnlineSchedule: null,
+  tercoOnlineLink: null,
+  candleDurationAmount: 8,
+  candleDurationUnit: "hours",
+  candlesNotifyEmail: null,
+  candleAccessMode: "paid",
+  candlePriceCents: 1000,
+  candlePaymentPix: true,
+  candlePaymentSicredi: false,
+  maintenanceEnabled: false,
+  maintenanceMessage: null,
+  maintenanceEndsAt: null,
+};
 
 export async function getSiteSettings() {
   let settings = await prisma.siteSettings.findUnique({ where: { id: 1 } });
   if (!settings) {
+    if (process.env.NODE_ENV === "production") {
+      return { ...DEFAULT_SITE_SETTINGS };
+    }
     settings = await prisma.siteSettings.create({
       data: {
-        parishName: "Paróquia Nossa Senhora Rainha da Paz",
-        diocese: "Diocese de Santo Amaro",
-        address: "São Paulo — SP",
-        phone: "",
-        heroTitle: "Unidos pela fé, guiados por Maria.",
-        heroSubtitle:
-          "Uma comunidade que acolhe, celebra e vive o amor de Cristo.",
-        aboutHtml: "",
-        massScheduleHtml: "",
+        parishName: DEFAULT_SITE_SETTINGS.parishName,
+        diocese: DEFAULT_SITE_SETTINGS.diocese,
+        address: DEFAULT_SITE_SETTINGS.address,
+        phone: DEFAULT_SITE_SETTINGS.phone,
+        heroTitle: DEFAULT_SITE_SETTINGS.heroTitle,
+        heroSubtitle: DEFAULT_SITE_SETTINGS.heroSubtitle,
+        aboutHtml: DEFAULT_SITE_SETTINGS.aboutHtml,
+        massScheduleHtml: DEFAULT_SITE_SETTINGS.massScheduleHtml,
         logoUrl: PARISH_LOGO_PATH,
       },
     });
