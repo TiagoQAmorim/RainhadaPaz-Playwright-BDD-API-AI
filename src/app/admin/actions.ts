@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { findAdminByEmail } from "@/lib/admin-credentials";
 import { hashAdminPassword, requireAdmin } from "@/lib/auth";
 import {
   normalizeAdminEmail,
@@ -618,17 +619,27 @@ export async function createAdminUser(formData: FormData) {
   if (passErr) redirectAdminUsersError(passErr);
 
   const normalizedEmail = normalizeAdminEmail(email);
-  const existing = await prisma.admin.findUnique({ where: { email: normalizedEmail } });
+  const existing = await findAdminByEmail(prisma, normalizedEmail);
   if (existing) redirectAdminUsersError("Já existe um administrador com este e-mail.");
 
-  const passwordHash = await hashAdminPassword(password);
-  await prisma.admin.create({
-    data: {
-      name: name.trim(),
-      email: normalizedEmail,
-      passwordHash,
-    },
-  });
+  try {
+    const passwordHash = await hashAdminPassword(password);
+    await prisma.admin.create({
+      data: {
+        name: name.trim(),
+        email: normalizedEmail,
+        passwordHash,
+      },
+    });
+  } catch (e) {
+    const code = e && typeof e === "object" && "code" in e ? String((e as { code: string }).code) : "";
+    if (code === "P2002") {
+      redirectAdminUsersError("Já existe um administrador com este e-mail.");
+    }
+    console.error("[createAdminUser]", e);
+    redirectAdminUsersError("Não foi possível criar o administrador. Tente novamente.");
+  }
+
   revalidatePath("/admin/usuarios");
   await redirectWithAdminFlash("/admin/usuarios", "created");
 }

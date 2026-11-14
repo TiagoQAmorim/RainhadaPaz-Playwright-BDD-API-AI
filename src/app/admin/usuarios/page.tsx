@@ -10,6 +10,8 @@ import {
 import { getSessionAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 type Props = { searchParams: Promise<{ error?: string }> };
 
 export default async function AdminUsuariosPage({ searchParams }: Props) {

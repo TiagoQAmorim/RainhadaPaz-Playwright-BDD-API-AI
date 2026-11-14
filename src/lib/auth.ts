@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { findAdminByEmail } from "@/lib/admin-credentials";
 import { prisma } from "@/lib/prisma";
 
@@ -65,8 +66,9 @@ export async function getSessionAdmin() {
   }
 }
 
+/** Server Actions / páginas admin: redireciona em vez de lançar (evita “This page couldn’t load”). */
 export async function requireAdmin() {
   const admin = await getSessionAdmin();
-  if (!admin) throw new Error("UNAUTHORIZED");
+  if (!admin) redirect("/admin/login");
   return admin;
 }
