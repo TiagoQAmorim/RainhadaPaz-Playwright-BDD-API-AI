@@ -98,3 +98,23 @@ Mensagem *“The train has not arrived at the station”* em `*.up.railway.app` 
 5. **Porta** — O `npm run start` usa `next start --hostname 0.0.0.0`; a Railway injeta `PORT` automaticamente.
 
 Depois de corrigir, abra de novo o domínio que aparece em **Networking** do serviço.
+
+## Home “antiga” mas `/admin` dá erro
+
+- A **home** pode mostrar conteúdo do **build** (banco temporário) enquanto o **volume** `/data` ainda está vazio — parece desatualizada.
+- **`/admin/login` com erro 500** quase sempre é **banco em runtime** sem tabelas ou sem **seed** (Prisma não acha `SiteSettings` / `Admin`).
+
+No **Console** do serviço (deploy verde), rode:
+
+```bash
+npx prisma db push
+npx prisma db seed
+```
+
+Confira também:
+
+- **Volume** montado em `/data`
+- `DATABASE_URL=file:/data/rainhadapaz.db`
+- `AUTH_SECRET` com **≥ 32 caracteres** (senão o login quebra em produção)
+
+Depois do seed, teste `/admin/login` e recarregue a home (ou aguarde redeploy com `force-dynamic` no site).

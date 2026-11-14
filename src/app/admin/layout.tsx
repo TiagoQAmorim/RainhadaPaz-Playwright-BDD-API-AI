@@ -7,6 +7,8 @@ import { TopBar } from "@/components/TopBar";
 import { getSessionAdmin } from "@/lib/auth";
 import { getSiteSettings } from "@/lib/settings";
 
+export const dynamic = "force-dynamic";
+
 const links = [
   { href: "/admin", label: "Início" },
   { href: "/admin/noticias", label: "Notícias" },

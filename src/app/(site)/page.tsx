@@ -25,6 +25,8 @@ import { collectHeroBannerImages } from "@/lib/hero-banners";
 import { resolveImageSrc } from "@/lib/local-image-url";
 import { SITE_IMAGES } from "@/lib/wordpress-assets";
 
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
   const [settings, tercoSlots, candles, posts, notices, carouselSlides, candleHours, vaticanNews, quickLinks, heroCtas] =
     await Promise.all([

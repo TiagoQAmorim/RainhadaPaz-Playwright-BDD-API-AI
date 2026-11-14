@@ -1,4 +1,7 @@
 import { MaintenanceScreen } from "@/components/MaintenanceScreen";
+
+/** Produção usa SQLite no volume — não servir home congelada do build. */
+export const dynamic = "force-dynamic";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { TopBar } from "@/components/TopBar";
