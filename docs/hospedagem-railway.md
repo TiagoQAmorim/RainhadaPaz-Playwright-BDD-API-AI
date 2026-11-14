@@ -45,11 +45,18 @@ No painel **Variables** do serviço (produção):
 1. Faça o deploy (push no GitHub ou **Deploy** manual).
 2. Abra **Settings** → confira que o **domínio** `*.up.railway.app` está ativo (para testes).
 3. **Uma vez**, popular o banco:
-   - **Shell** do serviço (ou CLI `railway run`):
+   - **Console** do serviço (pasta `/app`). Se `npx` não existir, use `npm` ou o binário direto:
      ```bash
-     npx prisma db push
-     npx prisma db seed
+     cd /app
+     npm run db:push
+     npm run db:seed
      ```
+     Alternativa:
+     ```bash
+     ./node_modules/.bin/prisma db push
+     ./node_modules/.bin/prisma db seed
+     ```
+   - Do seu PC (com [Railway CLI](https://docs.railway.com/guides/cli) linkado ao projeto): `railway run npm run db:seed`
    O `preDeployCommand` no `railway.toml` já roda `db push` em deploys seguintes.
 
 4. Teste `/admin/login` com `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
@@ -107,8 +114,9 @@ Depois de corrigir, abra de novo o domínio que aparece em **Networking** do ser
 No **Console** do serviço (deploy verde), rode:
 
 ```bash
-npx prisma db push
-npx prisma db seed
+cd /app
+npm run db:push
+npm run db:seed
 ```
 
 Confira também:

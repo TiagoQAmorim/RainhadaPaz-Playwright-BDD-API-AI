@@ -50,6 +50,7 @@
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-qr-code": "^2.2.0",
+    "tsx": "^4.23.15",
     "zod": "^4.6.7"
   },
   "prisma": {
@@ -70,7 +71,6 @@
     "playwright-bdd": "^9.2.1",
     "postcss": "^8.5.32",
     "tailwindcss": "^4.3.3",
-    "tsx": "^4.23.15",
     "typescript": "^6.0.3",
     "vitest": "^3.2.4",
     "xlsx": "^0.18.5"
