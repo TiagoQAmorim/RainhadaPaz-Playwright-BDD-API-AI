@@ -1,4 +1,5 @@
 # https://docs.railway.com/reference/config-as-code
+# O volume /data só existe em runtime — no build usamos SQLite temporário para o Next pré-renderizar.
 [build]
 buildCommand = "npm run build"
 

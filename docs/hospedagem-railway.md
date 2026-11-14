@@ -21,6 +21,10 @@ O SQLite precisa de disco que **não some** a cada deploy.
 
 ## 3. Variáveis de ambiente
 
+No painel **Variables** do serviço (**no mesmo service do app**, não só no projeto):
+
+> Se `DATABASE_URL` não estiver definida, o build falha com `Environment variable not found: DATABASE_URL` ao gerar páginas.
+
 No painel **Variables** do serviço (produção):
 
 | Variável | Exemplo / notas |
@@ -58,7 +62,7 @@ Mais sobre pagamentos: [`pagamentos-producao.md`](pagamentos-producao.md).
    - `paroquiarainhadapaz.com.br`
    - `www.paroquiarainhadapaz.com.br` (recomendado)
 2. Railway mostra um destino DNS (geralmente **CNAME**).
-3. No [Registro.br](https://registro.br): **DNS do domínio** → crie os registros **iguais** ao que a Railway indicar (modo avançado / zona DNS). **Não mexa nos MX** se o e-mail continuar em outro provedor — ver [`dns-e-email.md`](dns-e-email.md).
+3. No [Registro.br](https://registro.br): **DNS do domínio** → crie os registros **iguais** ao que a Railway indicar (modo avançado / zona DNS). **Não mexa nos MX** — as caixas `contato@` e `assistente@` permanecem na hospedagem antiga; ver [`dns-e-email.md`](dns-e-email.md).
 4. Aguarde propagação (minutos a algumas horas).
 5. Atualize `NEXT_PUBLIC_SITE_URL` para `https://paroquiarainhadapaz.com.br` e **redeploy**.
 6. Pagamentos PIX: secretaria confirma no admin (ver `docs/pagamentos-producao.md`).
@@ -79,3 +83,5 @@ Push na branch conectada → Railway faz build, `prisma db push` e sobe de novo.
 | Dados sumiram | `DATABASE_URL` aponta para `/data/...` e volume montado em `/data` |
 | PIX não libera vela/rifa | Admin confirma pagamento recebido (ver `pagamentos-producao.md`) |
 | Build falha | Logs no Railway; Node 20+ (`engines` no `package.json`) |
+| `DATABASE_URL` not found no build | Adicione `DATABASE_URL=file:/data/rainhadapaz.db` nas Variables **e** volume em `/data`. |
+| `SiteSettings` does not exist no build | O script `scripts/next-build.mjs` cria SQLite temporário na Railway; **faça push** deste commit no GitHub e redeploy. |
