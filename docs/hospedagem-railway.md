@@ -48,7 +48,7 @@ No painel **Variables** do serviço (produção):
    - Em **cada boot**, `scripts/ensure-db.mjs` roda `db push` e **seed** quando falta admin, páginas ou `aboutHtml` vazio (banco “oco”).
    - **Sem Console Node** na Railway: depois do deploy, do seu PC:
      ```bash
-     curl -X POST "https://SEU-SERVICO.up.railway.app/api/setup/seed" \
+     curl -X POST "https://rainhadapaz-playwright-bdd-api-ai-production.up.railway.app/api/setup/seed" \
        -H "Authorization: Bearer SEU_AUTH_SECRET"
      ```
      Use o mesmo valor de `AUTH_SECRET` das Variables. Resposta `{"ok":true,...}` = seed aplicado.
