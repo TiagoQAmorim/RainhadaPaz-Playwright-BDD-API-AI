@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
+import { syncAdminFromEnv } from "@/lib/admin-credentials";
 import {
   databaseNeedsBundleImport,
   databaseNeedsSeed,
@@ -27,6 +28,7 @@ export async function POST(req: Request) {
   const prisma = new PrismaClient();
   try {
     runPrismaDbPush();
+    await syncAdminFromEnv(prisma);
     const need = await databaseNeedsSeed(prisma);
     if (need) {
       runPrismaSeedFromDisk();

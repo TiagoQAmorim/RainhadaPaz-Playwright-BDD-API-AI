@@ -87,7 +87,7 @@ const settingsData = {
 
 async function main() {
 
-  const email = process.env.ADMIN_EMAIL ?? "admin@paroquiarainhadapaz.com.br";
+  const email = (process.env.ADMIN_EMAIL ?? "admin@paroquiarainhadapaz.com.br").trim().toLowerCase();
 
   const password = process.env.ADMIN_PASSWORD ?? "AltereEstaSenha123!";
 

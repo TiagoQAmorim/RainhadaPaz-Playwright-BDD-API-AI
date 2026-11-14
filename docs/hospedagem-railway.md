@@ -56,7 +56,16 @@ No painel **Variables** do serviço (produção):
 
 4. Teste `/admin/login` com `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
 
-A senha de produção é **sempre** a de `ADMIN_PASSWORD` nas Variables (sincronizada a cada boot). Use a mesma que no seu `.env` local, por exemplo `AltereEstaSenha123!`, se for a que você já usava.
+A senha de produção é **sempre** a de `ADMIN_PASSWORD` nas Variables (sincronizada a cada boot). O **e-mail de login** é o valor de `ADMIN_EMAIL` nas Variables (não necessariamente o do `.env` local).
+
+Se o login falhar, confira na Railway os dois valores e, com o mesmo `AUTH_SECRET`, rode:
+
+```bash
+curl -X POST "https://rainhadapaz-playwright-bdd-api-ai-production.up.railway.app/api/setup/admin" \
+  -H "Authorization: Bearer SEU_AUTH_SECRET" \
+  -H "Content-Type: application/json" \
+  -d "{\"email\":\"admin@paroquiarainhadapaz.com.br\",\"password\":\"AltereEstaSenha123!\"}"
+```
 
 ### Conteúdo completo (rifas, velas, imagens)
 

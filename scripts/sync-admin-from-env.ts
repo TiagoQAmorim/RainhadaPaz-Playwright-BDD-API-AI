@@ -1,31 +1,32 @@
-/**
- * Mantém o admin alinhado a ADMIN_EMAIL / ADMIN_PASSWORD (Railway ou .env).
- * Roda no boot — assim a senha nas Variables vira a senha de login.
- */
-import bcrypt from "bcryptjs";
 import { PrismaClient } from "@prisma/client";
+import { normalizeAdminEmail, syncAdminFromEnv } from "../src/lib/admin-credentials";
 
 const prisma = new PrismaClient();
 
 async function main() {
-  const email = process.env.ADMIN_EMAIL?.trim() || "admin@paroquiarainhadapaz.com.br";
-  const password = process.env.ADMIN_PASSWORD;
-  if (!password?.trim()) {
+  const password = process.env.ADMIN_PASSWORD?.trim();
+  if (!password) {
     console.log("[sync-admin] ADMIN_PASSWORD não definido — admin não alterado");
     return;
   }
 
-  const passwordHash = await bcrypt.hash(password.trim(), 12);
-  await prisma.admin.upsert({
-    where: { email },
-    update: { passwordHash, name: "Administrador Paroquial" },
-    create: {
-      email,
-      passwordHash,
-      name: "Administrador Paroquial",
-    },
-  });
-  console.log(`[sync-admin] Senha do admin (${email}) sincronizada com ADMIN_PASSWORD`);
+  const email = await syncAdminFromEnv(prisma);
+  if (email) {
+    console.log(`[sync-admin] Admin ${email} sincronizado com ADMIN_PASSWORD`);
+  }
+
+  const expected = normalizeAdminEmail(process.env.ADMIN_EMAIL);
+  const admins = await prisma.admin.findMany();
+  for (const a of admins) {
+    const low = a.email.trim().toLowerCase();
+    if (low !== a.email) {
+      const clash = admins.some((o) => o.id !== a.id && o.email.toLowerCase() === low);
+      if (!clash && low === expected) {
+        await prisma.admin.update({ where: { id: a.id }, data: { email: low } });
+        console.log(`[sync-admin] E-mail normalizado: ${low}`);
+      }
+    }
+  }
 }
 
 main()

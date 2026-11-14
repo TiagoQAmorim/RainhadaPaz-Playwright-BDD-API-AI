@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
+import { findAdminByEmail } from "@/lib/admin-credentials";
 import { prisma } from "@/lib/prisma";
 
 const COOKIE_NAME = "paroquia_session";
@@ -21,7 +22,7 @@ export async function hashAdminPassword(password: string): Promise<string> {
 }
 
 export async function verifyAdmin(email: string, password: string) {
-  const admin = await prisma.admin.findUnique({ where: { email } });
+  const admin = await findAdminByEmail(prisma, email);
   if (!admin) return null;
   const ok = await bcrypt.compare(password, admin.passwordHash);
   if (!ok) return null;
