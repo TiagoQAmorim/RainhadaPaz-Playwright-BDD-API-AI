@@ -56,6 +56,8 @@ No painel **Variables** do serviço (produção):
 
 4. Teste `/admin/login` com `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
 
+A senha de produção é **sempre** a de `ADMIN_PASSWORD` nas Variables (sincronizada a cada boot). Use a mesma que no seu `.env` local, por exemplo `AltereEstaSenha123!`, se for a que você já usava.
+
 ### Conteúdo completo (rifas, velas, imagens)
 
 O **seed básico** só traz páginas institucionais. O site completo do seu PC está em `src/data/site-bundle.json` + `public/uploads/migrated/` (no Git).

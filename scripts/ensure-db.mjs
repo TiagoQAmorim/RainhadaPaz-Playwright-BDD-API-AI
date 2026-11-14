@@ -37,6 +37,7 @@ async function databaseNeedsSeed(prisma) {
 
 const prismaCli = path.join(appRoot, "node_modules", "prisma", "build", "index.js");
 runNode([prismaCli, "db", "push"], "prisma db push");
+runNode(["--import", "tsx", path.join(appRoot, "scripts", "sync-admin-from-env.ts")], "sync admin password");
 
 const prisma = new PrismaClient();
 try {

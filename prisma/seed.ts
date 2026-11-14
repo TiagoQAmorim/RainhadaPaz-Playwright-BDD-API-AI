@@ -99,7 +99,7 @@ async function main() {
 
     where: { email },
 
-    update: {},
+    update: { passwordHash: hash },
 
     create: {
 
