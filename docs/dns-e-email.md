@@ -1,6 +1,16 @@
 # Domínio, site novo e e-mail (sem perder caixas)
 
-Use este roteiro ao apontar `paroquiarainhadapaz.com.br` para a **nova hospedagem** (ex. Railway) **mantendo o e-mail** onde ele já está (ex. AWS WorkMail, Google Workspace, Registro.br e-mail, etc.).
+Use este roteiro ao apontar `paroquiarainhadapaz.com.br` para a **nova hospedagem** (ex. Railway) **mantendo o e-mail** na **hospedagem antiga** (ou em outro provedor).
+
+## Cenário atual — Paróquia Rainha da Paz
+
+- **Site novo:** Railway (ver `hospedagem-railway.md`).
+- **E-mail continua na hospedagem antiga**, incluindo caixas como:
+  - `contato@paroquiarainhadapaz.com.br`
+  - `assistente@paroquiarainhadapaz.com.br`
+- Ao mudar DNS para o site novo, **não cancele** o plano de **e-mail** no host antigo até a paróquia decidir migrar correio para outro lugar.
+
+O site e o e-mail usam o **mesmo domínio**, mas entradas DNS **diferentes**. Você pode apontar o **site** para a Railway **sem mover** as caixas, desde que **MX / SPF / DKIM / DMARC** continuem apontando para onde o e-mail funciona hoje.
 
 ## Regra de ouro
 
@@ -24,10 +34,20 @@ Antes de mudar qualquer coisa: **exporte ou anote a zona DNS completa** no Regis
 
 4. **Propagação**  
    Aguarde alguns minutos a algumas horas. Teste:
-   - Site: abra `https://paroquiarainhadapaz.com.br`.
-   - E-mail: envie de um Gmail para `admin@...` e responda de volta.
+   - **Site:** `https://paroquiarainhadapaz.com.br` e `https://www.paroquiarainhadapaz.com.br`.
+   - **E-mail:** de um Gmail externo, envie para `contato@paroquiarainhadapaz.com.br` e `assistente@paroquiarainhadapaz.com.br`; abra as caixas na hospedagem antiga e confira recebimento e resposta.
 
-5. **Só depois** desligue servidor antigo (ex. AWS) se o site já não depende dele. **Não cancele** o serviço de **e-mail** na AWS (ou outro) até confirmar que MX ainda apontam para o provedor correto e as caixas funcionam.
+5. **Hospedagem antiga**  
+   - Pode **desligar só o site / WordPress** quando o domínio já abrir o site novo.
+   - **Mantenha ativo** o serviço de **e-mail** (e o que ele precisa no DNS) enquanto essas caixas forem usadas.
+   - Antes de cancelar qualquer coisa na hospedagem antiga, confira de novo os **MX** no Registro.br e repita o teste de envio/recebimento.
+
+### Velas e SMTP no site novo
+
+O portal pode **enviar** e-mails (ex. intenções de velas) via **SMTP** configurado no admin. Isso **não substitui** as caixas `contato@` / `assistente@` na hospedagem antiga:
+
+- Para **receber** no site: configure em Admin → Velas / Informações o endereço de destino (pode ser `contato@...` ou `assistente@...`).
+- Para **enviar** com SPF alinhado, use credenciais SMTP do **mesmo provedor de e-mail** da paróquia (a hospedagem antiga ou o painel de e-mail costuma informar host, porta, usuário e senha). Até lá, o sistema pode só registrar no servidor sem enviar — ver comentários em `.env.example` (`SMTP_*`).
 
 ## Erros comuns
 

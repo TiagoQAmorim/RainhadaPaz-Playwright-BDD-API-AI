@@ -85,3 +85,16 @@ Push na branch conectada → Railway faz build, `prisma db push` e sobe de novo.
 | Build falha | Logs no Railway; Node 20+ (`engines` no `package.json`) |
 | `DATABASE_URL` not found no build | Adicione `DATABASE_URL=file:/data/rainhadapaz.db` nas Variables **e** volume em `/data`. |
 | `SiteSettings` does not exist no build | O script `scripts/next-build.mjs` cria SQLite temporário na Railway; **faça push** deste commit no GitHub e redeploy. |
+| Página Railway “Not Found” / “train has not arrived” | Veja seção **Site não abre (404 Railway)** abaixo. |
+
+## Site não abre (404 Railway)
+
+Mensagem *“The train has not arrived at the station”* em `*.up.railway.app` **não é** o site Next — é a borda da Railway sem app saudável atrás.
+
+1. **Serviço certo** — Clique no **card do repositório** (não só no projeto). Em **Settings → Networking → Public Networking**, gere/copie o domínio **`xxxx.up.railway.app`** deste serviço. O nome `paroquiarainhadapaz.up.railway.app` só funciona se foi **criado neste** serviço.
+2. **Deploy ativo** — **Deployments**: o último deve estar **Success** / Active (verde). Se falhou no build ou no **Pre-deploy** (`prisma db push`), não há app rodando.
+3. **Volume + `DATABASE_URL`** — Volume em `/data` e `DATABASE_URL=file:/data/rainhadapaz.db`. Sem isso, o pre-deploy pode falhar.
+4. **Logs em runtime** — Aba **Deploy logs** / **HTTP logs**: erro ao subir (`npm run start`), Prisma, etc.
+5. **Porta** — O `npm run start` usa `next start --hostname 0.0.0.0`; a Railway injeta `PORT` automaticamente.
+
+Depois de corrigir, abra de novo o domínio que aparece em **Networking** do serviço.
