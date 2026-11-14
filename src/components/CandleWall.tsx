@@ -52,7 +52,7 @@ export function CandleWall({
   const uniformMural = embedded === true && muralDark === true;
   const roomyText = embedded && !tightText && !uniformMural;
   const visualSize: CandleVisualSize = onPhoto ? "xs" : dense || compact ? "sm" : "lg";
-  const candleSize: CandleVisualSize = uniformMural ? "md" : visualSize;
+  const candleSize: CandleVisualSize = uniformMural ? "sm" : visualSize;
   const slotHeight = candleVisualSlotHeight(candleSize);
   const wellHeight =
     onPhoto || !dense ? slotHeight : Math.round(slotHeight * 0.9);

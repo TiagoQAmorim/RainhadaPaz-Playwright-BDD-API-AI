@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createRaffleOrderPreference, mercadoPagoEnabled } from "@/lib/mercadopago";
 import { prisma } from "@/lib/prisma";
+import { PARISH_PAYMENT_PROVIDER } from "@/lib/parish-pix";
 import {
   confirmRaffleOrderPaid,
   reserveTicketsForSession,
@@ -44,7 +44,11 @@ export async function POST(
       where: { idempotencyKey },
     });
     if (existing) {
-      return NextResponse.json({ orderId: existing.id, reused: true });
+      return NextResponse.json({
+        orderId: existing.id,
+        paymentPath: `/rifas/${slug}/pagamento?order=${existing.id}`,
+        reused: true,
+      });
     }
   }
 
@@ -88,6 +92,7 @@ export async function POST(
     await tx.rafflePayment.create({
       data: {
         orderId: created.id,
+        provider: PARISH_PAYMENT_PROVIDER,
         status: "PENDING",
       },
     });
@@ -102,48 +107,8 @@ export async function POST(
     return NextResponse.json({ free: true, orderId: order.id });
   }
 
-  if (!mercadoPagoEnabled()) {
-    await confirmRaffleOrderPaid(order.id);
-    await prisma.rafflePayment.updateMany({
-      where: { orderId: order.id },
-      data: { status: "DEMO" },
-    });
-    return NextResponse.json({ demo: true, orderId: order.id });
-  }
-
-  try {
-    const preference = await createRaffleOrderPreference({
-      orderId: order.id,
-      title: `${raffle.title} — ${uniqueIds.length} cota(s)`,
-      amount: totalCents / 100,
-      quantity: uniqueIds.length,
-      payerEmail: buyerEmail,
-      successPath: `/rifas/${slug}/sucesso?order=${order.id}`,
-    });
-
-    const preferenceId = preference.id ?? undefined;
-    const raw = preference as { init_point?: string };
-    const checkoutUrl = raw.init_point;
-
-    await prisma.rafflePayment.updateMany({
-      where: { orderId: order.id },
-      data: { externalPreferenceId: preferenceId ?? null },
-    });
-
-    if (!checkoutUrl) {
-      await prisma.raffleOrder.update({
-        where: { id: order.id },
-        data: { status: "CANCELLED" },
-      });
-      return NextResponse.json({ error: "Checkout indisponível." }, { status: 502 });
-    }
-
-    return NextResponse.json({ checkoutUrl, orderId: order.id });
-  } catch {
-    await prisma.raffleOrder.update({
-      where: { id: order.id },
-      data: { status: "CANCELLED" },
-    });
-    return NextResponse.json({ error: "Erro ao conectar com pagamento." }, { status: 502 });
-  }
+  return NextResponse.json({
+    orderId: order.id,
+    paymentPath: `/rifas/${slug}/pagamento?order=${order.id}`,
+  });
 }

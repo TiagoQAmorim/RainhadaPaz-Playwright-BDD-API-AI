@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "description": "Parish portal (Next.js) with Playwright-BDD E2E, API tests, and AI testing examples",
   "private": true,
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
@@ -11,7 +14,9 @@
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
     "import:wp": "tsx scripts/import-wp-content.ts",
+    "images:localize": "tsx scripts/localize-site-images.ts",
     "import:saints": "tsx scripts/import-saints-catalog.ts",
+    "export:saints": "tsx scripts/export-saints-excel.ts",
     "db:sync-saints": "tsx scripts/sync-saints-to-db.ts",
     "db:refresh-client": "prisma db push && prisma generate",
     "test": "vitest run",
@@ -23,18 +28,28 @@
     "test:e2e:ui": "bddgen && playwright test --ui --project=portal",
     "test:e2e:ui:all": "bddgen && playwright test --ui",
     "bddgen": "bddgen",
+    "tunnel:lt": "npx localtunnel --port 3000 --subdomain rainhadapaz-preview",
+    "preview:tunnel": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/preview-tunnel.ps1",
+    "tunnel:cloudflare": "npx --yes cloudflared tunnel --url http://127.0.0.1:3000",
     "postinstall": "prisma generate"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
+    "@tiptap/extension-color": "^3.34.0",
+    "@tiptap/extension-link": "^3.34.0",
+    "@tiptap/extension-text-style": "^3.34.0",
+    "@tiptap/pm": "^3.34.0",
+    "@tiptap/react": "^3.34.0",
+    "@tiptap/starter-kit": "^3.34.0",
     "bcryptjs": "^3.0.3",
     "jose": "^6.2.13",
-    "mercadopago": "^3.6.1",
     "next": "^16.4.3",
     "nodemailer": "^10.3.1",
+    "pix-payload": "^1.0.4",
     "prisma": "^5.22.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
+    "react-qr-code": "^2.2.0",
     "zod": "^4.6.7"
   },
   "prisma": {
@@ -57,6 +72,7 @@
     "tailwindcss": "^4.3.3",
     "tsx": "^4.23.15",
     "typescript": "^6.0.3",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "xlsx": "^0.18.5"
   }
 }

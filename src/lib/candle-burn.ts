@@ -82,8 +82,30 @@ export function candleBurnScale(
 export function formatCandleTimeLeftMs(ms: number): string | null {
   if (ms <= 0) return null;
   const totalMin = Math.ceil(ms / 60_000);
-  const h = Math.floor(totalMin / 60);
-  const m = totalMin % 60;
-  if (h > 0) return `${h}h ${m}min restantes`;
-  return `${m} min restantes`;
+  const minutesPerDay = 24 * 60;
+
+  if (totalMin >= minutesPerDay) {
+    const days = Math.floor(totalMin / minutesPerDay);
+    const hours = Math.floor((totalMin % minutesPerDay) / 60);
+    const dayWord = days === 1 ? "dia" : "dias";
+    if (hours === 0) {
+      return `Faltam ${days} ${dayWord}`;
+    }
+    const hourWord = hours === 1 ? "hora" : "horas";
+    return `Faltam ${days} ${dayWord} e ${hours} ${hourWord}`;
+  }
+
+  const hours = Math.floor(totalMin / 60);
+  const minutes = totalMin % 60;
+  if (hours > 0 && minutes > 0) {
+    const hourWord = hours === 1 ? "hora" : "horas";
+    const minWord = minutes === 1 ? "minuto" : "minutos";
+    return `Faltam ${hours} ${hourWord} e ${minutes} ${minWord}`;
+  }
+  if (hours > 0) {
+    const hourWord = hours === 1 ? "hora" : "horas";
+    return `Faltam ${hours} ${hourWord}`;
+  }
+  const minWord = minutes === 1 ? "minuto" : "minutos";
+  return `Faltam ${minutes} ${minWord}`;
 }

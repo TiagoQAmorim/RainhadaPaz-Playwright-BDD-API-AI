@@ -1,18 +1,31 @@
 "use client";
 
 import { useState } from "react";
+import type { CandleCommerceConfig } from "@/lib/candle-commerce";
+import {
+  CANDLE_DONATION_MAX_CENTS,
+  CANDLE_DONATION_MIN_CENTS,
+  formatCandlePrice,
+  validateVoluntaryDonationCents,
+  donationAmountBrlToCents,
+} from "@/lib/candle-commerce";
 
 type Props = {
-  priceLabel: string;
-  freeMode: boolean;
-  paymentsConfigured: boolean;
+  commerce: CandleCommerceConfig;
 };
 
-export function CandleForm({ priceLabel, freeMode, paymentsConfigured }: Props) {
+type OfferChoice = "none" | "donate";
+type PayMethod = "PIX" | "SICREDI";
+
+export function CandleForm({ commerce }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [offerChoice, setOfferChoice] = useState<OfferChoice>("none");
+  const [payMethod, setPayMethod] = useState<PayMethod>(commerce.allowPix ? "PIX" : "SICREDI");
 
-  async function submit(body: Record<string, string | boolean | undefined>) {
+  const priceLabel = formatCandlePrice(commerce.priceCents);
+
+  async function submit(body: Record<string, string | boolean | number | undefined>) {
     setLoading(true);
     setError(null);
     try {
@@ -24,26 +37,25 @@ export function CandleForm({ priceLabel, freeMode, paymentsConfigured }: Props) 
       const raw = await res.text();
       let data: {
         error?: string;
-        checkoutUrl?: string;
-        demo?: boolean;
-        free?: boolean;
+        paymentPath?: string;
         candleId?: string;
+        free?: boolean;
       } = {};
       if (raw.trim()) {
         try {
           data = JSON.parse(raw) as typeof data;
         } catch {
-          throw new Error("Resposta inválida do servidor. Reinicie o site (dev) e tente de novo.");
+          throw new Error("Resposta inválida do servidor. Reinicie o site (dev) e tente novamente.");
         }
       } else if (!res.ok) {
         throw new Error("Erro no servidor ao acender a vela.");
       }
       if (!res.ok) throw new Error(data.error ?? "Não foi possível acender a vela.");
-      if (data.checkoutUrl) {
-        window.location.href = data.checkoutUrl;
+      if (data.paymentPath) {
+        window.location.href = data.paymentPath;
         return;
       }
-      const q = data.candleId ? `?candle=${data.candleId}` : data.free || data.demo ? "?gratis=1" : "";
+      const q = data.candleId ? `?candle=${data.candleId}` : data.free ? "?gratis=1" : "";
       window.location.href = `/velas/sucesso${q}`;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro inesperado.");
@@ -52,32 +64,62 @@ export function CandleForm({ priceLabel, freeMode, paymentsConfigured }: Props) 
     }
   }
 
-  async function onSubmitFree(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const form = new FormData(e.currentTarget);
-    await submit({
+  function formValues(form: FormData) {
+    return {
       donorName: String(form.get("donorName") ?? ""),
       intention: String(form.get("intention") ?? ""),
       prayer: String(form.get("prayer") ?? "") || undefined,
       intentionPublic: form.get("contentPublic") === "on",
       prayerPublic: form.get("contentPublic") === "on",
       email: String(form.get("email") ?? "") || undefined,
-      paymentMethod: "FREE",
-    });
+    };
   }
 
-  async function onSubmitPaid(e: React.FormEvent<HTMLFormElement>) {
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
-    await submit({
-      donorName: String(form.get("donorName") ?? ""),
-      intention: String(form.get("intention") ?? ""),
-      prayer: String(form.get("prayer") ?? "") || undefined,
-      intentionPublic: form.get("contentPublic") === "on",
-      prayerPublic: form.get("contentPublic") === "on",
-      email: String(form.get("email") ?? "") || undefined,
-      paymentMethod: String(form.get("paymentMethod") ?? "PIX"),
-    });
+    const base = formValues(form);
+
+    if (commerce.forceFree) {
+      await submit({ ...base, paymentMethod: "FREE" });
+      return;
+    }
+
+    const mode = commerce.accessMode;
+
+    if (mode === "free") {
+      await submit({ ...base, paymentMethod: "FREE" });
+      return;
+    }
+
+    if (mode === "free_donation" && offerChoice === "none") {
+      await submit({ ...base, paymentMethod: "FREE" });
+      return;
+    }
+
+    const method = payMethod;
+    if (method === "SICREDI" && !commerce.sicrediLive) {
+      setError("Pagamento com cartão Sicredi ainda não está ativo. Escolha PIX ou acenda sem oferta.");
+      return;
+    }
+
+    let donationAmountBrl: number | undefined;
+    if (mode === "free_donation" && offerChoice === "donate") {
+      const raw = String(form.get("donationAmountBrl") ?? "").trim().replace(",", ".");
+      const brl = Number(raw);
+      if (!Number.isFinite(brl)) {
+        setError("Informe o valor da oferta em reais.");
+        return;
+      }
+      const err = validateVoluntaryDonationCents(donationAmountBrlToCents(brl));
+      if (err) {
+        setError(err);
+        return;
+      }
+      donationAmountBrl = brl;
+    }
+
+    await submit({ ...base, paymentMethod: method, donationAmountBrl });
   }
 
   const fields = (
@@ -112,9 +154,7 @@ export function CandleForm({ priceLabel, freeMode, paymentsConfigured }: Props) 
         <label className="mt-3 flex cursor-pointer items-start gap-2 rounded-xl border border-parish-200 bg-parish-50/80 px-3 py-2.5 text-sm">
           <input type="checkbox" name="contentPublic" className="mt-1 shrink-0" />
           <span>
-            <strong className="text-parish-900">Tornar intenção e oração públicas</strong> no
-            mural. Se desmarcado, aparecem em sigilo (a paróquia continua recebendo tudo por
-            e-mail).
+            <strong className="text-parish-900">Tornar intenção e oração públicas</strong> no mural.
           </span>
         </label>
       </div>
@@ -129,12 +169,48 @@ export function CandleForm({ priceLabel, freeMode, paymentsConfigured }: Props) 
     </>
   );
 
-  if (freeMode) {
+  const voluntaryDonation = commerce.accessMode === "free_donation";
+  const payMethodPicker =
+    commerce.allowPix || commerce.allowSicredi ? (
+      <fieldset className="space-y-2 rounded-xl border border-parish-200 bg-parish-50/80 px-4 py-3">
+        <legend className="px-1 text-sm font-medium text-parish-900">Forma de pagamento</legend>
+        <div className="flex flex-col gap-2 text-sm">
+          {commerce.allowPix ? (
+            <label className="flex cursor-pointer items-center gap-2">
+              <input
+                type="radio"
+                name="payMethodUi"
+                checked={payMethod === "PIX"}
+                onChange={() => setPayMethod("PIX")}
+              />
+              PIX na conta da paróquia
+              {!voluntaryDonation ? ` (${priceLabel})` : ""}
+            </label>
+          ) : null}
+          {commerce.allowSicredi ? (
+            <label className="flex cursor-pointer items-center gap-2">
+              <input
+                type="radio"
+                name="payMethodUi"
+                checked={payMethod === "SICREDI"}
+                onChange={() => setPayMethod("SICREDI")}
+              />
+              Cartão Sicredi
+              {!voluntaryDonation ? ` (${priceLabel})` : ""}
+              {!commerce.sicrediLive ? (
+                <span className="text-xs text-parish-600">— em breve</span>
+              ) : null}
+            </label>
+          ) : null}
+        </div>
+      </fieldset>
+    ) : null;
+
+  if (commerce.forceFree) {
     return (
-      <form onSubmit={onSubmitFree} className="glass-card space-y-4 p-6 md:p-8">
+      <form onSubmit={onSubmit} className="glass-card space-y-4 p-6 md:p-8">
         <p className="rounded-xl border border-parish-200 bg-parish-50 px-4 py-3 text-sm text-parish-800">
-          <strong>Período de testes:</strong> acenda sua vela gratuitamente. A vela aparece no
-          mural na hora.
+          <strong>Modo teste:</strong> vela gratuita (somente desenvolvimento).
         </p>
         {fields}
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
@@ -149,34 +225,109 @@ export function CandleForm({ priceLabel, freeMode, paymentsConfigured }: Props) 
     );
   }
 
-  return (
-    <form onSubmit={onSubmitPaid} className="glass-card space-y-4 p-6 md:p-8">
-      {!paymentsConfigured ? (
-        <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          Configure <code className="text-xs">MERCADOPAGO_ACCESS_TOKEN</code> para PIX e cartão.
+  if (commerce.accessMode === "free") {
+    return (
+      <form onSubmit={onSubmit} className="glass-card space-y-4 p-6 md:p-8">
+        <p className="rounded-xl border border-parish-200 bg-parish-50 px-4 py-3 text-sm text-parish-800">
+          A paróquia liberou o <strong>acendimento gratuito</strong> neste período. Basta enviar nome,
+          intenção e oração.
         </p>
-      ) : null}
+        {fields}
+        {error ? <p className="text-sm text-red-600">{error}</p> : null}
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full rounded-xl bg-parish-600 py-3.5 text-base font-bold text-white transition hover:bg-parish-500 disabled:opacity-60"
+        >
+          {loading ? "Acendendo…" : "Acender vela"}
+        </button>
+      </form>
+    );
+  }
+
+  if (commerce.accessMode === "free_donation") {
+    return (
+      <form onSubmit={onSubmit} className="glass-card space-y-4 p-6 md:p-8">
+        <p className="rounded-xl border border-parish-200 bg-parish-50 px-4 py-3 text-sm text-parish-800">
+          Acenda <strong>sem custo</strong> ou, se desejar, faça uma <strong>oferta no valor que escolher</strong>{" "}
+          via PIX ou Sicredi.
+        </p>
+        <fieldset className="space-y-2 text-sm">
+          <legend className="mb-1 text-sm font-medium text-parish-900">Contribuição</legend>
+          <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-parish-100 px-3 py-2">
+            <input
+              type="radio"
+              name="offerUi"
+              checked={offerChoice === "none"}
+              onChange={() => setOfferChoice("none")}
+            />
+            Acender sem oferta
+          </label>
+          <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-parish-100 px-3 py-2">
+            <input
+              type="radio"
+              name="offerUi"
+              checked={offerChoice === "donate"}
+              onChange={() => setOfferChoice("donate")}
+            />
+            Quero ofertar um valor
+          </label>
+        </fieldset>
+        {offerChoice === "donate" ? (
+          <div className="space-y-3">
+            <div>
+              <label className="mb-1 block text-sm font-medium" htmlFor="donationAmountBrl">
+                Valor da oferta (R$) *
+              </label>
+              <input
+                id="donationAmountBrl"
+                name="donationAmountBrl"
+                type="number"
+                min={CANDLE_DONATION_MIN_CENTS / 100}
+                max={CANDLE_DONATION_MAX_CENTS / 100}
+                step={0.01}
+                required
+                placeholder="Ex.: 20,00"
+                className="w-full rounded-xl border border-parish-200 px-3 py-2 outline-none ring-parish-500 focus:ring-2"
+              />
+              <p className="mt-1 text-xs text-parish-500">
+                Mínimo {formatCandlePrice(CANDLE_DONATION_MIN_CENTS)} — você define o valor.
+              </p>
+            </div>
+            {payMethodPicker}
+          </div>
+        ) : null}
+        {fields}
+        {error ? <p className="text-sm text-red-600">{error}</p> : null}
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full rounded-xl bg-gold-500 py-3 font-semibold text-white transition hover:bg-gold-400 disabled:opacity-60"
+        >
+          {loading
+            ? "Aguarde…"
+            : offerChoice === "donate"
+              ? "Continuar para pagamento"
+              : "Acender vela"}
+        </button>
+      </form>
+    );
+  }
+
+  return (
+    <form onSubmit={onSubmit} className="glass-card space-y-4 p-6 md:p-8">
+      <p className="rounded-xl border border-parish-200 bg-parish-50 px-4 py-3 text-sm text-parish-800">
+        Contribuição de <strong>{priceLabel}</strong> para acender a vela no mural.
+      </p>
+      {payMethodPicker}
       {fields}
-      <fieldset>
-        <legend className="mb-2 text-sm font-medium">Forma de pagamento</legend>
-        <div className="flex flex-wrap gap-3">
-          <label className="flex cursor-pointer items-center gap-2 rounded-full border border-parish-200 px-4 py-2 text-sm">
-            <input type="radio" name="paymentMethod" value="PIX" defaultChecked />
-            PIX
-          </label>
-          <label className="flex cursor-pointer items-center gap-2 rounded-full border border-parish-200 px-4 py-2 text-sm">
-            <input type="radio" name="paymentMethod" value="CARD" />
-            Cartão
-          </label>
-        </div>
-      </fieldset>
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
       <button
         type="submit"
         disabled={loading}
         className="w-full rounded-xl bg-gold-500 py-3 font-semibold text-white transition hover:bg-gold-400 disabled:opacity-60"
       >
-        {loading ? "Aguarde…" : `Acender vela — ${priceLabel}`}
+        {loading ? "Aguarde…" : "Continuar para pagamento"}
       </button>
     </form>
   );

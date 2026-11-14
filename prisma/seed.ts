@@ -10,7 +10,7 @@ import {
 
   MASS_SCHEDULE_HTML,
 
-  WP_IMAGES,
+  SITE_IMAGES,
 
 } from "../src/lib/wordpress-assets";
 
@@ -58,15 +58,15 @@ const settingsData = {
 
   logoUrl: "/logo-rainha-da-paz.png",
 
-  heroImageUrl: matriz?.featuredImage ?? WP_IMAGES.heroChurchWide,
+  heroImageUrl: matriz?.featuredImage ?? SITE_IMAGES.heroChurchWide,
 
-  matrizImageUrl: matriz?.featuredImage ?? WP_IMAGES.matriz,
+  matrizImageUrl: matriz?.featuredImage ?? SITE_IMAGES.matriz,
 
   capelaImageUrl:
 
     wpPages.find((p) => p.slug === "capela-santa-maria")?.featuredImage ??
 
-    WP_IMAGES.capela,
+    SITE_IMAGES.capela,
 
   youtubeChannelUrl: null,
 
@@ -193,7 +193,7 @@ async function main() {
 
       body: `<p>Veja a página de <a href="/horarios">horários</a> para a programação completa das celebrações na Matriz e na Capela.</p>`,
 
-      coverImage: WP_IMAGES.matriz,
+      coverImage: SITE_IMAGES.matriz,
 
     },
 

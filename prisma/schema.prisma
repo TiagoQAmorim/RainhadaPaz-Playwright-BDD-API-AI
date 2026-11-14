@@ -33,6 +33,8 @@ model SiteSettings {
   facebookUrl     String?
   logoUrl         String?
   heroImageUrl    String?
+  heroImageUrl2   String?
+  heroImageUrl3   String?
   matrizImageUrl  String?
   capelaImageUrl  String?
   youtubeChannelUrl String?
@@ -41,19 +43,50 @@ model SiteSettings {
   candleDurationAmount Int     @default(8)
   candleDurationUnit   String   @default("hours")
   candlesNotifyEmail   String?
+  // free | free_donation | paid
+  candleAccessMode     String   @default("paid")
+  candlePriceCents     Int      @default(1000)
+  candlePaymentPix     Boolean  @default(true)
+  candlePaymentSicredi Boolean  @default(false)
+  maintenanceEnabled   Boolean  @default(false)
+  maintenanceMessage   String?
+  maintenanceEndsAt    DateTime?
 }
 
 model Post {
-  id          String   @id @default(cuid())
-  title       String
-  slug        String   @unique
-  excerpt     String
-  body        String
-  coverImage  String?
-  published   Boolean  @default(false)
-  publishedAt DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                     String             @id @default(cuid())
+  title                  String
+  slug                   String             @unique
+  excerpt                String
+  body                   String
+  coverImage             String?
+  published              Boolean            @default(false)
+  publishedAt            DateTime?
+  featuredOnHomeCarousel Boolean            @default(false)
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+  galleryImages          PostGalleryImage[]
+  youtubeVideos          PostYoutubeVideo[]
+}
+
+model PostGalleryImage {
+  id        String   @id @default(cuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  imageUrl  String
+  caption   String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+model PostYoutubeVideo {
+  id             String   @id @default(cuid())
+  postId         String
+  post           Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  youtubeVideoId String
+  title          String?
+  sortOrder      Int      @default(0)
+  createdAt      DateTime @default(now())
 }
 
 model Event {
@@ -73,6 +106,29 @@ model Page {
   body           String
   featuredImage  String?
   updatedAt      DateTime @updatedAt
+}
+
+model HomeQuickLink {
+  id          String  @id @default(cuid())
+  title       String
+  description String
+  href        String
+  imageUrl    String
+  external    Boolean @default(false)
+  sortOrder   Int     @default(0)
+  published   Boolean @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model HomeHeroCta {
+  id        String @id @default(cuid())
+  label     String
+  href      String
+  variant   String @default("primary")
+  sortOrder Int    @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Notice {
@@ -221,7 +277,7 @@ model RafflePayment {
   id                   String      @id @default(cuid())
   orderId              String
   order                RaffleOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  provider             String      @default("mercadopago")
+  provider             String      @default("pix_parish")
   externalPaymentId    String?     @unique
   externalPreferenceId String?
   status               String      @default("PENDING")

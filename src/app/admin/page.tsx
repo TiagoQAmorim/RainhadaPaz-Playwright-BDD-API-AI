@@ -18,6 +18,11 @@ const sections = [
     desc: "Contato, banner, sobre e páginas de conteúdo",
   },
   {
+    href: "/admin/manutencao",
+    title: "Manutenção",
+    desc: "Página temporária com logo enquanto o site está fora do ar",
+  },
+  {
     href: "/admin/terco-online",
     title: "Terço online",
     desc: "Vários blocos (dias + link) e texto da página /terco-online",
@@ -27,6 +32,11 @@ const sections = [
     href: "/admin/rifas",
     title: "Rifa dos Santos",
     desc: "Criar rifas, cotas e santos (até 2.000)",
+  },
+  {
+    href: "/admin/usuarios",
+    title: "Administradores",
+    desc: "Criar ou remover acessos ao painel",
   },
 ];
 

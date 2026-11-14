@@ -16,6 +16,10 @@ function authSecret() {
   return new TextEncoder().encode(secret);
 }
 
+export async function hashAdminPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, 12);
+}
+
 export async function verifyAdmin(email: string, password: string) {
   const admin = await prisma.admin.findUnique({ where: { email } });
   if (!admin) return null;

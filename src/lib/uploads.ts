@@ -1,6 +1,7 @@
 import { randomBytes } from "crypto";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
+import { coerceStoredImageUrl } from "@/lib/local-image-url";
 
 const ALLOWED_TYPES = new Set([
   "image/jpeg",
@@ -55,7 +56,7 @@ export async function imageUrlFromForm(
     return saveAdminImageUpload(file);
   }
   const value = String(formData.get(urlField) ?? "").trim();
-  return value || null;
+  return coerceStoredImageUrl(value) ?? null;
 }
 
 /** Upload, URL do formulário ou mantém a imagem já salva. */
@@ -70,6 +71,5 @@ export async function resolveImageFromForm(
     return saveAdminImageUpload(file);
   }
   const value = String(formData.get(urlField) ?? "").trim();
-  if (value) return value;
-  return existingUrl ?? null;
+  return coerceStoredImageUrl(value, existingUrl);
 }

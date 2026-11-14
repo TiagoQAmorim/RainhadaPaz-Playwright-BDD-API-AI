@@ -1,0 +1,20 @@
+# Túnel nomeado Cloudflare (URL fixa no seu domínio).
+# IMPORTANTE: o domínio precisa ser SEU (comprado/registrado). Só "adicionar site" na Cloudflare
+# sem comprar o domínio (ex. rainhadapazpreview.com) não funciona na internet.
+#
+# 1) cloudflared tunnel login  (concluir autorização no navegador até aparecer cert.pem)
+# 2) cloudflared tunnel create rainhadapaz-preview
+# 3) Copie este arquivo para %USERPROFILE%\.cloudflared\config.yml
+#    e ajuste tunnel + credentials-file (caminho do .json gerado no passo 2).
+# 4) cloudflared tunnel route dns rainhadapaz-preview preview.paroquiarainhadapaz.com.br
+# 5) cloudflared tunnel run rainhadapaz-preview
+#
+# Requer domínio paroquiarainhadapaz.com.br na mesma conta Cloudflare.
+
+tunnel: rainhadapaz-preview
+credentials-file: C:\Users\Dell\.cloudflared\SUBSTITUA-PELO-ID.json
+
+ingress:
+  - hostname: preview.paroquiarainhadapaz.com.br
+    service: http://localhost:3000
+  - service: http_status:404

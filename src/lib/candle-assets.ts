@@ -7,6 +7,7 @@ export const CANDLE_ASSETS = {
   stage20: "/candles/vela-20.webp",
   stage5: "/candles/vela-5.webp",
   flame: "/candles/candle-flame.webp",
-  /** Chama recortada — mural /velas (alpha limpo, sem caixa). */
+  /** Chama amarela + núcleo azul integrados (scripts/build-flame-composite.mjs). */
+  flameLit: "/candles/candle-flame-composite.webp",
   flameMural: "/candles/candle-flame-mural.webp",
 } as const;

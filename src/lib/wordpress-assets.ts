@@ -1,57 +1,57 @@
+import { PARISH_LOGO_PATH } from "@/lib/parish-brand";
 import { PAROCHIAL } from "@/lib/parish-social";
 
-/** Imagens e atalhos espelhados do site WordPress original (wp-content). */
-export const WP_IMAGES = {  logo: "https://paroquiarainhadapaz.com.br/wp-content/uploads/2019/01/Logo.png",
-  heroChurch:
-    "https://paroquiarainhadapaz.com.br/wp-content/uploads/2020/06/DSC_7515-960x350.jpg",
-  heroChurchWide:
-    "https://paroquiarainhadapaz.com.br/wp-content/uploads/2020/06/DSC_7515-2048x495.jpg",
-  matriz: "https://paroquiarainhadapaz.com.br/wp-content/uploads/2020/06/Matriz-600x400.png",
-  capela:
-    "https://paroquiarainhadapaz.com.br/wp-content/uploads/2019/02/Capela-600x400.png",
-  tercoOnline:
-    "https://paroquiarainhadapaz.com.br/wp-content/uploads/2021/05/Terco-Online-600x400.png",
-  batismo:
-    "https://paroquiarainhadapaz.com.br/wp-content/uploads/2020/01/Curso-de-Batismo-600x400.png",
+/** Imagens padrão servidas pelo próprio site (`public/images/parish`). */
+export const SITE_IMAGES = {
+  logo: PARISH_LOGO_PATH,
+  heroChurch: "/images/parish/hero-church-960.jpg",
+  heroChurchWide: "/images/parish/hero-church-wide.jpg",
+  matriz: "/images/parish/matriz-600.png",
+  capela: "/images/parish/capela-600.png",
+  tercoOnline: "/images/parish/terco-online-600.png",
+  batismo: "/images/parish/batismo-600.png",
 } as const;
+
+/** @deprecated Use `SITE_IMAGES`. Mantido para imports antigos. */
+export const WP_IMAGES = SITE_IMAGES;
 
 export const QUICK_LINKS = [
   {
     title: "Horários de missa",
     description: "Matriz e Capela Santa Maria",
     href: "/horarios",
-    image: WP_IMAGES.matriz,
+    image: SITE_IMAGES.matriz,
   },
   {
     title: "Vela virtual",
     description: "Intenção, oração e luz de fé",
     href: "/velas",
-    image: WP_IMAGES.heroChurch,
+    image: SITE_IMAGES.heroChurch,
   },
   {
     title: "Terço online",
     description: "Segunda a sexta, 19h30",
     href: "/terco-online",
-    image: WP_IMAGES.tercoOnline,
+    image: SITE_IMAGES.tercoOnline,
   },
   {
     title: "Dízimo",
     description: "Sustente a missão paroquial",
     href: "/sacramentos/dizimo",
-    image: WP_IMAGES.heroChurch,
+    image: SITE_IMAGES.heroChurch,
   },
   {
     title: "Batismo",
     description: "Curso e agendamento",
     href: "/sacramentos/batizado",
-    image: WP_IMAGES.batismo,
+    image: SITE_IMAGES.batismo,
   },
   {
     title: PAROCHIAL.priestName,
     description: `Instagram ${PAROCHIAL.priestInstagramHandle}`,
     href: PAROCHIAL.priestInstagram,
     external: true,
-    image: WP_IMAGES.capela,
+    image: SITE_IMAGES.capela,
   },
 ] as const;
 

@@ -1,3 +1,5 @@
+import { IMAGE_PLACEHOLDER } from "@/lib/local-image-url";
+
 const CATEQUESE_HUB = `
 <p>A catequese na Paróquia Rainha da Paz prepara crianças, jovens e adultos para viver a fé e receber os sacramentos. Escolha o caminho que corresponde à sua idade e situação:</p>
 <ul>
@@ -28,7 +30,11 @@ export function sanitizeWpHtml(
 ): string {
   let out = html;
 
-  out = out.replace(/https?:\/\/www2\.paroquiarainhadapaz\.com\.br/gi, "https://paroquiarainhadapaz.com.br");
+  out = out.replace(
+    /src=(["'])(https?:\/\/[^"']*paroquiarainhadapaz\.com\.br[^"']*)\1/gi,
+    `src=$1${IMAGE_PLACEHOLDER}$1`,
+  );
+  out = out.replace(/src=(["'])(\/\/[^"']*paroquiarainhadapaz\.com\.br[^"']*)\1/gi, `src=$1${IMAGE_PLACEHOLDER}$1`);
   out = out.replace(/<span[^>]*>/gi, "").replace(/<\/span>/gi, "");
   out = out.replace(/\sstyle="[^"]*"/gi, "");
   out = out.replace(/<!--[\s\S]*?-->/g, "");

@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
-import { WP_IMAGES } from "@/lib/wordpress-assets";
+import { resolveImageSrc } from "@/lib/local-image-url";
+import { SITE_IMAGES } from "@/lib/wordpress-assets";
 
 type Post = {
   slug: string;
@@ -11,7 +12,7 @@ type Post = {
 };
 
 export function PostCard({ post }: { post: Post }) {
-  const img = post.coverImage ?? WP_IMAGES.heroChurch;
+  const img = resolveImageSrc(post.coverImage, SITE_IMAGES.heroChurch);
   return (
     <article className="group flex flex-col overflow-hidden rounded-2xl bg-white shadow-md ring-1 ring-parish-100 transition hover:shadow-xl">
       <Link href={`/noticias/${post.slug}`} className="relative block aspect-[16/10] overflow-hidden">
@@ -21,6 +22,7 @@ export function PostCard({ post }: { post: Post }) {
           fill
           className="object-cover transition duration-500 group-hover:scale-105"
           sizes="(max-width:768px) 100vw, 400px"
+          unoptimized={img.startsWith("/uploads/")}
         />
       </Link>
       <div className="flex flex-1 flex-col p-5">

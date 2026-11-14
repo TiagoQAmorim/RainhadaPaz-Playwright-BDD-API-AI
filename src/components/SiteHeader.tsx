@@ -2,8 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
 import { cn } from "@/lib/cn";
+
+const MOBILE_NAV_TOGGLE_ID = "site-mobile-nav-toggle";
+
+function closeMobileNav() {
+  const el = document.getElementById(MOBILE_NAV_TOGGLE_ID) as HTMLInputElement | null;
+  if (el) el.checked = false;
+}
 
 const links = [
   { href: "/institucional", label: "Institucional" },
@@ -19,14 +25,39 @@ const links = [
 type Props = {
   parishName: string;
   logoUrl?: string | null;
+  /** false = só nome da paróquia (ex.: painel admin), sem links do site. */
+  showNav?: boolean;
 };
 
-export function SiteHeader({ parishName }: Props) {
+export function SiteHeader({ parishName, showNav = true }: Props) {
   const pathname = usePathname();
-  const [open, setOpen] = useState(false);
+
+  if (!showNav) {
+    return (
+      <header className="sticky top-0 z-50 border-b border-white/20 bg-parish-600/90 backdrop-blur-xl">
+        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4 md:h-16">
+          <p className="min-w-0 line-clamp-2 text-sm font-semibold leading-tight text-white sm:text-base">
+            {parishName}
+          </p>
+          <Link
+            href="/"
+            className="inline-flex shrink-0 items-center rounded-full bg-gold-500 px-4 py-2 text-sm font-bold text-parish-950 transition hover:bg-gold-400"
+          >
+            Ir para o site
+          </Link>
+        </div>
+      </header>
+    );
+  }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/20 bg-parish-600/90 backdrop-blur-xl transition">
+    <header className="sticky top-0 z-50 border-b border-white/20 bg-parish-600/90 backdrop-blur-xl transition">
+      <input
+        id={MOBILE_NAV_TOGGLE_ID}
+        type="checkbox"
+        className="peer sr-only lg:hidden"
+        aria-hidden
+      />
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4 md:h-16">
         <Link
           href="/"
@@ -73,60 +104,59 @@ export function SiteHeader({ parishName }: Props) {
           </Link>
         </nav>
 
-        <button
-          type="button"
-          className="rounded-lg px-3 py-2 text-sm font-semibold text-white lg:hidden"
-          onClick={() => setOpen((v) => !v)}
-          aria-expanded={open}
+        <label
+          htmlFor={MOBILE_NAV_TOGGLE_ID}
+          className="cursor-pointer select-none rounded-lg px-3 py-2 text-sm font-semibold text-white lg:hidden"
         >
           Menu
-        </button>
+        </label>
       </div>
 
-      {open ? (
-        <nav className="border-t border-white/10 px-2 py-3 lg:hidden">
-          <ul className="grid gap-1">
-            <li>
-              <Link
-                href="/"
-                onClick={() => setOpen(false)}
-                className="block rounded-xl px-3 py-2.5 text-sm font-medium text-white hover:bg-white/10"
-              >
-                Início
-              </Link>
-            </li>
-            {links.map((item) => {
-              const active =
-                pathname === item.href || pathname.startsWith(`${item.href}/`);
-              return (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    onClick={() => setOpen(false)}
-                    className={cn(
-                      "block rounded-xl px-3 py-2.5 text-sm font-medium",
-                      active
-                        ? "bg-white/15 text-white"
-                        : "text-white hover:bg-white/10",
-                    )}
-                  >
-                    {item.label}
-                  </Link>
-                </li>
-              );
-            })}
-            <li className="px-3 pt-2">
-              <Link
-                href="/terco-online"
-                className="inline-flex w-full justify-center rounded-full bg-gold-500 px-4 py-2.5 text-sm font-bold text-parish-950"
-                onClick={() => setOpen(false)}
-              >
-                Terço online
-              </Link>
-            </li>
-          </ul>
-        </nav>
-      ) : null}
+      <nav
+        aria-label="Navegação principal"
+        className="hidden border-t border-white/10 px-2 py-3 peer-checked:block lg:hidden"
+      >
+        <ul className="grid gap-1">
+          <li>
+            <Link
+              href="/"
+              onClick={closeMobileNav}
+              className="block rounded-xl px-3 py-2.5 text-sm font-medium text-white hover:bg-white/10"
+            >
+              Início
+            </Link>
+          </li>
+          {links.map((item) => {
+            const active =
+              pathname === item.href || pathname.startsWith(`${item.href}/`);
+            return (
+              <li key={item.href}>
+                <Link
+                  href={item.href}
+                  onClick={closeMobileNav}
+                  className={cn(
+                    "block rounded-xl px-3 py-2.5 text-sm font-medium",
+                    active
+                      ? "bg-white/15 text-white"
+                      : "text-white hover:bg-white/10",
+                  )}
+                >
+                  {item.label}
+                </Link>
+              </li>
+            );
+          })}
+          <li className="px-3 pt-2">
+            <Link
+              href="/terco-online"
+              className="inline-flex w-full justify-center rounded-full bg-gold-500 px-4 py-2.5 text-sm font-bold text-parish-950"
+              onClick={closeMobileNav}
+            >
+              Terço online
+            </Link>
+          </li>
+        </ul>
+      </nav>
     </header>
   );
 }

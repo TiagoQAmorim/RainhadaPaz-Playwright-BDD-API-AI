@@ -12,6 +12,7 @@ import {
 import { candleRemainingRatio, resolveCandleBurnWindow, DEFAULT_CANDLE_DURATION_HOURS } from "@/lib/candle-burn";
 import {
   candleFlameHeadroomPx,
+  candleFlamePixelSize,
   candleVisualPixelWidth,
   type CandleVisualSize,
 } from "@/lib/candle-visual-size";
@@ -87,8 +88,7 @@ export function CandleVisual({
   const headroom = isLit && flameScale > 0 ? candleFlameHeadroomPx(size, flameScale) : 0;
   const totalH = waxH + headroom;
   const imgSizes = `${w}px`;
-  const flameW = Math.max(18, Math.round(w * 0.5 * flameScale));
-  const flameH = Math.max(24, Math.round(w * 0.68 * flameScale));
+  const { flameW, flameH } = candleFlamePixelSize(w, flameScale);
 
   return (
     <div
@@ -103,6 +103,8 @@ export function CandleVisual({
           height: totalH,
           ["--candle-delay" as string]: `${delaySec}s`,
           ["--flame-scale" as string]: String(flameScale),
+          ["--flame-w" as string]: `${flameW}px`,
+          ["--flame-h" as string]: `${flameH}px`,
         } as CSSProperties
       }
       aria-hidden
@@ -127,7 +129,7 @@ export function CandleVisual({
             <div className="candle-photo__glow pointer-events-none" aria-hidden />
             <div className="candle-photo__flame-stage pointer-events-none">
               <Image
-                src={CANDLE_ASSETS.flame}
+                src={CANDLE_ASSETS.flameLit}
                 alt=""
                 width={flameW}
                 height={flameH}

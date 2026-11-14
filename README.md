@@ -25,10 +25,10 @@ Minimum variables for E2E:
 |----------|---------|
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Admin login scenarios (seed defaults in `.env.example`) |
 | `CANDLE_FREE_MODE=true` | Light virtual candles without payment |
-| `RAFFLE_FREE_MODE=true` | Raffle flows without Mercado Pago |
+| `RAFFLE_FREE_MODE=true` | Raffle flows without PIX checkout |
 | `PLAYWRIGHT_BASE_URL` | Optional; defaults to `http://localhost:3000` |
 
-Admin create scenarios **write to the local SQLite DB** (`prisma/dev.db`).
+Create scenarios register rows in a cleanup queue; an **After** hook deletes them via the admin UI when the scenario finishes (`e2e/steps/hooks.ts`, `e2e/lib/e2e-cleanup.ts`).
 
 ## Playwright projects
 
@@ -170,6 +170,12 @@ Vitest covers isolated library logic under `src/**/*.test.ts` (raffle rules, can
 - **Prisma client out of date:** `npm run db:refresh-client` (restart dev server if EPERM on Windows).
 - **Remove `cursoragent` from future commits:** Cursor Settings → **Git & Pull Requests** → turn off **Commit Attribution**. Optional repo hook (once per clone): `git config core.hooksPath githooks` (uses `githooks/commit-msg` in this repo).
 
+## Pagamentos (PIX paroquial)
+
+Dízimo, velas e rifas usam **PIX** na conta oficial (`src/lib/parish-payments.ts`). Confirmação manual no admin. Detalhes: [**`docs/pagamentos-producao.md`**](docs/pagamentos-producao.md).
+
 ## App setup (short)
 
-For local development beyond tests: `npm run dev` → [http://localhost:3000](http://localhost:3000), admin at `/admin/login`. See `.env.example` for Mercado Pago and production settings.
+For local development beyond tests: `npm run dev` → [http://localhost:3000](http://localhost:3000), admin at `/admin/login`. See `.env.example` for production settings.
+
+**Produção (Railway):** passo a passo em [`docs/hospedagem-railway.md`](docs/hospedagem-railway.md).

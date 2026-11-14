@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { RaffleTicketGridSkeleton } from "@/components/raffle/RaffleTicketGridSkeleton";
 import { ticketPriceLabel } from "@/lib/raffle-rules";
 
 type TicketRow = {
@@ -11,7 +12,7 @@ type TicketRow = {
   saint: {
     name: string;
     celebration: string;
-    description: string;
+    description?: string;
   };
 };
 
@@ -65,6 +66,9 @@ export function RaffleExperience({
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
+  const [debouncedQ, setDebouncedQ] = useState("");
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [modalDetailLoading, setModalDetailLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState("");
   const [sort, setSort] = useState("number");
   const [month, setMonth] = useState("");
@@ -83,22 +87,46 @@ export function RaffleExperience({
 
   const fetchTickets = useCallback(async () => {
     setLoading(true);
+    setLoadError(null);
     const params = new URLSearchParams({
       page: String(page),
       sort,
     });
-    if (q.trim()) params.set("q", q.trim());
+    if (debouncedQ.trim()) params.set("q", debouncedQ.trim());
     if (statusFilter) params.set("status", statusFilter);
     if (month) params.set("month", month);
 
-    const res = await fetch(`/api/rifas/${slug}/tickets?${params}`, { cache: "no-store" });
-    const data = await res.json();
-    if (res.ok) {
-      setTickets(data.tickets);
-      setTotalPages(data.totalPages);
+    try {
+      const res = await fetch(`/api/rifas/${slug}/tickets?${params}`, { cache: "no-store" });
+      const data = (await res.json()) as {
+        tickets?: TicketRow[];
+        totalPages?: number;
+        error?: string;
+      };
+      if (res.ok && Array.isArray(data.tickets)) {
+        setTickets(data.tickets);
+        setTotalPages(data.totalPages ?? 1);
+      } else {
+        setTickets([]);
+        setLoadError(data.error ?? "Não foi possível carregar as cotas.");
+      }
+    } catch {
+      setTickets([]);
+      setLoadError("Falha de conexão ao carregar as cotas.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  }, [slug, page, q, statusFilter, sort, month]);
+  }, [slug, page, debouncedQ, statusFilter, sort, month]);
+
+  useEffect(() => {
+    const trimmed = q.trim();
+    if (trimmed === debouncedQ) return;
+    const id = window.setTimeout(() => {
+      setDebouncedQ(trimmed);
+      setPage(1);
+    }, 400);
+    return () => window.clearTimeout(id);
+  }, [q, debouncedQ]);
 
   const fetchStats = useCallback(async () => {
     const res = await fetch(`/api/rifas/${slug}/stats`, { cache: "no-store" });
@@ -112,20 +140,18 @@ export function RaffleExperience({
 
   useEffect(() => {
     const id = window.setInterval(() => {
-      fetchStats();
-      fetchTickets();
-    }, 12_000);
+      void fetchStats();
+    }, 20_000);
     return () => window.clearInterval(id);
-  }, [fetchStats, fetchTickets]);
+  }, [fetchStats]);
 
   useEffect(() => {
     const onFocus = () => {
-      fetchStats();
-      fetchTickets();
+      void fetchStats();
     };
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
-  }, [fetchStats, fetchTickets]);
+  }, [fetchStats]);
 
   const cartIds = useMemo(() => new Set(cart.map((c) => c.id)), [cart]);
 
@@ -162,18 +188,31 @@ export function RaffleExperience({
         await fetchTickets();
         return;
       }
-      if (data.checkoutUrl) {
-        window.location.href = data.checkoutUrl;
+      if (data.paymentPath) {
+        window.location.href = data.paymentPath;
         return;
       }
-      window.location.href = `/rifas/${slug}/sucesso?order=${data.orderId}`;
+      if (data.free && data.orderId) {
+        window.location.href = `/rifas/${slug}/sucesso?order=${data.orderId}`;
+        return;
+      }
     } finally {
       setSubmitting(false);
     }
   }
 
-  function openTicket(t: TicketRow) {
+  async function openTicket(t: TicketRow) {
     setModalTicket(t);
+    setModalDetailLoading(true);
+    try {
+      const res = await fetch(`/api/rifas/${slug}/tickets/${t.id}`, { cache: "no-store" });
+      if (res.ok) {
+        const detail = (await res.json()) as TicketRow;
+        setModalTicket(detail);
+      }
+    } finally {
+      setModalDetailLoading(false);
+    }
   }
 
   function toggleTicketInCart(t: TicketRow) {
@@ -334,10 +373,7 @@ export function RaffleExperience({
           <label className="text-sm font-semibold text-parish-900">Procure seu santo de devoção…</label>
           <input
             value={q}
-            onChange={(e) => {
-              setQ(e.target.value);
-              setPage(1);
-            }}
+            onChange={(e) => setQ(e.target.value)}
             placeholder="Nome, número da cota ou mês"
             className={`mt-1 w-full ${filterInputClass}`}
           />
@@ -382,12 +418,36 @@ export function RaffleExperience({
         </div>
       </div>
 
-      {loading ? (
-        <p className="text-center text-sm font-medium text-parish-700">Carregando cotas…</p>
-      ) : (
-        <div className="rounded-2xl border-2 border-parish-200 bg-parish-100/90 p-4 shadow-inner md:p-6">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-            {tickets.map((t) => (
+      {loadError && !loading ? (
+        <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-center text-sm text-red-800">
+          {loadError}{" "}
+          <button
+            type="button"
+            className="font-semibold underline"
+            onClick={() => void fetchTickets()}
+          >
+            Tentar de novo
+          </button>
+        </p>
+      ) : null}
+
+      <div className="relative rounded-2xl border-2 border-parish-200 bg-parish-100/90 p-4 shadow-inner md:p-6">
+        {loading && tickets.length === 0 && !loadError ? (
+          <RaffleTicketGridSkeleton />
+        ) : loadError && tickets.length === 0 ? null : (
+          <>
+            {loading ? (
+              <div
+                className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-parish-100/75 backdrop-blur-[1px]"
+                aria-live="polite"
+              >
+                <p className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-parish-800 shadow-md">
+                  Carregando cotas…
+                </p>
+              </div>
+            ) : null}
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+              {tickets.map((t) => (
               <article
                 key={t.id}
                 role="button"
@@ -451,15 +511,16 @@ export function RaffleExperience({
                   </p>
                 )}
               </article>
-            ))}
-          </div>
-        </div>
-      )}
+              ))}
+            </div>
+          </>
+        )}
+      </div>
 
       <div className="flex items-center justify-center gap-3">
         <button
           type="button"
-          disabled={page <= 1}
+          disabled={page <= 1 || loading}
           onClick={() => setPage((p) => p - 1)}
           className="rounded-lg border border-parish-200 px-3 py-1.5 text-sm disabled:opacity-40"
         >
@@ -470,7 +531,7 @@ export function RaffleExperience({
         </span>
         <button
           type="button"
-          disabled={page >= totalPages}
+          disabled={page >= totalPages || loading}
           onClick={() => setPage((p) => p + 1)}
           className="rounded-lg border border-parish-200 px-3 py-1.5 text-sm disabled:opacity-40"
         >
@@ -562,9 +623,13 @@ export function RaffleExperience({
               📅 Dia de celebração: {modalTicket.saint.celebration}
             </p>
             <h3 className="mt-4 text-sm font-semibold">Quem foi {modalTicket.saint.name.split(" ")[0]}?</h3>
-            <p className="mt-2 text-sm leading-relaxed text-parish-700">
-              {modalTicket.saint.description}
-            </p>
+            {modalDetailLoading ? (
+              <p className="mt-2 text-sm text-parish-600">Carregando história do santo…</p>
+            ) : (
+              <p className="mt-2 text-sm leading-relaxed text-parish-700">
+                {modalTicket.saint.description ?? "Texto indisponível no momento."}
+              </p>
+            )}
             <p className="mt-4 text-sm">
               <strong>Cota:</strong> #{modalTicket.ticketLabel} ·{" "}
               <strong>Valor:</strong> {ticketPriceLabel(ticketPriceCents)}

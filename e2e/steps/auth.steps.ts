@@ -1,11 +1,9 @@
 import { expect } from "@playwright/test";
 import { createBdd } from "playwright-bdd";
+import { adminCredentials } from "../lib/admin-session";
 import { test } from "./fixtures";
 
 const { Given, When, Then } = createBdd(test);
-
-const adminEmail = () => process.env.ADMIN_EMAIL ?? "admin@paroquiarainhadapaz.com.br";
-const adminPassword = () => process.env.ADMIN_PASSWORD ?? "AltereEstaSenha123!";
 
 Given("I am on the admin login page", async ({ page }) => {
   await page.goto("/admin/login");
@@ -19,8 +17,9 @@ When("I submit invalid admin credentials", async ({ page }) => {
 });
 
 When("I submit valid admin credentials", async ({ page }) => {
-  await page.locator('input[name="email"]').fill(adminEmail());
-  await page.locator('input[name="password"]').fill(adminPassword());
+  const { email, password } = adminCredentials();
+  await page.locator('input[name="email"]').fill(email);
+  await page.locator('input[name="password"]').fill(password);
   await page.getByRole("button", { name: "Entrar" }).click();
 });
 
@@ -36,9 +35,10 @@ Then("I should be on the admin dashboard", async ({ page }) => {
 });
 
 Given("I am logged in as administrator", async ({ page }) => {
+  const { email, password } = adminCredentials();
   await page.goto("/admin/login");
-  await page.locator('input[name="email"]').fill(adminEmail());
-  await page.locator('input[name="password"]').fill(adminPassword());
+  await page.locator('input[name="email"]').fill(email);
+  await page.locator('input[name="password"]').fill(password);
   await page.getByRole("button", { name: "Entrar" }).click();
   await page.waitForURL(/\/admin\/?$/, { timeout: 20_000 });
 });

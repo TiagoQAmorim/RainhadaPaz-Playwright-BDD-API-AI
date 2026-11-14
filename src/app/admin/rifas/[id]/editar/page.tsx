@@ -1,7 +1,14 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { updateRaffleAction } from "@/app/admin/raffle-actions";
-import { adminBtn, adminCard, adminInput, adminTextarea } from "@/components/admin/AdminFormStyles";
+import { AdminImageField } from "@/components/admin/AdminImageField";
+import {
+  adminBtn,
+  adminCard,
+  adminFormEncType,
+  adminInput,
+  adminTextarea,
+} from "@/components/admin/AdminFormStyles";
 import { getSessionAdmin } from "@/lib/auth";
 import { ticketPriceLabel } from "@/lib/raffle-rules";
 import { prisma } from "@/lib/prisma";
@@ -50,7 +57,7 @@ export default async function AdminEditarRifaPage({
         ) : null}
       </div>
 
-      <form action={updateRaffleAction} className={`${adminCard} space-y-3`}>
+      <form action={updateRaffleAction} encType={adminFormEncType} className={`${adminCard} space-y-3`}>
         <input type="hidden" name="id" value={id} />
         <Field label="Nome da rifa" name="title" defaultValue={raffle.title} required />
         <TextArea label="Descrição" name="description" rows={3} defaultValue={raffle.description} required />
@@ -66,6 +73,12 @@ export default async function AdminEditarRifaPage({
           name="prizeDescription"
           rows={2}
           defaultValue={raffle.prizeDescription ?? ""}
+        />
+        <AdminImageField
+          label="Foto do prêmio"
+          name="prizeImageUrl"
+          fileFieldName="prizeImageUrlFile"
+          defaultValue={raffle.prizeImageUrl}
         />
         <p className="text-sm text-parish-600">
           Quantidade de cotas: <strong>{raffle.totalTickets}</strong> (fixo após criação). Valor atual:{" "}

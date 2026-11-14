@@ -4,6 +4,7 @@
  */
 import { writeFileSync, mkdirSync } from "fs";
 import path from "path";
+import { localizeImageField, localizeParishImagesInHtml } from "../src/lib/mirror-image";
 import { sanitizeWpHtml } from "../src/lib/sanitize-wp-html";
 
 const WP = "https://paroquiarainhadapaz.com.br";
@@ -55,7 +56,6 @@ function cleanHtml(html: string, slug: string): string {
   for (const [from, to] of LINK_REPLACEMENTS) {
     out = out.replace(from as RegExp, to);
   }
-  out = out.replace(/src="\/wp-content\//gi, `src="${WP}/wp-content/`);
   return sanitizeWpHtml(out, { slug });
 }
 
@@ -103,12 +103,22 @@ async function main() {
       parts.push(cleanHtml(wp.content.rendered, entry.slug));
     }
 
-    let body = parts.join("\n<hr class=\"my-8 border-parish-200\" />\n");
-    if (featuredImage) {
-      body = `<figure class="mb-8 overflow-hidden rounded-2xl"><img src="${featuredImage}" alt="" class="w-full h-auto" loading="lazy" /></figure>\n${body}`;
+    let body = await localizeParishImagesInHtml(
+      parts.join("\n<hr class=\"my-8 border-parish-200\" />\n"),
+    );
+    const localFeatured = featuredImage
+      ? (await localizeImageField(featuredImage)) ?? undefined
+      : undefined;
+    if (localFeatured) {
+      body = `<figure class="mb-8 overflow-hidden rounded-2xl"><img src="${localFeatured}" alt="" class="w-full h-auto" loading="lazy" /></figure>\n${body}`;
     }
 
-    pages.push({ slug: entry.slug, title, body, featuredImage });
+    pages.push({
+      slug: entry.slug,
+      title,
+      body,
+      featuredImage: localFeatured,
+    });
     console.log("OK", entry.slug);
   }
 

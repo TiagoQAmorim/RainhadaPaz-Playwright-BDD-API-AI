@@ -7,7 +7,7 @@ import { getRaffleBySlug } from "@/lib/raffles";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
 
-const PAGE_SIZE = 48;
+const PAGE_SIZE = 24;
 
 export async function GET(
   req: Request,
@@ -79,7 +79,6 @@ export async function GET(
       saint: {
         name: t.saint.name,
         celebration: t.saint.celebration,
-        description: t.saint.description,
         feastDay: t.saint.feastDay,
         feastMonth: t.saint.feastMonth,
       },

@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { cn } from "@/lib/cn";
-import { WP_IMAGES } from "@/lib/wordpress-assets";
+import { IMAGE_PLACEHOLDER, isLocalSiteImageUrl } from "@/lib/local-image-url";
 import { parseVaticanPublishedAt, type VaticanNewsItem } from "@/lib/vatican-news";
 
 type Props = {
@@ -10,7 +10,8 @@ type Props = {
 
 export function VaticanNewsCard({ item, variant = "default" }: Props) {
   const publishedAt = parseVaticanPublishedAt(item.publishedAt);
-  const img = item.imageUrl ?? WP_IMAGES.heroChurch;
+  const img =
+    item.imageUrl && isLocalSiteImageUrl(item.imageUrl) ? item.imageUrl : IMAGE_PLACEHOLDER;
   const compact = variant === "compact";
 
   return (
@@ -35,6 +36,7 @@ export function VaticanNewsCard({ item, variant = "default" }: Props) {
           src={img}
           alt=""
           fill
+          unoptimized
           className={cn(
             "object-cover",
             compact ? "transition group-hover:opacity-90" : "transition duration-500 group-hover:scale-105",

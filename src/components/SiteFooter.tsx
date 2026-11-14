@@ -37,7 +37,9 @@ export function SiteFooter({
               <p className="text-sm text-parish-200/80">{diocese}</p>
             </div>
           </div>
-          <p className="mt-5 text-sm leading-relaxed text-parish-200/85">{address}</p>
+          <p className="mt-5 text-sm leading-relaxed text-parish-200/85 max-sm:truncate max-sm:whitespace-nowrap max-sm:text-xs max-sm:leading-snug md:whitespace-normal md:text-sm">
+            {address}
+          </p>
         </div>
 
         <div className="md:col-span-3">

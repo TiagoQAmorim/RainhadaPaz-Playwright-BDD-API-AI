@@ -1,7 +1,14 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createRaffleAction } from "@/app/admin/raffle-actions";
-import { adminBtn, adminCard, adminInput, adminTextarea } from "@/components/admin/AdminFormStyles";
+import { AdminImageField } from "@/components/admin/AdminImageField";
+import {
+  adminBtn,
+  adminCard,
+  adminFormEncType,
+  adminInput,
+  adminTextarea,
+} from "@/components/admin/AdminFormStyles";
 import { getSessionAdmin } from "@/lib/auth";
 import { ensureSaintCatalogInDb } from "@/lib/saints-catalog";
 import { RAFFLE_MAX_TICKETS, RAFFLE_TICKET_QUANTITY_OPTIONS } from "@/lib/raffle-rules";
@@ -34,12 +41,17 @@ export default async function AdminNovaRifaPage({
         ) : null}
       </div>
 
-      <form action={createRaffleAction} className={`${adminCard} space-y-3`}>
+      <form action={createRaffleAction} encType={adminFormEncType} className={`${adminCard} space-y-3`}>
         <Field label="Nome da rifa" name="title" required />
         <TextArea label="Descrição" name="description" rows={3} required />
         <TextArea label="Finalidade da arrecadação" name="purpose" rows={2} />
         <Field label="Prêmio (título)" name="prizeTitle" required />
         <TextArea label="Descrição do prêmio" name="prizeDescription" rows={2} />
+        <AdminImageField
+          label="Foto do prêmio"
+          name="prizeImageUrl"
+          fileFieldName="prizeImageUrlFile"
+        />
         <div>
           <label className="mb-1 block text-sm font-medium">Quantidade de cotas</label>
           <select name="totalTickets" className={adminInput} defaultValue="100" required>

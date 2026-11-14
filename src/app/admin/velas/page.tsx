@@ -1,9 +1,16 @@
 import { redirect } from "next/navigation";
-import { deleteCandle, extinguishCandle, updateCandleSettings } from "@/app/admin/actions";
+import {
+  confirmCandlePixPayment,
+  deleteCandle,
+  extinguishCandle,
+  updateCandleSettings,
+} from "@/app/admin/actions";
+import { AdminConfirmDeleteForm } from "@/components/admin/AdminConfirmDeleteForm";
 import { adminBtn, adminCard, adminInput } from "@/components/admin/AdminFormStyles";
 import { getSessionAdmin } from "@/lib/auth";
 import { isCandleActiveOnMural } from "@/lib/candle-report";
 import { prisma } from "@/lib/prisma";
+import { candleAccessModeLabel, formatCandlePrice } from "@/lib/candle-commerce";
 import { getCandleDurationHours, getSiteSettings } from "@/lib/settings";
 
 export default async function AdminVelasPage() {
@@ -21,6 +28,8 @@ export default async function AdminVelasPage() {
     settings.candleDurationUnit === "days"
       ? `${settings.candleDurationAmount} dia(s) (${durationHours}h no mural)`
       : `${settings.candleDurationAmount} hora(s)`;
+  const priceBrlDefault = (settings.candlePriceCents ?? 1000) / 100;
+  const accessMode = settings.candleAccessMode ?? "paid";
 
   return (
     <div className="space-y-8">
@@ -55,6 +64,75 @@ export default async function AdminVelasPage() {
                 <option value="days">Dias</option>
               </select>
             </div>
+          </div>
+          <div className="max-w-lg space-y-3 border-t border-parish-100 pt-4">
+            <h2 className="text-sm font-semibold text-parish-900">Pagamento e valor</h2>
+            <div className="space-y-2">
+              <label className="mb-1 block text-sm font-medium">Modo</label>
+              <select
+                name="candleAccessMode"
+                className={adminInput}
+                defaultValue={accessMode}
+              >
+                <option value="paid">Paga (PIX ou Sicredi)</option>
+                <option value="free_donation">Gratuita com oferta opcional</option>
+                <option value="free">Gratuita (sem pagamento)</option>
+              </select>
+              <p className="text-xs text-parish-500">
+                Atual: <strong>{candleAccessModeLabel(accessMode as "free" | "free_donation" | "paid")}</strong>
+                {accessMode === "paid" ? (
+                  <>
+                    {" "}
+                    — valor: <strong>{formatCandlePrice(settings.candlePriceCents ?? 1000)}</strong>
+                  </>
+                ) : accessMode === "free_donation" ? (
+                  <> — oferta: valor escolhido pelo fiél no site</>
+                ) : null}
+              </p>
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium">Valor da vela paga (R$)</label>
+              <input
+                type="number"
+                name="candlePriceBrl"
+                min={0.01}
+                step={0.01}
+                defaultValue={priceBrlDefault}
+                className={adminInput}
+                required={accessMode === "paid"}
+                disabled={accessMode === "free"}
+                aria-describedby="candle-price-hint"
+              />
+              <p id="candle-price-hint" className="mt-1 text-xs text-parish-500">
+                {accessMode === "paid"
+                  ? "Usado quando o modo é pago (PIX ou Sicredi)."
+                  : accessMode === "free_donation"
+                    ? "No modo com oferta opcional o fiél informa o valor; este campo só vale se voltar ao modo pago."
+                    : "Sem uso no modo totalmente gratuito."}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-4 text-sm">
+              <label className="flex cursor-pointer items-center gap-2">
+                <input
+                  type="checkbox"
+                  name="candlePaymentPix"
+                  defaultChecked={settings.candlePaymentPix !== false}
+                />
+                PIX (conta Itaú no site)
+              </label>
+              <label className="flex cursor-pointer items-center gap-2">
+                <input
+                  type="checkbox"
+                  name="candlePaymentSicredi"
+                  defaultChecked={settings.candlePaymentSicredi === true}
+                />
+                Cartão Sicredi
+              </label>
+            </div>
+            <p className="text-xs text-parish-500">
+              Sicredi no site só aparece ativo quando <code className="text-parish-700">SICREDI_ENABLED=true</code>{" "}
+              e credenciais estiverem no servidor. Até lá, marque Sicredi aqui para preparar e use PIX na prática.
+            </p>
           </div>
           <div className="max-w-md">
             <label className="mb-1 block text-sm font-medium">
@@ -141,20 +219,34 @@ export default async function AdminVelasPage() {
                 </td>
                 <td className="py-2">
                   <div className="flex flex-col gap-1">
+                    {c.status === "PENDING" ? (
+                      <form action={confirmCandlePixPayment}>
+                        <input type="hidden" name="id" value={c.id} />
+                        <button type="submit" className="text-xs font-semibold text-parish-700 hover:underline">
+                          Confirmar pagamento recebido
+                        </button>
+                      </form>
+                    ) : null}
                     {c.status === "PAID" ? (
-                      <form action={extinguishCandle}>
+                      <AdminConfirmDeleteForm
+                        action={extinguishCandle}
+                        confirmMessage="Encerrar esta vela no mural? Ela deixará de aparecer como acesa."
+                      >
                         <input type="hidden" name="id" value={c.id} />
                         <button type="submit" className="text-xs text-amber-700 hover:underline">
                           Encerrar no mural
                         </button>
-                      </form>
+                      </AdminConfirmDeleteForm>
                     ) : null}
-                    <form action={deleteCandle}>
+                    <AdminConfirmDeleteForm
+                      action={deleteCandle}
+                      confirmMessage="Excluir esta vela permanentemente? Ela será removida do mural e do registro."
+                    >
                       <input type="hidden" name="id" value={c.id} />
                       <button type="submit" className="text-xs font-semibold text-red-700">
                         Excluir
                       </button>
-                    </form>
+                    </AdminConfirmDeleteForm>
                   </div>
                 </td>
               </tr>

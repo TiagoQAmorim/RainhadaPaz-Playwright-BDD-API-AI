@@ -7,6 +7,7 @@ import { requireAdmin } from "@/lib/auth";
 import { assertRaffleTicketQuantity } from "@/lib/raffle-rules";
 import { createRaffleWithTickets } from "@/lib/raffles";
 import { prisma } from "@/lib/prisma";
+import { resolveImageFromForm } from "@/lib/uploads";
 
 export async function createRaffleAction(formData: FormData) {
   await requireAdmin();
@@ -33,6 +34,13 @@ export async function createRaffleAction(formData: FormData) {
     redirect(`/admin/rifas/nova?erro=${encodeURIComponent(msg)}`);
   }
 
+  const prizeImageUrl = await resolveImageFromForm(
+    formData,
+    "prizeImageUrl",
+    "prizeImageUrlFile",
+    null,
+  );
+
   let raffle;
   try {
     raffle = await createRaffleWithTickets({
@@ -41,6 +49,7 @@ export async function createRaffleAction(formData: FormData) {
       purpose: purpose || undefined,
       prizeTitle,
       prizeDescription: prizeDescription || undefined,
+      prizeImageUrl: prizeImageUrl ?? undefined,
       ticketPriceCents: Math.round(ticketPriceBrl * 100),
       totalTickets,
       status,
@@ -85,6 +94,13 @@ export async function updateRaffleAction(formData: FormData) {
     );
   }
 
+  const prizeImageUrl = await resolveImageFromForm(
+    formData,
+    "prizeImageUrl",
+    "prizeImageUrlFile",
+    existing.prizeImageUrl,
+  );
+
   await prisma.raffle.update({
     where: { id },
     data: {
@@ -93,6 +109,7 @@ export async function updateRaffleAction(formData: FormData) {
       purpose: purpose || null,
       prizeTitle,
       prizeDescription: prizeDescription || null,
+      prizeImageUrl,
       ticketPriceCents: Math.round(ticketPriceBrl * 100),
       status: status || existing.status,
       drawScheduledAt: drawScheduledAtRaw ? new Date(drawScheduledAtRaw) : null,

@@ -24,7 +24,7 @@ export function ContentCoverImage({ src, alt = "", className, priority }: Props)
         priority={priority}
         className="object-cover"
         sizes="(max-width: 768px) 100vw, 720px"
-        unoptimized={src.startsWith("/uploads/")}
+        unoptimized={src.startsWith("/uploads/") || src.startsWith("/images/")}
       />
     </figure>
   );

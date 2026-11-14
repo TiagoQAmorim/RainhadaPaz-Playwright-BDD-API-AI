@@ -2,7 +2,10 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { AdminLogoutButton } from "@/components/AdminLogoutButton";
 import { AdminFlashBanner } from "@/components/admin/AdminFlashBanner";
+import { SiteHeader } from "@/components/SiteHeader";
+import { TopBar } from "@/components/TopBar";
 import { getSessionAdmin } from "@/lib/auth";
+import { getSiteSettings } from "@/lib/settings";
 
 const links = [
   { href: "/admin", label: "Início" },
@@ -10,9 +13,11 @@ const links = [
   { href: "/admin/avisos", label: "Avisos" },
   { href: "/admin/horarios", label: "Horários" },
   { href: "/admin/informacoes", label: "Informações" },
+  { href: "/admin/manutencao", label: "Manutenção" },
   { href: "/admin/terco-online", label: "Terço online" },
   { href: "/admin/velas", label: "Velas" },
   { href: "/admin/rifas", label: "Rifas" },
+  { href: "/admin/usuarios", label: "Administradores" },
 ];
 
 export default async function AdminLayout({
@@ -20,41 +25,50 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const admin = await getSessionAdmin();
+  const [admin, settings] = await Promise.all([getSessionAdmin(), getSiteSettings()]);
 
   return (
-    <div className="-mx-4 -mt-8 min-h-screen bg-parish-100 px-4 py-6">
-      <div className="mx-auto max-w-6xl">
-        <div
-          data-admin-nav
-          className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 shadow-sm"
-        >
-          <div>
-            <p className="text-xs uppercase tracking-wide text-parish-500">Painel paroquial</p>
-            <p className="font-semibold text-parish-900">
-              {admin ? `Olá, ${admin.name}` : "Acesso restrito"}
-            </p>
+    <>
+      <TopBar address={settings.address} phone={settings.phone} />
+      <SiteHeader parishName={settings.parishName} logoUrl={settings.logoUrl} showNav={false} />
+      <div className="flex-1 bg-parish-100 px-4 py-6">
+        <div className="mx-auto max-w-6xl">
+          <div
+            data-admin-nav
+            className="mb-6 flex flex-col gap-4 rounded-2xl border border-parish-200 bg-white px-4 py-4 shadow-sm sm:flex-row sm:items-center sm:justify-between"
+          >
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-parish-500">
+                Área administrativa
+              </p>
+              <p className="mt-0.5 font-semibold text-parish-900">
+                {admin ? `Olá, ${admin.name}` : "Login do painel"}
+              </p>
+            </div>
+            {admin ? (
+              <nav
+                className="flex max-w-full flex-wrap gap-1 text-sm"
+                aria-label="Menu do painel"
+              >
+                {links.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="rounded-lg px-3 py-1.5 font-medium text-parish-800 hover:bg-parish-50"
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+                <AdminLogoutButton />
+              </nav>
+            ) : null}
           </div>
-          {admin ? (
-            <nav className="flex flex-wrap gap-1 text-sm">
-              {links.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="rounded-lg px-3 py-1.5 hover:bg-parish-50"
-                >
-                  {item.label}
-                </Link>
-              ))}
-              <AdminLogoutButton />
-            </nav>
-          ) : null}
+          <Suspense fallback={null}>
+            <AdminFlashBanner />
+          </Suspense>
+          {children}
         </div>
-        <Suspense fallback={null}>
-          <AdminFlashBanner />
-        </Suspense>
-        {children}
       </div>
-    </div>
+    </>
   );
 }

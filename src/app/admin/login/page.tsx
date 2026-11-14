@@ -35,7 +35,8 @@ export default function AdminLoginPage() {
     <div className="mx-auto max-w-md rounded-2xl bg-white p-8 shadow-sm">
       <h1 className="text-xl font-semibold text-parish-900">Entrar no painel</h1>
       <p className="mt-2 text-sm text-parish-700">
-        Use o e-mail e senha configurados no servidor (variáveis de ambiente).
+        Use o e-mail e a senha cadastrados no painel. O primeiro usuário é criado no{" "}
+        <code className="text-xs">db:seed</code> ou pelas variáveis de ambiente do servidor.
       </p>
       <form onSubmit={onSubmit} className="mt-6 space-y-4">
         <div>

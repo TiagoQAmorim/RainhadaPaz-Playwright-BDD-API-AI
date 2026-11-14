@@ -28,6 +28,7 @@ export async function getSiteSettings() {
   return settings;
 }
 
+/** @deprecated Use getCandleCommerceConfig().priceCents no servidor. */
 export function candlePriceCents(): number {
   const brl = Number(process.env.CANDLE_PRICE_BRL ?? "10");
   return Math.round(brl * 100);
@@ -61,16 +62,14 @@ export function candleDurationHours(): number {
   return envCandleDurationHours();
 }
 
-/** Enquanto true, velas acendem sem pagamento (testes). Defina CANDLE_FREE_MODE=false para cobrar. */
+/** Só true com CANDLE_FREE_MODE=true (testes locais / E2E). Produção: omita ou false. */
 export function candlesFreeMode(): boolean {
   const v = process.env.CANDLE_FREE_MODE?.trim().toLowerCase();
-  if (v === "false" || v === "0") return false;
-  return true;
+  return v === "true" || v === "1";
 }
 
-/** Modo teste: confirma cotas sem PIX. Defina RAFFLE_FREE_MODE=false em produção. */
+/** Só true com RAFFLE_FREE_MODE=true (testes locais / E2E). Produção: omita ou false. */
 export function raffleFreeMode(): boolean {
   const v = process.env.RAFFLE_FREE_MODE?.trim().toLowerCase();
-  if (v === "false" || v === "0") return false;
-  return true;
+  return v === "true" || v === "1";
 }

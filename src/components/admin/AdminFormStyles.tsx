@@ -7,5 +7,8 @@ export const adminBtn =
   "rounded-xl bg-parish-600 px-4 py-2 text-sm font-semibold text-white hover:bg-parish-500";
 export const adminBtnDanger = "text-sm font-medium text-red-600 hover:text-red-800";
 
+export const adminLink =
+  "inline-flex items-center rounded-xl border border-parish-200 bg-white px-4 py-2 text-sm font-semibold text-parish-800 hover:bg-parish-50";
+
 /** Obrigatório em formulários com `<input type="file">`. */
 export const adminFormEncType = "multipart/form-data" as const;
