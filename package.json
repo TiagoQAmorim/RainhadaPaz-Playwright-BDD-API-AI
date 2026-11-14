@@ -9,7 +9,8 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "node scripts/next-build.mjs",
-    "start": "next start --hostname 0.0.0.0",
+    "start": "node scripts/ensure-db.mjs",
+    "start:next": "next start --hostname 0.0.0.0",
     "lint": "next lint",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",

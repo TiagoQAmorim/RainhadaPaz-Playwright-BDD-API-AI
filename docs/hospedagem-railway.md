@@ -111,12 +111,14 @@ Depois de corrigir, abra de novo o domínio que aparece em **Networking** do ser
 - A **home** pode mostrar conteúdo do **build** (banco temporário) enquanto o **volume** `/data` ainda está vazio — parece desatualizada.
 - **`/admin/login` com erro 500** quase sempre é **banco em runtime** sem tabelas ou sem **seed** (Prisma não acha `SiteSettings` / `Admin`).
 
-No **Console** do serviço (deploy verde), rode:
+O **Console** da Railway às vezes não tem `npm`/`npx`. O app já roda `db push` + **seed automático** (só se não houver admin) em cada boot via `scripts/ensure-db.mjs`.
+
+Se precisar rodar seed manualmente, use o binário do Node no container (com o app em `/app`):
 
 ```bash
 cd /app
-npm run db:push
-npm run db:seed
+node node_modules/prisma/build/index.js db push
+node --import tsx prisma/seed.ts
 ```
 
 Confira também:
