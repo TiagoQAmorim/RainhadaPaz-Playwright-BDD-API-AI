@@ -14,6 +14,8 @@
     "lint": "next lint",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
+    "export:site-bundle": "node scripts/export-site-bundle.mjs",
+    "db:import-bundle": "tsx prisma/import-bundle.ts",
     "import:wp": "tsx scripts/import-wp-content.ts",
     "images:localize": "tsx scripts/localize-site-images.ts",
     "import:saints": "tsx scripts/import-saints-catalog.ts",

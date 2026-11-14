@@ -31,9 +31,11 @@ yarn-error.log*
 .env
 .env*.local
 
-# uploads do admin (mantém a pasta via .gitkeep)
+# uploads do admin (só `migrated/` versionado; novos uploads ficam locais)
 /public/uploads/*
 !/public/uploads/.gitkeep
+!/public/uploads/migrated/
+!/public/uploads/migrated/**
 
 # prisma
 /prisma/*.db

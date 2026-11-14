@@ -56,6 +56,20 @@ No painel **Variables** do serviço (produção):
 
 4. Teste `/admin/login` com `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
 
+### Conteúdo completo (rifas, velas, imagens)
+
+O **seed básico** só traz páginas institucionais. O site completo do seu PC está em `src/data/site-bundle.json` + `public/uploads/migrated/` (no Git).
+
+- Em **cada deploy**, se não houver rifa no banco, o boot importa o bundle automaticamente.
+- Depois de cadastrar coisas no **local**, gere de novo o bundle e faça push:
+
+```bash
+npm run export:site-bundle
+git add src/data/site-bundle.json public/uploads/migrated
+git commit -m "conteúdo site"
+git push
+```
+
 Mais sobre pagamentos: [`pagamentos-producao.md`](pagamentos-producao.md).
 
 ## 5. Domínio `paroquiarainhadapaz.com.br`

@@ -329,6 +329,9 @@ Domingo: 12h e 20h
 
   });
 
+  const { importSiteBundle } = await import("../src/lib/import-site-bundle");
+  await importSiteBundle(prisma);
+  console.log("Conteúdo site-bundle importado (rifas, velas, posts).");
 }
 
 

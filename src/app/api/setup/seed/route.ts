@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import {
+  databaseNeedsBundleImport,
   databaseNeedsSeed,
   runPrismaDbPush,
   runPrismaSeedFromDisk,
+  runSiteBundleImport,
 } from "@/lib/db-bootstrap";
 
 export const runtime = "nodejs";
@@ -28,12 +30,16 @@ export async function POST(req: Request) {
     const need = await databaseNeedsSeed(prisma);
     if (need) {
       runPrismaSeedFromDisk();
+    } else if (await databaseNeedsBundleImport(prisma)) {
+      runSiteBundleImport();
     }
-    const [admins, pages] = await Promise.all([
+    const [admins, pages, raffles, candles] = await Promise.all([
       prisma.admin.count(),
       prisma.page.count(),
+      prisma.raffle.count(),
+      prisma.virtualCandle.count(),
     ]);
-    return NextResponse.json({ ok: true, admins, pages, seeded: need });
+    return NextResponse.json({ ok: true, admins, pages, raffles, candles, seeded: need });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Erro ao popular banco";
     return NextResponse.json({ error: message }, { status: 500 });

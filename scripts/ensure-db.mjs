@@ -46,6 +46,19 @@ try {
   } else {
     console.log("[ensure-db] Banco já populado — seed ignorado");
   }
+
+  try {
+    const raffles = await prisma.raffle.count();
+    const bundleExpected =
+      (await import(path.join(appRoot, "src", "data", "site-bundle.json"), { assert: { type: "json" } }))
+        .default?.raffles?.length ?? 0;
+    if (bundleExpected > 0 && raffles === 0) {
+      console.log("[ensure-db] Importando site-bundle (rifas, velas, posts)…");
+      runNode(["--import", "tsx", path.join(appRoot, "prisma", "import-bundle.ts")], "site bundle");
+    }
+  } catch (e) {
+    console.warn("[ensure-db] site-bundle:", e);
+  }
 } finally {
   await prisma.$disconnect();
 }

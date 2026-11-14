@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { PrismaClient } from "@prisma/client";
+import siteBundle from "@/data/site-bundle.json";
 
 export async function databaseNeedsSeed(prisma: PrismaClient): Promise<boolean> {
   try {
@@ -26,6 +27,31 @@ export function runPrismaSeedFromDisk(): void {
   });
   if (r.status !== 0) {
     throw new Error(`prisma seed falhou (code ${r.status ?? 1})`);
+  }
+}
+
+/** Site no repo inclui bundle local; produção sem rifa = import pendente. */
+export async function databaseNeedsBundleImport(prisma: PrismaClient): Promise<boolean> {
+  const expected = siteBundle.raffles?.length ?? 0;
+  if (expected === 0) return false;
+  try {
+    const raffles = await prisma.raffle.count();
+    return raffles === 0;
+  } catch {
+    return true;
+  }
+}
+
+export function runSiteBundleImport(): void {
+  const root = process.cwd();
+  const importFile = path.join(root, "prisma", "import-bundle.ts");
+  const r = spawnSync(process.execPath, ["--import", "tsx", importFile], {
+    cwd: root,
+    stdio: "inherit",
+    env: process.env,
+  });
+  if (r.status !== 0) {
+    throw new Error(`import bundle falhou (code ${r.status ?? 1})`);
   }
 }
 
