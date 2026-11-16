@@ -30,6 +30,20 @@ export function coerceStoredImageUrl(
 /** Fallback quando não há imagem configurada. */
 export const IMAGE_PLACEHOLDER = PARISH_LOGO_PATH;
 
+/** Capa RSS Vatican News (URL remota permitida no Next/Image). */
+export function resolveVaticanNewsImageSrc(imageUrl: string | null | undefined): string | null {
+  const v = String(imageUrl ?? "").trim();
+  if (!v) return null;
+  if (isLocalSiteImageUrl(v)) return v;
+  try {
+    const host = new URL(v).hostname.toLowerCase();
+    if (host === "vaticannews.va" || host.endsWith(".vaticannews.va")) return v;
+  } catch {
+    return null;
+  }
+  return null;
+}
+
 export function resolveImageSrc(
   url: string | null | undefined,
   fallback: string = IMAGE_PLACEHOLDER,

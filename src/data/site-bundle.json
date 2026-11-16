@@ -1,5 +1,5 @@
 {
-  "exportedAt": "2026-11-14T19:08:06.700Z",
+  "exportedAt": "2026-11-16T23:21:54.865Z",
   "siteSettings": {
     "id": 1,
     "parishName": "Paróquia Nossa Senhora Rainha da Paz",
@@ -898,24 +898,6 @@
       "litAt": "2026-11-05T12:03:08.862Z",
       "expiresAt": "2026-11-05T20:03:08.862Z",
       "createdAt": "2026-11-05T12:03:08.837Z"
-    },
-    {
-      "id": "cmw3hyxv50001whzchsnn2nqm",
-      "donorName": "Marcos Freitas",
-      "intention": "Saúde da Família",
-      "prayer": "Segurança e Saúde de todos da família",
-      "intentionPublic": false,
-      "prayerPublic": false,
-      "email": null,
-      "parishNotifiedAt": "2026-11-05T12:03:47.071Z",
-      "amountCents": 0,
-      "status": "PAID",
-      "paymentMethod": "FREE",
-      "mercadoPagoId": null,
-      "preferenceId": null,
-      "litAt": "2026-11-05T12:03:47.064Z",
-      "expiresAt": "2026-11-05T20:03:47.064Z",
-      "createdAt": "2026-11-05T12:03:47.058Z"
     },
     {
       "id": "cmw3i60mw0002whzcijbw8z8h",

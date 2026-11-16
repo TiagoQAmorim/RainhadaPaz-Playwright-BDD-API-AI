@@ -54,7 +54,7 @@ No painel **Variables** do serviço (produção):
      Use o mesmo valor de `AUTH_SECRET` das Variables. **Em produção** isso só faz `db push` + sync do admin — **não** repõe notícias/rifas.
    - **Repor conteúdo** (snapshot do Git, mesmo do ambiente local — upsert, não apaga vendas/cotas já no banco):
      ```bash
-     curl -X POST "https://SEU-DOMINIO.up.railway.app/api/setup/import-bundle" \
+     curl -X POST "https://www.paroquiarainhadapaz.com.br/api/setup/import-bundle" \
        -H "Authorization: Bearer SEU_AUTH_SECRET"
      ```
      Rode **uma vez** após deploy se páginas/notícias sumiram; deploys futuros **não** rodam isso sozinhos.

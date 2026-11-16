@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { cn } from "@/lib/cn";
-import { IMAGE_PLACEHOLDER, isLocalSiteImageUrl } from "@/lib/local-image-url";
+import { resolveVaticanNewsImageSrc } from "@/lib/local-image-url";
 import { parseVaticanPublishedAt, type VaticanNewsItem } from "@/lib/vatican-news";
 
 type Props = {
@@ -10,8 +10,7 @@ type Props = {
 
 export function VaticanNewsCard({ item, variant = "default" }: Props) {
   const publishedAt = parseVaticanPublishedAt(item.publishedAt);
-  const img =
-    item.imageUrl && isLocalSiteImageUrl(item.imageUrl) ? item.imageUrl : IMAGE_PLACEHOLDER;
+  const img = resolveVaticanNewsImageSrc(item.imageUrl);
   const compact = variant === "compact";
 
   return (
@@ -32,17 +31,29 @@ export function VaticanNewsCard({ item, variant = "default" }: Props) {
           compact ? "aspect-square w-20 sm:w-24" : "block aspect-[16/10] w-full",
         )}
       >
-        <Image
-          src={img}
-          alt=""
-          fill
-          unoptimized
-          className={cn(
-            "object-cover",
-            compact ? "transition group-hover:opacity-90" : "transition duration-500 group-hover:scale-105",
-          )}
-          sizes={compact ? "96px" : "(max-width:768px) 100vw, 400px"}
-        />
+        {img ? (
+          <Image
+            src={img}
+            alt=""
+            fill
+            unoptimized
+            className={cn(
+              "object-cover",
+              compact ? "transition group-hover:opacity-90" : "transition duration-500 group-hover:scale-105",
+            )}
+            sizes={compact ? "96px" : "(max-width:768px) 100vw, 400px"}
+          />
+        ) : (
+          <div
+            className={cn(
+              "flex h-full w-full items-center justify-center bg-gradient-to-br from-parish-200 to-parish-400 text-[10px] font-bold uppercase tracking-wider text-parish-700",
+              compact ? "min-h-full" : "",
+            )}
+            aria-hidden
+          >
+            VN
+          </div>
+        )}
         {!compact ? (
           <span className="absolute left-3 top-3 rounded-full bg-parish-600/90 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white backdrop-blur-sm">
             Vatican News

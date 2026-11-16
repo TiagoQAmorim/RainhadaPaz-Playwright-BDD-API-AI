@@ -9,8 +9,11 @@ const nextConfig: NextConfig = {
     },
   },
   images: {
-    // Conteúdo paroquial: apenas caminhos locais. RSS do Vaticano usa img sem otimização remota.
-    remotePatterns: [],
+    // Conteúdo paroquial local; Vatican News RSS usa domínio vaticannews.va.
+    remotePatterns: [
+      { protocol: "https", hostname: "www.vaticannews.va", pathname: "/**" },
+      { protocol: "https", hostname: "**.vaticannews.va", pathname: "/**" },
+    ],
   },
 };
 
