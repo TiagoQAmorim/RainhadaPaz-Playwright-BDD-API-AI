@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { adminCard } from "@/components/admin/AdminFormStyles";
+import { restoreSiteBundleFromDeploy } from "@/app/admin/actions";
+import { adminCard, adminBtn } from "@/components/admin/AdminFormStyles";
 import { getSessionAdmin } from "@/lib/auth";
 import { countCandlesActiveOnMural } from "@/lib/candle-report";
 import { prisma } from "@/lib/prisma";
@@ -41,19 +42,43 @@ const sections = [
   },
 ];
 
-export default async function AdminHomePage() {
+export default async function AdminHomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ erro?: string }>;
+}) {
   const admin = await getSessionAdmin();
   if (!admin) redirect("/admin/login");
+  const { erro } = await searchParams;
 
-  const [posts, notices, locations, candlesActive] = await Promise.all([
+  const [posts, notices, locations, candlesActive, pages] = await Promise.all([
     prisma.post.count(),
     prisma.notice.count(),
     prisma.massLocation.count(),
     countCandlesActiveOnMural(),
+    prisma.page.count(),
   ]);
 
   return (
     <div className="space-y-8">
+      {erro ? (
+        <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">{erro}</p>
+      ) : null}
+      {(posts === 0 || pages === 0 || locations === 0) && (
+        <section className={`${adminCard} border-amber-200 bg-amber-50/80`}>
+          <h2 className="text-lg font-semibold text-parish-900">Conteúdo ausente no servidor</h2>
+          <p className="mt-2 text-sm text-parish-700">
+            Restaura do snapshot do último deploy tudo que está no seu ambiente local (19 páginas /
+            sacramentos, notícias, avisos, horários, terço, home, velas e rifa). Não apaga
+            administradores.
+          </p>
+          <form action={restoreSiteBundleFromDeploy} className="mt-4">
+            <button type="submit" className={adminBtn}>
+              Restaurar conteúdo completo agora
+            </button>
+          </form>
+        </section>
+      )}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat n={posts} label="Notícias" />
         <Stat n={notices} label="Avisos" />

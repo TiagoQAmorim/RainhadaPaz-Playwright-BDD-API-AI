@@ -19,6 +19,7 @@ import {
 } from "@/lib/datetime-local";
 import { imageUrlFromForm, resolveImageFromForm } from "@/lib/uploads";
 import { sanitizeAdminHtml } from "@/lib/sanitize-admin-html";
+import { importSiteBundle } from "@/lib/import-site-bundle";
 
 function slugify(text: string) {
   return text
@@ -715,4 +716,18 @@ export async function deleteAdminUser(formData: FormData) {
   await prisma.admin.delete({ where: { id } });
   revalidatePath("/admin/usuarios");
   await redirectWithAdminFlash("/admin/usuarios", "deleted");
+}
+
+/** Repõe produção a partir de `site-bundle.json` (mesmo conteúdo do ambiente local no Git). */
+export async function restoreSiteBundleFromDeploy() {
+  await requireAdmin();
+  try {
+    await importSiteBundle(prisma);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Falha ao restaurar conteúdo";
+    redirect(`/admin?erro=${encodeURIComponent(msg.slice(0, 200))}`);
+  }
+  revalidatePath("/", "layout");
+  revalidatePath("/admin");
+  await redirectWithAdminFlash("/admin", "restored");
 }

@@ -1,3 +1,4 @@
+import type { PrismaClient } from "@prisma/client";
 import catalog from "@/data/saints-catalog.json";
 import { prisma } from "@/lib/prisma";
 
@@ -27,20 +28,20 @@ export async function ensureSaintCatalogInDb() {
   }
   const inDb = await prisma.saint.count();
   if (inDb >= expected) return inDb;
-  await syncSaintCatalogToDb();
+  await syncSaintCatalogToDb(prisma);
   return expected;
 }
 
 const SAINT_SYNC_BATCH = 40;
 
 /** Sincroniza JSON → tabela Saint (upsert por nome+data). */
-export async function syncSaintCatalogToDb() {
+export async function syncSaintCatalogToDb(client: PrismaClient = prisma) {
   const saints = getSaintCatalog();
   for (let i = 0; i < saints.length; i += SAINT_SYNC_BATCH) {
     const chunk = saints.slice(i, i + SAINT_SYNC_BATCH);
-    await prisma.$transaction(
+    await client.$transaction(
       chunk.map((s) =>
-        prisma.saint.upsert({
+        client.saint.upsert({
           where: {
             name_feastDay_feastMonth: {
               name: s.name,

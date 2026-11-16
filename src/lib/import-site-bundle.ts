@@ -1,5 +1,6 @@
 import type { PrismaClient } from "@prisma/client";
 import siteBundle from "@/data/site-bundle.json";
+import { syncSaintCatalogToDb } from "@/lib/saints-catalog";
 
 type Bundle = typeof siteBundle;
 
@@ -7,6 +8,8 @@ type Bundle = typeof siteBundle;
 export async function importSiteBundle(prisma: PrismaClient): Promise<void> {
   const bundle = siteBundle as Bundle;
   if (!bundle.siteSettings) return;
+
+  await syncSaintCatalogToDb(prisma);
 
   const s = bundle.siteSettings;
   await prisma.siteSettings.upsert({
