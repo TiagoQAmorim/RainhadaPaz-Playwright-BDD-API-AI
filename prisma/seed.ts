@@ -329,9 +329,13 @@ Domingo: 12h e 20h
 
   });
 
-  const { importSiteBundle } = await import("../src/lib/import-site-bundle");
-  await importSiteBundle(prisma);
-  console.log("Conteúdo site-bundle importado (rifas, velas, posts).");
+  if (process.env.NODE_ENV === "production") {
+    console.log("[seed] Produção: site-bundle não é importado automaticamente (dados ficam no volume SQLite).");
+  } else {
+    const { importSiteBundle } = await import("../src/lib/import-site-bundle");
+    await importSiteBundle(prisma);
+    console.log("Conteúdo site-bundle importado (rifas, velas, posts).");
+  }
 }
 
 

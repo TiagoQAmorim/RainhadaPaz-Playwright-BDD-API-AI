@@ -21,17 +21,23 @@ function runNode(args, label) {
   }
 }
 
+const isProduction = process.env.NODE_ENV === "production";
+
 async function databaseNeedsSeed(prisma) {
   try {
-    const [admins, pages, settings] = await Promise.all([
-      prisma.admin.count(),
+    const admins = await prisma.admin.count();
+    if (isProduction) {
+      // Produção: seed só se não existir admin (nunca reimportar conteúdo no deploy).
+      return admins === 0;
+    }
+    const [pages, settings] = await Promise.all([
       prisma.page.count(),
       prisma.siteSettings.findUnique({ where: { id: 1 } }),
     ]);
     const hollow = !settings || !String(settings.aboutHtml ?? "").trim();
     return admins === 0 || pages === 0 || hollow;
   } catch {
-    return true;
+    return !isProduction;
   }
 }
 
@@ -59,9 +65,16 @@ try {
     const bundleExpected =
       (await import(path.join(appRoot, "src", "data", "site-bundle.json"), { assert: { type: "json" } }))
         .default?.raffles?.length ?? 0;
-    if ((bundleExpected > 0 && raffles === 0) || (await stale())) {
+    const allowBootBundle =
+      process.env.FORCE_SITE_BUNDLE_IMPORT === "true" ||
+      (!isProduction && bundleExpected > 0 && raffles === 0);
+  if (allowBootBundle) {
       console.log("[ensure-db] Importando site-bundle (rifas, velas, posts)…");
       runNode(["--import", "tsx", path.join(appRoot, "prisma", "import-bundle.ts")], "site bundle");
+    } else if (!isProduction && (await stale())) {
+      console.log(
+        "[ensure-db] Capas antigas detectadas — em dev rode npm run db:import-bundle manualmente.",
+      );
     }
   } catch (e) {
     console.warn("[ensure-db] site-bundle:", e);
