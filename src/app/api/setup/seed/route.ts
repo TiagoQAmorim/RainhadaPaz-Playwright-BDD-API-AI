@@ -8,6 +8,7 @@ import {
   runPrismaSeedFromDisk,
   runSiteBundleImport,
 } from "@/lib/db-bootstrap";
+import { isProdRuntime } from "@/lib/prod-runtime";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -29,6 +30,28 @@ export async function POST(req: Request) {
   try {
     runPrismaDbPush();
     await syncAdminFromEnv(prisma);
+
+    if (isProdRuntime()) {
+      const [admins, pages, posts, raffles, candles] = await Promise.all([
+        prisma.admin.count(),
+        prisma.page.count(),
+        prisma.post.count(),
+        prisma.raffle.count(),
+        prisma.virtualCandle.count(),
+      ]);
+      return NextResponse.json({
+        ok: true,
+        productionSafe: true,
+        admins,
+        pages,
+        posts,
+        raffles,
+        candles,
+        message:
+          "Produção: apenas schema + sync do admin. Seed e site-bundle não rodam aqui (preserva conteúdo).",
+      });
+    }
+
     const need = await databaseNeedsSeed(prisma);
     if (need) {
       runPrismaSeedFromDisk();

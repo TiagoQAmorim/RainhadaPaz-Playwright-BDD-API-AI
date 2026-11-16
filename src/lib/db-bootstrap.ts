@@ -2,13 +2,12 @@ import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { PrismaClient } from "@prisma/client";
 import siteBundle from "@/data/site-bundle.json";
-
-const isProduction = process.env.NODE_ENV === "production";
+import { isProdRuntime } from "@/lib/prod-runtime";
 
 export async function databaseNeedsSeed(prisma: PrismaClient): Promise<boolean> {
+  if (isProdRuntime()) return false;
   try {
     const admins = await prisma.admin.count();
-    if (isProduction) return admins === 0;
     const [pages, settings] = await Promise.all([
       prisma.page.count(),
       prisma.siteSettings.findUnique({ where: { id: 1 } }),
@@ -16,7 +15,7 @@ export async function databaseNeedsSeed(prisma: PrismaClient): Promise<boolean> 
     const hollowSettings = !settings || !String(settings.aboutHtml ?? "").trim();
     return admins === 0 || pages === 0 || hollowSettings;
   } catch {
-    return !isProduction;
+    return false;
   }
 }
 
@@ -51,9 +50,7 @@ export async function databaseHasStaleUploadPaths(prisma: PrismaClient): Promise
 }
 
 export async function databaseNeedsBundleImport(prisma: PrismaClient): Promise<boolean> {
-  if (isProduction) {
-    return process.env.FORCE_SITE_BUNDLE_IMPORT === "true";
-  }
+  if (isProdRuntime()) return false;
   const expected = siteBundle.raffles?.length ?? 0;
   try {
     if (expected === 0) return false;

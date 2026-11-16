@@ -45,14 +45,19 @@ No painel **Variables** do serviço (produção):
 1. Faça o deploy (push no GitHub ou **Deploy** manual).
 2. Abra **Settings** → confira que o **domínio** `*.up.railway.app` está ativo (para testes).
 3. **Popular o banco** (automático + manual se precisar):
-   - Em **cada boot**, `scripts/ensure-db.mjs` roda `db push` e sync do admin. Em **produção**, o **seed** só roda se não existir **nenhum** admin; o **site-bundle do Git não é reimportado** no deploy (dados ficam no volume `/data`).
+   - Em **cada boot**, `scripts/ensure-db.mjs` roda `db push` e sync do admin (`ADMIN_PASSWORD`). Em **produção/Railway**, **nunca** roda seed nem `site-bundle` automaticamente — o SQLite em `/data` é a fonte da verdade.
    - **Sem Console Node** na Railway: depois do deploy, do seu PC:
      ```bash
-     curl -X POST "https://rainhadapaz-playwright-bdd-api-ai-production.up.railway.app/api/setup/seed" \
+     curl -X POST "https://SEU-DOMINIO.up.railway.app/api/setup/seed" \
        -H "Authorization: Bearer SEU_AUTH_SECRET"
      ```
-     Use o mesmo valor de `AUTH_SECRET` das Variables. Resposta `{"ok":true,...}` = seed aplicado.
-   - Com [Railway CLI](https://docs.railway.com/guides/cli): `railway run npm run db:seed`
+     Use o mesmo valor de `AUTH_SECRET` das Variables. **Em produção** isso só faz `db push` + sync do admin — **não** repõe notícias/rifas.
+   - **Repor conteúdo** (snapshot do Git, mesmo do ambiente local — upsert, não apaga vendas/cotas já no banco):
+     ```bash
+     curl -X POST "https://SEU-DOMINIO.up.railway.app/api/setup/import-bundle" \
+       -H "Authorization: Bearer SEU_AUTH_SECRET"
+     ```
+     Rode **uma vez** após deploy se páginas/notícias sumiram; deploys futuros **não** rodam isso sozinhos.
 
 4. Teste `/admin/login` com `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
 
@@ -71,7 +76,7 @@ curl -X POST "https://rainhadapaz-playwright-bdd-api-ai-production.up.railway.ap
 
 O **seed básico** só traz páginas institucionais. O site completo do seu PC está em `src/data/site-bundle.json` + `public/uploads/migrated/` (no Git).
 
-- **Produção:** deploys de código **não** substituem rifas/velas pelo bundle. Import automático só com `FORCE_SITE_BUNDLE_IMPORT=true` (uso consciente). Em **dev**, sem rifa, o boot pode importar o bundle.
+- **Produção/Railway:** deploys **não** rodam seed nem import do `site-bundle` (dados só no volume `/data`). Em **dev**, boot pode rodar seed/bundle se o banco estiver vazio.
 - Depois de cadastrar coisas no **local**, gere de novo o bundle e faça push:
 
 ```bash
