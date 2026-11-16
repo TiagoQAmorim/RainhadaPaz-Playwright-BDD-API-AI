@@ -23,3 +23,5 @@ Quando o usuário pedir **atualizar**, **subir**, **deploy** ou **push** para pr
 ## Fonte da verdade em prod
 
 Dados cadastrados (rifas, notícias, sacramentos/páginas, horários, avisos, velas) vivem no **SQLite do volume** `/data`. O Git não substitui esse banco no deploy.
+
+Se o site “zerou”: quase sempre **volume desmontado** ou `DATABASE_URL` fora de `file:/data/...` — não foi import no deploy. Restaurar só com banco vazio (`import-bundle`) ou backup do volume; com conteúdo existente, import fica bloqueado.

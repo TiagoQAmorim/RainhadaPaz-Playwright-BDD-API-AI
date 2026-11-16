@@ -106,7 +106,7 @@ Push na branch conectada → Railway faz build, `prisma db push` e sobe de novo.
 | Problema | O que verificar |
 |----------|-----------------|
 | Admin não loga | Rodou `prisma db seed`? `AUTH_SECRET` definido? |
-| Dados sumiram | `DATABASE_URL` aponta para `/data/...` e volume montado em `/data` |
+| Dados sumiram (0 notícias/rifas) | **Não é seed no deploy.** Confira: (1) Volume no **mesmo serviço** do app, mount `/data`. (2) `DATABASE_URL=file:/data/rainhadapaz.db` (exato). (3) Logs `[ensure-db] SQLite` mostram tamanho do `.db` — se ~vazio, volume desmontou ou URL errada. Restaurar: `ALLOW_SITE_BUNDLE_IMPORT=true` + `POST /api/setup/import-bundle` **uma vez**, depois remova a flag. |
 | PIX não libera vela/rifa | Admin confirma pagamento recebido (ver `pagamentos-producao.md`) |
 | Páginas vazias (institucional, padroeira) | Seed não rodou ou banco “oco” (`aboutHtml` vazio). Redeploy ou `POST /api/setup/seed` com `Authorization: Bearer AUTH_SECRET`. |
 | `/admin/login` erro 500 | `AUTH_SECRET` ≥ 32 chars; seed + volume `/data`; redeploy com deploy **Success**. |

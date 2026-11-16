@@ -2,6 +2,7 @@
  * Boot: prisma db push + sync admin. Produção nunca roda seed nem site-bundle.
  */
 import { spawnSync } from "node:child_process";
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { PrismaClient } from "@prisma/client";
@@ -45,14 +46,66 @@ async function databaseNeedsSeed(prisma) {
   }
 }
 
+if (isProdRuntime()) {
+  const dbUrl = (process.env.DATABASE_URL ?? "").replace(/\\/g, "/");
+  if (!dbUrl.startsWith("file:/data/")) {
+    console.error(
+      "[ensure-db] SERVIDOR PARADO: DATABASE_URL deve ser file:/data/rainhadapaz.db (volume Railway em /data).",
+      "Valor atual:",
+      dbUrl || "(vazio)",
+    );
+    process.exit(1);
+  }
+  if (!fs.existsSync("/data")) {
+    console.error("[ensure-db] SERVIDOR PARADO: pasta /data não existe — monte o volume no serviço Railway.");
+    process.exit(1);
+  }
+}
+
 const prismaCli = path.join(appRoot, "node_modules", "prisma", "build", "index.js");
 runNode([prismaCli, "db", "push"], "prisma db push");
 runNode(["--import", "tsx", path.join(appRoot, "scripts", "sync-admin-from-env.ts")], "sync admin password");
+
+async function prodDbHealthCheck() {
+  const dbUrl = process.env.DATABASE_URL ?? "";
+  console.log(`[ensure-db] DATABASE_URL=${dbUrl.replace(/\\/g, "/")}`);
+  if (!dbUrl.includes("/data/")) {
+    console.error(
+      "[ensure-db] ALERTA CRÍTICO: produção deve usar file:/data/rainhadapaz.db com volume Railway em /data. Sem isso cada deploy cria banco vazio.",
+    );
+  }
+  const filePath = dbUrl.startsWith("file:") ? dbUrl.slice(5) : "";
+  if (filePath) {
+    try {
+      const st = fs.statSync(filePath);
+      console.log(`[ensure-db] SQLite: ${filePath} (${(st.size / 1024).toFixed(1)} KB)`);
+    } catch {
+      console.error(`[ensure-db] SQLite não encontrado em ${filePath} — db push criou arquivo novo/vazio.`);
+    }
+  }
+  const prisma = new PrismaClient();
+  try {
+    const [pages, posts, raffles] = await Promise.all([
+      prisma.page.count(),
+      prisma.post.count(),
+      prisma.raffle.count(),
+    ]);
+    console.log(`[ensure-db] Contagens: pages=${pages} posts=${posts} raffles=${raffles}`);
+    if (pages === 0 && posts === 0 && raffles === 0) {
+      console.error(
+        "[ensure-db] BANCO VAZIO no volume — o deploy NÃO importou conteúdo (proposital). Verifique volume /data ou restaure com ALLOW_SITE_BUNDLE_IMPORT=true + import-bundle.",
+      );
+    }
+  } finally {
+    await prisma.$disconnect();
+  }
+}
 
 if (isProdRuntime()) {
   console.log(
     "[ensure-db] Produção: conteúdo preservado (rifas, notícias, páginas, velas, etc. não são reimportados).",
   );
+  await prodDbHealthCheck();
 } else {
   const prisma = new PrismaClient();
   try {

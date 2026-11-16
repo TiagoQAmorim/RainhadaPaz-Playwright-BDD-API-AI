@@ -722,9 +722,11 @@ export async function deleteAdminUser(formData: FormData) {
 /** Repõe produção a partir de `site-bundle.json` (mesmo conteúdo do ambiente local no Git). */
 export async function restoreSiteBundleFromDeploy() {
   await requireAdmin();
-  if (!allowSiteBundleRestore()) {
+  if (!(await allowSiteBundleRestore(prisma))) {
     redirect(
-      `/admin?erro=${encodeURIComponent("Restauração desabilitada em produção (protege rifas, notícias, páginas e velas). Deploys só atualizam código.")}`,
+      `/admin?erro=${encodeURIComponent(
+        "Restauração bloqueada: o banco já tem conteúdo. Use só se o site estiver vazio ou com ALLOW_SITE_BUNDLE_IMPORT=true no Railway.",
+      )}`,
     );
   }
   try {

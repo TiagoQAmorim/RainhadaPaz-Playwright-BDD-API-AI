@@ -23,18 +23,18 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
-  if (!allowSiteBundleRestore()) {
-    return NextResponse.json(
-      {
-        error:
-          "Import desabilitado em produção. Deploys não alteram conteúdo. Para restaurar manualmente: ALLOW_SITE_BUNDLE_IMPORT=true nas Variables (uso consciente).",
-      },
-      { status: 403 },
-    );
-  }
-
   const prisma = new PrismaClient();
   try {
+    if (!(await allowSiteBundleRestore(prisma))) {
+      return NextResponse.json(
+        {
+          error:
+            "Import bloqueado: já existe conteúdo no banco. Deploys não alteram dados. Para forçar: ALLOW_SITE_BUNDLE_IMPORT=true.",
+        },
+        { status: 403 },
+      );
+    }
+
     await importSiteBundle(prisma);
     const [posts, pages, notices, raffles, raffleTickets, raffleOrders, candles] = await Promise.all([
       prisma.post.count(),

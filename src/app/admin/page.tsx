@@ -52,12 +52,13 @@ export default async function AdminHomePage({
   if (!admin) redirect("/admin/login");
   const { erro } = await searchParams;
 
-  const [posts, notices, locations, candlesActive, pages] = await Promise.all([
+  const [posts, notices, locations, candlesActive, pages, canRestore] = await Promise.all([
     prisma.post.count(),
     prisma.notice.count(),
     prisma.massLocation.count(),
     countCandlesActiveOnMural(),
     prisma.page.count(),
+    allowSiteBundleRestore(prisma),
   ]);
 
   return (
@@ -65,12 +66,12 @@ export default async function AdminHomePage({
       {erro ? (
         <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">{erro}</p>
       ) : null}
-      {allowSiteBundleRestore() && (posts === 0 || pages === 0 || locations === 0) && (
+      {canRestore && (posts === 0 || pages === 0 || locations === 0) && (
         <section className={`${adminCard} border-amber-200 bg-amber-50/80`}>
           <h2 className="text-lg font-semibold text-parish-900">Conteúdo ausente no servidor</h2>
           <p className="mt-2 text-sm text-parish-700">
-            Restauração manual do snapshot do Git (só com ALLOW_SITE_BUNDLE_IMPORT=true no Railway).
-            Deploys normais não tocam rifas, notícias, sacramentos, horários, avisos nem velas.
+            O banco no volume está vazio (deploy não apagou — volume/URL incorretos). Use uma vez para repor do
+            backup no Git. Com dados já cadastrados, isso fica bloqueado.
           </p>
           <form action={restoreSiteBundleFromDeploy} className="mt-4">
             <button type="submit" className={adminBtn}>
