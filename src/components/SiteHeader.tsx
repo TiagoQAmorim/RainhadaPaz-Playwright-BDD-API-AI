@@ -41,6 +41,7 @@ export function SiteHeader({ parishName, showNav = true }: Props) {
           </p>
           <Link
             href="/"
+            prefetch={false}
             className="inline-flex shrink-0 items-center rounded-full bg-gold-500 px-4 py-2 text-sm font-bold text-parish-950 transition hover:bg-gold-400"
           >
             Ir para o site

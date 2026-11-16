@@ -52,6 +52,19 @@ export async function destroySession() {
   jar.delete(COOKIE_NAME);
 }
 
+/** Sessão admin válida (só JWT — serve para bypass de manutenção sem query extra no banco). */
+export async function hasValidAdminSession(): Promise<boolean> {
+  const jar = await cookies();
+  const token = jar.get(COOKIE_NAME)?.value;
+  if (!token) return false;
+  try {
+    const { payload } = await jwtVerify(token, authSecret());
+    return Boolean(payload.sub);
+  } catch {
+    return false;
+  }
+}
+
 export async function getSessionAdmin() {
   const jar = await cookies();
   const token = jar.get(COOKIE_NAME)?.value;

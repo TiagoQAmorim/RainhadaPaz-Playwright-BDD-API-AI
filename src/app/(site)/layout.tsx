@@ -1,4 +1,5 @@
 import { MaintenanceScreen } from "@/components/MaintenanceScreen";
+import { connection } from "next/server";
 
 /** Produção usa SQLite no volume — não servir home congelada do build. */
 export const dynamic = "force-dynamic";
@@ -6,15 +7,19 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { TopBar } from "@/components/TopBar";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
-import { getSessionAdmin } from "@/lib/auth";
+import { hasValidAdminSession } from "@/lib/auth";
 import { resolveMaintenance } from "@/lib/maintenance";
 import { getSiteSettings } from "@/lib/settings";
 
 export default async function SiteLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const [maintenance, admin] = await Promise.all([resolveMaintenance(), getSessionAdmin()]);
-  if (maintenance.active && !admin) {
+  await connection();
+  const [maintenance, adminLoggedIn] = await Promise.all([
+    resolveMaintenance(),
+    hasValidAdminSession(),
+  ]);
+  if (maintenance.active && !adminLoggedIn) {
     return (
       <MaintenanceScreen
         parishName={maintenance.parishName}
