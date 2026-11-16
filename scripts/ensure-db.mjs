@@ -1,5 +1,5 @@
 /**
- * Railway: db push + seed quando banco vazio antes do Next.
+ * Boot: prisma db push + sync admin. Produção nunca roda seed nem site-bundle.
  */
 import { spawnSync } from "node:child_process";
 import path from "node:path";
@@ -49,48 +49,37 @@ const prismaCli = path.join(appRoot, "node_modules", "prisma", "build", "index.j
 runNode([prismaCli, "db", "push"], "prisma db push");
 runNode(["--import", "tsx", path.join(appRoot, "scripts", "sync-admin-from-env.ts")], "sync admin password");
 
-const prisma = new PrismaClient();
-try {
-  if (await databaseNeedsSeed(prisma)) {
-    console.log("[ensure-db] Banco vazio ou incompleto — seed…");
-    runNode(["--import", "tsx", path.join(appRoot, "prisma", "seed.ts")], "prisma seed");
-  } else {
-    console.log("[ensure-db] Banco já populado — seed ignorado");
-  }
-
+if (isProdRuntime()) {
+  console.log(
+    "[ensure-db] Produção: conteúdo preservado (rifas, notícias, páginas, velas, etc. não são reimportados).",
+  );
+} else {
+  const prisma = new PrismaClient();
   try {
-    const stale = async () => {
-      const posts = await prisma.post.findMany({ select: { coverImage: true } });
-      const notices = await prisma.notice.findMany({ select: { coverImage: true } });
-      const bad = (u) => u && /^\/uploads\/\d/.test(u);
-      return posts.some((p) => bad(p.coverImage)) || notices.some((n) => bad(n.coverImage));
-    };
-    const raffles = await prisma.raffle.count();
-    const bundleExpected =
-      (await import(path.join(appRoot, "src", "data", "site-bundle.json"), { assert: { type: "json" } }))
-        .default?.raffles?.length ?? 0;
-    if (isProdRuntime() && process.env.FORCE_SITE_BUNDLE_IMPORT === "true") {
-      console.warn(
-        "[ensure-db] FORCE_SITE_BUNDLE_IMPORT=true em produção — isso sobrescreve dados. Remova a variável.",
-      );
+    if (await databaseNeedsSeed(prisma)) {
+      console.log("[ensure-db] Dev: banco vazio — seed…");
+      runNode(["--import", "tsx", path.join(appRoot, "prisma", "seed.ts")], "prisma seed");
+    } else {
+      console.log("[ensure-db] Dev: seed ignorado (banco já populado)");
     }
-    const allowBootBundle =
-      !isProdRuntime() &&
-      (process.env.FORCE_SITE_BUNDLE_IMPORT === "true" ||
-        (bundleExpected > 0 && raffles === 0));
-    if (allowBootBundle) {
-      console.log("[ensure-db] Importando site-bundle (rifas, velas, posts)…");
-      runNode(["--import", "tsx", path.join(appRoot, "prisma", "import-bundle.ts")], "site bundle");
-    } else if (!isProdRuntime() && (await stale())) {
-      console.log(
-        "[ensure-db] Capas antigas detectadas — em dev rode npm run db:import-bundle manualmente.",
-      );
+
+    try {
+      const raffles = await prisma.raffle.count();
+      const bundleExpected =
+        (await import(path.join(appRoot, "src", "data", "site-bundle.json"), { assert: { type: "json" } }))
+          .default?.raffles?.length ?? 0;
+      const allowBootBundle =
+        process.env.FORCE_SITE_BUNDLE_IMPORT === "true" || (bundleExpected > 0 && raffles === 0);
+      if (allowBootBundle) {
+        console.log("[ensure-db] Dev: importando site-bundle…");
+        runNode(["--import", "tsx", path.join(appRoot, "prisma", "import-bundle.ts")], "site bundle");
+      }
+    } catch (e) {
+      console.warn("[ensure-db] site-bundle:", e);
     }
-  } catch (e) {
-    console.warn("[ensure-db] site-bundle:", e);
+  } finally {
+    await prisma.$disconnect();
   }
-} finally {
-  await prisma.$disconnect();
 }
 
 console.log("[ensure-db] Subindo Next.js…");

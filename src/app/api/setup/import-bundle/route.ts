@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import { importSiteBundle } from "@/lib/import-site-bundle";
+import { allowSiteBundleRestore } from "@/lib/prod-content-policy";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,6 +21,16 @@ export async function POST(req: Request) {
   const token = auth.startsWith("Bearer ") ? auth.slice(7).trim() : "";
   if (token !== secret) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  }
+
+  if (!allowSiteBundleRestore()) {
+    return NextResponse.json(
+      {
+        error:
+          "Import desabilitado em produção. Deploys não alteram conteúdo. Para restaurar manualmente: ALLOW_SITE_BUNDLE_IMPORT=true nas Variables (uso consciente).",
+      },
+      { status: 403 },
+    );
   }
 
   const prisma = new PrismaClient();

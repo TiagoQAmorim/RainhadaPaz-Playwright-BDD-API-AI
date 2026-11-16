@@ -37,6 +37,7 @@ No painel **Variables** do serviço (produção):
 | `RAFFLE_FREE_MODE` | `false` para cobrar rifas |
 | `CANDLE_PRICE_BRL` | ex. `10` |
 | SMTP (`SMTP_*`) | opcional, e-mails de vela |
+| `ALLOW_SITE_BUNDLE_IMPORT` | **omitir** (padrão). Só `true` para restauração manual do bundle — nunca em deploys normais |
 
 `NODE_ENV` → Railway costuma definir `production` automaticamente.
 
@@ -52,12 +53,11 @@ No painel **Variables** do serviço (produção):
        -H "Authorization: Bearer SEU_AUTH_SECRET"
      ```
      Use o mesmo valor de `AUTH_SECRET` das Variables. **Em produção** isso só faz `db push` + sync do admin — **não** repõe notícias/rifas.
-   - **Repor conteúdo** (snapshot do Git, mesmo do ambiente local — upsert, não apaga vendas/cotas já no banco):
-     ```bash
-     curl -X POST "https://www.paroquiarainhadapaz.com.br/api/setup/import-bundle" \
-       -H "Authorization: Bearer SEU_AUTH_SECRET"
-     ```
-     Rode **uma vez** após deploy se páginas/notícias sumiram; deploys futuros **não** rodam isso sozinhos.
+   - **Restaurar conteúdo do Git** (só emergência, sobrescreve/upsert rifas, notícias, páginas, velas, etc.):
+     1. Defina `ALLOW_SITE_BUNDLE_IMPORT=true` nas Variables e redeploy.
+     2. `POST /api/setup/import-bundle` com `Authorization: Bearer AUTH_SECRET` **ou** botão no admin.
+     3. Remova `ALLOW_SITE_BUNDLE_IMPORT` depois (volta a desligado).
+     **Deploys de código não fazem isso sozinhos.**
 
 4. Teste `/admin/login` com `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
 
@@ -72,20 +72,13 @@ curl -X POST "https://rainhadapaz-playwright-bdd-api-ai-production.up.railway.ap
   -d "{\"email\":\"admin@paroquiarainhadapaz.com.br\",\"password\":\"AltereEstaSenha123!\"}"
 ```
 
-### Conteúdo completo (rifas, velas, imagens)
+### Atualizar o sistema sem apagar cadastros
 
-O **seed básico** só traz páginas institucionais. O site completo do seu PC está em `src/data/site-bundle.json` + `public/uploads/migrated/` (no Git).
+**Em produção, o que importa é o banco no volume `/data`.** Push de código (correções, layout, pagamentos) **não** deve reimportar rifas, notícias, sacramentos (páginas), horários, avisos, velas, etc.
 
-- **Produção/Railway:** deploys **não** rodam seed nem import do `site-bundle` (dados só no volume `/data`). Em **dev**, boot pode rodar seed/bundle se o banco estiver vazio.
-- Depois de cadastrar coisas no **local**, gere de novo o bundle e faça push:
-
-```bash
-npm run export:site-bundle
-git add src/data/site-bundle.json public/uploads/migrated
-# (o export já roda sync:bundle-uploads — capas do admin em uploads/migrated)
-git commit -m "conteúdo site"
-git push
-```
+- Boot: só `db push` (schema) + sync do admin.
+- Não rode `seed` / `import-bundle` no Railway como rotina de deploy.
+- Backup opcional no PC: `npm run export:site-bundle` (arquivo local; **não** incluir em commits de “só código” a menos que queira cópia versionada).
 
 Mais sobre pagamentos: [`pagamentos-producao.md`](pagamentos-producao.md).
 

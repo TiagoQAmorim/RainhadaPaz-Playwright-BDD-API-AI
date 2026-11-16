@@ -15,6 +15,7 @@ import {
 } from "../src/lib/wordpress-assets";
 
 import { syncSaintCatalogToDb } from "../src/lib/saints-catalog";
+import { isProdRuntime } from "../src/lib/prod-runtime";
 
 
 
@@ -86,6 +87,10 @@ const settingsData = {
 
 
 async function main() {
+  if (isProdRuntime()) {
+    console.log("[seed] Produção: não roda — conteúdo do site fica no volume SQLite (/data).");
+    return;
+  }
 
   const email = (process.env.ADMIN_EMAIL ?? "admin@paroquiarainhadapaz.com.br").trim().toLowerCase();
 

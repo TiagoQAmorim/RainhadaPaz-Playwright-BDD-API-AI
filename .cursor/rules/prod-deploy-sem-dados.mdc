@@ -1,0 +1,25 @@
+---
+description: Deploy produção atualiza só código; nunca sobrescrever SQLite com bundle/seed
+alwaysApply: true
+---
+
+# Produção — atualizar sistema sem mexer no banco
+
+Quando o usuário pedir **atualizar**, **subir**, **deploy** ou **push** para produção:
+
+## Proibido
+
+- Commitar ou incluir no push: `src/data/site-bundle.json`, export do `dev.db`, `public/uploads/migrated` (salvo pedido **explícito** de backup de conteúdo).
+- Rodar em produção: `npm run db:seed`, `db:import-bundle`, `export:site-bundle` como parte do deploy.
+- Chamar `/api/setup/import-bundle` ou o botão admin **Restaurar conteúdo** sem o usuário pedir restauração e sem `ALLOW_SITE_BUNDLE_IMPORT=true` no Railway.
+- Ativar `FORCE_SITE_BUNDLE_IMPORT` em produção.
+
+## Permitido no deploy
+
+- Código, estilos, correções de bugs.
+- `prisma db push` no boot (só schema, não apaga linhas).
+- Sync de `ADMIN_PASSWORD` a partir das Variables.
+
+## Fonte da verdade em prod
+
+Dados cadastrados (rifas, notícias, sacramentos/páginas, horários, avisos, velas) vivem no **SQLite do volume** `/data`. O Git não substitui esse banco no deploy.

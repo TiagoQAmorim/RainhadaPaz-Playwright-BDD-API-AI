@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { restoreSiteBundleFromDeploy } from "@/app/admin/actions";
+import { allowSiteBundleRestore } from "@/lib/prod-content-policy";
 import { adminCard, adminBtn } from "@/components/admin/AdminFormStyles";
 import { getSessionAdmin } from "@/lib/auth";
 import { countCandlesActiveOnMural } from "@/lib/candle-report";
@@ -64,13 +65,12 @@ export default async function AdminHomePage({
       {erro ? (
         <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">{erro}</p>
       ) : null}
-      {(posts === 0 || pages === 0 || locations === 0) && (
+      {allowSiteBundleRestore() && (posts === 0 || pages === 0 || locations === 0) && (
         <section className={`${adminCard} border-amber-200 bg-amber-50/80`}>
           <h2 className="text-lg font-semibold text-parish-900">Conteúdo ausente no servidor</h2>
           <p className="mt-2 text-sm text-parish-700">
-            Restaura do snapshot do último deploy tudo que está no seu ambiente local (19 páginas /
-            sacramentos, notícias, avisos, horários, terço, home, velas e rifa). Não apaga
-            administradores.
+            Restauração manual do snapshot do Git (só com ALLOW_SITE_BUNDLE_IMPORT=true no Railway).
+            Deploys normais não tocam rifas, notícias, sacramentos, horários, avisos nem velas.
           </p>
           <form action={restoreSiteBundleFromDeploy} className="mt-4">
             <button type="submit" className={adminBtn}>

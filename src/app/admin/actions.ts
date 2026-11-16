@@ -20,6 +20,7 @@ import {
 import { imageUrlFromForm, resolveImageFromForm } from "@/lib/uploads";
 import { sanitizeAdminHtml } from "@/lib/sanitize-admin-html";
 import { importSiteBundle } from "@/lib/import-site-bundle";
+import { allowSiteBundleRestore } from "@/lib/prod-content-policy";
 
 function slugify(text: string) {
   return text
@@ -721,6 +722,11 @@ export async function deleteAdminUser(formData: FormData) {
 /** Repõe produção a partir de `site-bundle.json` (mesmo conteúdo do ambiente local no Git). */
 export async function restoreSiteBundleFromDeploy() {
   await requireAdmin();
+  if (!allowSiteBundleRestore()) {
+    redirect(
+      `/admin?erro=${encodeURIComponent("Restauração desabilitada em produção (protege rifas, notícias, páginas e velas). Deploys só atualizam código.")}`,
+    );
+  }
   try {
     await importSiteBundle(prisma);
   } catch (e) {

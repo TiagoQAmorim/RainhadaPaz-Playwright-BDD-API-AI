@@ -1,5 +1,5 @@
 /**
- * Exporta conteúdo do dev.db para src/data/site-bundle.json (deploy / seed).
+ * Exporta conteúdo do dev.db para src/data/site-bundle.json (backup local — não usar em deploy de código).
  * Uso: node scripts/export-site-bundle.mjs
  */
 import { spawnSync } from "node:child_process";
