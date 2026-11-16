@@ -83,7 +83,10 @@ export async function updateMaintenanceSettings(formData: FormData) {
   await requireAdmin();
   const maintenanceEnabled = formCheckboxOn(formData, "maintenanceEnabled");
   const message = String(formData.get("maintenanceMessage") ?? "").trim() || null;
-  const maintenanceEndsAt = parseDatetimeLocalField(String(formData.get("maintenanceEndsAt") ?? ""));
+  const showReturnDate = formCheckboxOn(formData, "maintenanceShowReturnDate");
+  const maintenanceEndsAt = showReturnDate
+    ? parseDatetimeLocalField(String(formData.get("maintenanceEndsAt") ?? ""))
+    : null;
 
   await prisma.siteSettings.update({
     where: { id: 1 },
@@ -535,9 +538,25 @@ export async function updateCandleSettings(formData: FormData) {
 export async function deleteCandle(formData: FormData) {
   await requireAdmin();
   const id = String(formData.get("id") ?? "");
-  if (id) await prisma.virtualCandle.delete({ where: { id } });
+  if (!id) throw new Error("Vela inválida.");
+  const candle = await prisma.virtualCandle.findUnique({ where: { id } });
+  if (!candle) {
+    await redirectWithAdminFlash("/admin/velas", "deleted");
+    return;
+  }
+  const hasPayment =
+    candle.status === "PAID" ||
+    candle.status === "PENDING" ||
+    candle.amountCents > 0;
+  if (hasPayment && formData.get("dangerConfirm") !== "EXCLUIR") {
+    throw new Error(
+      "Esta vela tem registro de pagamento ou pedido. Confirme a exclusão digitando EXCLUIR.",
+    );
+  }
+  await prisma.virtualCandle.delete({ where: { id } });
   revalidatePath("/velas");
   revalidatePath("/");
+  revalidatePath("/admin");
   revalidatePath("/admin/velas");
   await redirectWithAdminFlash("/admin/velas", "deleted");
 }

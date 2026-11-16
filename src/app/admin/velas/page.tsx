@@ -240,7 +240,18 @@ export default async function AdminVelasPage() {
                     ) : null}
                     <AdminConfirmDeleteForm
                       action={deleteCandle}
-                      confirmMessage="Excluir esta vela permanentemente? Ela será removida do mural e do registro."
+                      confirmMessage={
+                        c.status === "PAID" || c.amountCents > 0
+                          ? `ATENÇÃO: esta vela tem pagamento ou valor registrado (R$ ${(c.amountCents / 100).toFixed(2)}). Excluir apaga o registro permanentemente.`
+                          : c.status === "PENDING"
+                            ? "Esta vela aguarda pagamento. Excluir cancela o pedido permanentemente."
+                            : "Excluir esta vela permanentemente? Ela será removida do mural e do registro."
+                      }
+                      confirmPhrase={
+                        c.status === "PAID" || c.status === "PENDING" || c.amountCents > 0
+                          ? "EXCLUIR"
+                          : undefined
+                      }
                     >
                       <input type="hidden" name="id" value={c.id} />
                       <button type="submit" className="text-xs font-semibold text-red-700">

@@ -134,14 +134,13 @@ export function RaffleExperience({
   }, [slug]);
 
   useEffect(() => {
-    fetchTickets();
-    fetchStats();
-  }, [fetchTickets, fetchStats]);
+    void fetchTickets();
+  }, [fetchTickets]);
 
   useEffect(() => {
     const id = window.setInterval(() => {
-      void fetchStats();
-    }, 20_000);
+      if (document.visibilityState === "visible") void fetchStats();
+    }, 45_000);
     return () => window.clearInterval(id);
   }, [fetchStats]);
 

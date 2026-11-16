@@ -52,18 +52,82 @@ export async function getRaffleBySlug(slug: string) {
   return prisma.raffle.findUnique({ where: { slug } });
 }
 
-export async function getRaffleStats(raffleId: string) {
-  const [total, sold, reserved, available] = await Promise.all([
-    prisma.raffleTicket.count({ where: { raffleId } }),
-    prisma.raffleTicket.count({ where: { raffleId, status: "SOLD" } }),
-    prisma.raffleTicket.count({ where: { raffleId, status: "RESERVED" } }),
-    prisma.raffleTicket.count({ where: { raffleId, status: "AVAILABLE" } }),
+/** Estatísticas de várias rifas em 2 consultas (lista no admin). */
+export async function getRaffleStatsMap(raffleIds: string[]) {
+  if (raffleIds.length === 0) return new Map<string, Awaited<ReturnType<typeof getRaffleStats>>>();
+
+  const [groups, raffles, paidByRaffle] = await Promise.all([
+    prisma.raffleTicket.groupBy({
+      by: ["raffleId", "status"],
+      where: { raffleId: { in: raffleIds } },
+      _count: { _all: true },
+    }),
+    prisma.raffle.findMany({
+      where: { id: { in: raffleIds } },
+      select: { id: true, ticketPriceCents: true },
+    }),
+    prisma.raffleOrder.groupBy({
+      by: ["raffleId"],
+      where: { raffleId: { in: raffleIds }, status: "PAID" },
+      _sum: { totalCents: true },
+    }),
   ]);
-  const raffle = await prisma.raffle.findUniqueOrThrow({ where: { id: raffleId } });
-  const confirmed = await prisma.raffleOrder.aggregate({
-    where: { raffleId, status: "PAID" },
-    _sum: { totalCents: true },
-  });
+
+  const priceById = Object.fromEntries(raffles.map((r) => [r.id, r.ticketPriceCents]));
+  const raisedById = Object.fromEntries(
+    paidByRaffle.map((p) => [p.raffleId, p._sum.totalCents ?? 0]),
+  );
+  const counts = new Map<string, Record<string, number>>();
+  for (const g of groups) {
+    const row = counts.get(g.raffleId) ?? {};
+    row[g.status] = g._count._all;
+    counts.set(g.raffleId, row);
+  }
+
+  const map = new Map<string, Awaited<ReturnType<typeof getRaffleStats>>>();
+  for (const id of raffleIds) {
+    const c = counts.get(id) ?? {};
+    const sold = c.SOLD ?? 0;
+    const reserved = c.RESERVED ?? 0;
+    const available = c.AVAILABLE ?? 0;
+    const total = sold + reserved + available;
+    const soldRatio = total > 0 ? sold / total : 0;
+    const committedRatio = total > 0 ? (sold + reserved) / total : 0;
+    map.set(id, {
+      total,
+      sold,
+      reserved,
+      available,
+      ticketPriceCents: priceById[id] ?? 0,
+      raisedCents: raisedById[id] ?? 0,
+      progressPct: total > 0 ? soldRatio * 100 : 0,
+      committedPct: total > 0 ? committedRatio * 100 : 0,
+    });
+  }
+  return map;
+}
+
+export async function getRaffleStats(raffleId: string) {
+  const [groups, raffle, confirmed] = await Promise.all([
+    prisma.raffleTicket.groupBy({
+      by: ["status"],
+      where: { raffleId },
+      _count: { _all: true },
+    }),
+    prisma.raffle.findUniqueOrThrow({
+      where: { id: raffleId },
+      select: { ticketPriceCents: true },
+    }),
+    prisma.raffleOrder.aggregate({
+      where: { raffleId, status: "PAID" },
+      _sum: { totalCents: true },
+    }),
+  ]);
+  const byStatus = Object.fromEntries(groups.map((g) => [g.status, g._count._all]));
+  const sold = byStatus.SOLD ?? 0;
+  const reserved = byStatus.RESERVED ?? 0;
+  const available = byStatus.AVAILABLE ?? 0;
+  const total = sold + reserved + available;
   const soldRatio = total > 0 ? sold / total : 0;
   const committedRatio = total > 0 ? (sold + reserved) / total : 0;
 

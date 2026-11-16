@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { adminCard } from "@/components/admin/AdminFormStyles";
 import { getSessionAdmin } from "@/lib/auth";
+import { countCandlesActiveOnMural } from "@/lib/candle-report";
 import { prisma } from "@/lib/prisma";
 
 const sections = [
@@ -48,7 +49,7 @@ export default async function AdminHomePage() {
     prisma.post.count(),
     prisma.notice.count(),
     prisma.massLocation.count(),
-    prisma.virtualCandle.count({ where: { status: "PAID" } }),
+    countCandlesActiveOnMural(),
   ]);
 
   return (

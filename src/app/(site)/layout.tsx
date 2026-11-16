@@ -6,14 +6,15 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { TopBar } from "@/components/TopBar";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
+import { getSessionAdmin } from "@/lib/auth";
 import { resolveMaintenance } from "@/lib/maintenance";
 import { getSiteSettings } from "@/lib/settings";
 
 export default async function SiteLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const maintenance = await resolveMaintenance();
-  if (maintenance.active) {
+  const [maintenance, admin] = await Promise.all([resolveMaintenance(), getSessionAdmin()]);
+  if (maintenance.active && !admin) {
     return (
       <MaintenanceScreen
         parishName={maintenance.parishName}

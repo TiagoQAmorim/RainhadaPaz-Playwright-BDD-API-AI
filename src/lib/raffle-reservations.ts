@@ -1,6 +1,19 @@
 import { prisma } from "@/lib/prisma";
 
-export async function expireStaleReservations(raffleId?: string) {
+const EXPIRE_THROTTLE_MS = 45_000;
+const lastExpireAt = new Map<string, number>();
+
+export async function expireStaleReservations(
+  raffleId?: string,
+  opts?: { force?: boolean },
+) {
+  const key = raffleId ?? "__global__";
+  if (!opts?.force) {
+    const last = lastExpireAt.get(key) ?? 0;
+    if (Date.now() - last < EXPIRE_THROTTLE_MS) return;
+  }
+  lastExpireAt.set(key, Date.now());
+
   const now = new Date();
   await prisma.raffleTicket.updateMany({
     where: {
@@ -26,7 +39,7 @@ export async function reserveTicketsForSession(params: {
   const { raffleId, ticketIds, sessionId, reservationMinutes } = params;
   if (ticketIds.length === 0) throw new Error("Nenhuma cota selecionada.");
 
-  await expireStaleReservations(raffleId);
+  await expireStaleReservations(raffleId, { force: true });
   const expiresAt = new Date(Date.now() + reservationMinutes * 60 * 1000);
 
   await prisma.$transaction(async (tx) => {

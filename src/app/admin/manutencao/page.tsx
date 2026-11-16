@@ -20,8 +20,9 @@ export default async function AdminManutencaoPage() {
         <h1 className="text-lg font-semibold text-parish-900">Manutenção do site</h1>
         <p className="mt-1 text-sm text-parish-600">
           Visitantes veem uma página com o logo e aviso de manutenção. O painel{" "}
-          <strong>/admin</strong> continua acessível para você. O site público volta sozinho quando
-          você desmarcar ou quando chegar a data de término.
+          <strong>/admin</strong> continua acessível. Se você estiver <strong>logado como admin</strong>,
+          também vê o site público normal (home, rifas, etc.) para conferir antes de reabrir. O site volta
+          para todos quando você desmarcar ou quando chegar a data de término.
         </p>
         <p className="mt-3 text-sm">
           Status agora:{" "}
@@ -59,29 +60,50 @@ export default async function AdminManutencaoPage() {
               className={adminTextarea}
             />
           </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium">Voltar automaticamente em (opcional)</label>
-            <input
-              type="datetime-local"
-              name="maintenanceEndsAt"
-              defaultValue={toDatetimeLocalValue(settings.maintenanceEndsAt)}
-              className={adminInput}
-            />
-            <p className="mt-1 text-xs text-parish-500">
-              Após esse horário, a manutenção é desligada e o site reabre. Deixe em branco se não
-              quiser data automática.
-            </p>
+          <div className="space-y-3 rounded-xl border border-parish-200 bg-parish-50/40 p-4">
+            <input type="hidden" name="maintenanceShowReturnDate" value="off" />
+            <label className="flex cursor-pointer items-start gap-3 text-sm">
+              <input
+                type="checkbox"
+                name="maintenanceShowReturnDate"
+                value="on"
+                defaultChecked={settings.maintenanceEndsAt != null}
+                className="mt-1"
+              />
+              <span>
+                <strong className="text-parish-900">Informar quando o site volta</strong>
+                <span className="mt-1 block text-parish-600">
+                  Desmarcado: a tela de manutenção mostra só a mensagem (sem dia/hora prevista).
+                </span>
+              </span>
+            </label>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-parish-800">
+                Data e hora (visitantes e reabertura automática)
+              </label>
+              <input
+                type="datetime-local"
+                name="maintenanceEndsAt"
+                defaultValue={toDatetimeLocalValue(settings.maintenanceEndsAt)}
+                className={adminInput}
+              />
+              <p className="mt-1 text-xs text-parish-500">
+                Só vale com a opção acima marcada. Depois desse horário, a manutenção desliga sozinha.
+                Para voltar sem data, desmarque &quot;Informar quando o site volta&quot; e salve.
+              </p>
+            </div>
           </div>
           <button type="submit" className={adminBtn}>
             Salvar manutenção
           </button>
         </form>
         <p className="mt-4 text-xs text-parish-500">
-          Pré-visualize em aba anônima: abra{" "}
+          Para testar como visitante: use aba anônima em{" "}
           <a href="/" target="_blank" rel="noreferrer" className="text-parish-700 underline">
             a página inicial
-          </a>{" "}
-          (com a opção ligada, qualquer URL pública mostra a manutenção).
+          </a>
+          . Na mesma sessão logada em /admin, abra o site em outra aba para pré-visualizar o conteúdo
+          real.
         </p>
       </section>
     </div>

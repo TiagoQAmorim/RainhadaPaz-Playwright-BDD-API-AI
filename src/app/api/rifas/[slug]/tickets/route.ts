@@ -57,7 +57,20 @@ export async function GET(
     prisma.raffleTicket.count({ where }),
     prisma.raffleTicket.findMany({
       where,
-      include: { saint: true },
+      select: {
+        id: true,
+        ticketNumber: true,
+        status: true,
+        reservationExpiresAt: true,
+        saint: {
+          select: {
+            name: true,
+            celebration: true,
+            feastDay: true,
+            feastMonth: true,
+          },
+        },
+      },
       orderBy,
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,

@@ -230,6 +230,49 @@ export async function setRaffleStatusAction(formData: FormData) {
   await redirectWithAdminFlash(`/admin/rifas/${id}`, "updated");
 }
 
+export async function deleteRaffleAction(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const returnTo = String(formData.get("returnTo") ?? `/admin/rifas/${id}`).trim();
+  if (!id) {
+    redirect("/admin/rifas");
+    return;
+  }
+  if (formData.get("dangerConfirm") !== "EXCLUIR") {
+    redirect(
+      `${returnTo}?erro=${encodeURIComponent("Confirme a exclusão digitando EXCLUIR.")}`,
+    );
+    return;
+  }
+
+  const raffle = await prisma.raffle.findUnique({ where: { id }, select: { slug: true } });
+  if (!raffle) {
+    redirect("/admin/rifas");
+    return;
+  }
+
+  const [sold, reserved, paidOrders] = await Promise.all([
+    prisma.raffleTicket.count({ where: { raffleId: id, status: "SOLD" } }),
+    prisma.raffleTicket.count({ where: { raffleId: id, status: "RESERVED" } }),
+    prisma.raffleOrder.count({ where: { raffleId: id, status: "PAID" } }),
+  ]);
+
+  if ((sold > 0 || reserved > 0 || paidOrders > 0) && formData.get("dangerConfirm") !== "EXCLUIR") {
+    redirect(
+      `${returnTo}?erro=${encodeURIComponent("Rifa com cotas vendidas ou reservadas — confirmação inválida.")}`,
+    );
+    return;
+  }
+
+  await prisma.raffle.delete({ where: { id } });
+
+  revalidatePath("/admin/rifas");
+  revalidatePath("/rifas");
+  revalidatePath(`/rifas/${raffle.slug}`);
+  revalidatePath("/");
+  await redirectWithAdminFlash("/admin/rifas", "deleted");
+}
+
 export async function setRaffleFeaturedAction(formData: FormData) {
   await requireAdmin();
   const id = String(formData.get("id") ?? "");

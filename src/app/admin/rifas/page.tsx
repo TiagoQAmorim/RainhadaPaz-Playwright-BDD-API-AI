@@ -1,10 +1,15 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { setRaffleFeaturedAction, setRaffleStatusAction } from "@/app/admin/raffle-actions";
+import {
+  deleteRaffleAction,
+  setRaffleFeaturedAction,
+  setRaffleStatusAction,
+} from "@/app/admin/raffle-actions";
+import { AdminConfirmDeleteForm } from "@/components/admin/AdminConfirmDeleteForm";
 import { adminBtn, adminCard } from "@/components/admin/AdminFormStyles";
 import { getSessionAdmin } from "@/lib/auth";
-import { getRaffleStats } from "@/lib/raffles";
-import { ensureSaintCatalogInDb } from "@/lib/saints-catalog";
+import { getRaffleStatsMap } from "@/lib/raffles";
+import { getSaintCatalogCount } from "@/lib/saints-catalog";
 import { prisma } from "@/lib/prisma";
 import { ticketPriceLabel } from "@/lib/raffle-rules";
 
@@ -12,12 +17,11 @@ export default async function AdminRifasPage() {
   if (!(await getSessionAdmin())) redirect("/admin/login");
 
   const raffles = await prisma.raffle.findMany({ orderBy: { createdAt: "desc" } });
-  const catalogCount = await ensureSaintCatalogInDb();
+  const catalogCount = getSaintCatalogCount();
 
-  const stats = await Promise.all(
-    raffles.map(async (r) => ({ id: r.id, ...(await getRaffleStats(r.id)) })),
+  const statsById = Object.fromEntries(
+    [...(await getRaffleStatsMap(raffles.map((r) => r.id))).entries()].map(([id, st]) => [id, st]),
   );
-  const statsById = Object.fromEntries(stats.map((s) => [s.id, s]));
 
   return (
     <div className="space-y-8">
@@ -100,6 +104,25 @@ export default async function AdminRifasPage() {
                     </form>
                   ) : null}
                 </div>
+                <AdminConfirmDeleteForm
+                  className="mt-4 border-t border-parish-100 pt-4"
+                  action={deleteRaffleAction}
+                  confirmMessage={
+                    st.sold > 0 || st.reserved > 0
+                      ? `ATENÇÃO: há ${st.sold} cota(s) vendida(s) e ${st.reserved} reservada(s). Excluir a rifa apaga pedidos, pagamentos e cotas — ação irreversível.`
+                      : "Excluir esta rifa e todas as cotas? Ação irreversível."
+                  }
+                  confirmPhrase="EXCLUIR"
+                >
+                  <input type="hidden" name="id" value={r.id} />
+                  <input type="hidden" name="returnTo" value="/admin/rifas" />
+                  <button
+                    type="submit"
+                    className="text-sm font-semibold text-red-700 hover:underline"
+                  >
+                    Excluir rifa
+                  </button>
+                </AdminConfirmDeleteForm>
               </li>
             );
           })}

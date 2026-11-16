@@ -4,8 +4,10 @@ import {
   autoDrawRaffleWinnerAction,
   cancelRaffleOrderManualAction,
   confirmRaffleOrderManualAction,
+  deleteRaffleAction,
   setRaffleFeaturedAction,
 } from "@/app/admin/raffle-actions";
+import { AdminConfirmDeleteForm } from "@/components/admin/AdminConfirmDeleteForm";
 import { adminBtn, adminCard } from "@/components/admin/AdminFormStyles";
 import { getSessionAdmin } from "@/lib/auth";
 import { getRaffleStats } from "@/lib/raffles";
@@ -22,16 +24,27 @@ export default async function AdminRifaDetailPage({
   if (!(await getSessionAdmin())) redirect("/admin/login");
   const { id } = await params;
   const { erro } = await searchParams;
-  const raffle = await prisma.raffle.findUnique({ where: { id } });
+  const [raffle, stats, sampleTickets, pendingOrders] = await Promise.all([
+    prisma.raffle.findUnique({ where: { id } }),
+    getRaffleStats(id),
+    prisma.raffleTicket.findMany({
+      where: { raffleId: id },
+      select: {
+        id: true,
+        ticketNumber: true,
+        status: true,
+        saint: { select: { name: true } },
+      },
+      orderBy: { ticketNumber: "asc" },
+      take: 20,
+    }),
+    prisma.raffleOrder.findMany({
+      where: { raffleId: id, status: "PENDING" },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+    }),
+  ]);
   if (!raffle) notFound();
-
-  const stats = await getRaffleStats(id);
-  const sampleTickets = await prisma.raffleTicket.findMany({
-    where: { raffleId: id },
-    include: { saint: true },
-    orderBy: { ticketNumber: "asc" },
-    take: 20,
-  });
 
   return (
     <div className="space-y-8">
@@ -81,15 +94,36 @@ export default async function AdminRifaDetailPage({
           Valor/cota: {ticketPriceLabel(stats.ticketPriceCents)} · Arrecadado (confirmado):{" "}
           {ticketPriceLabel(stats.raisedCents)} · Progresso: {stats.progressPct.toFixed(1)}%
         </p>
-        <a
-          href={`/api/admin/rifas/${id}/export`}
-          className="mt-3 inline-block text-sm font-semibold text-parish-700 underline"
-        >
-          Exportar CSV
-        </a>
+        <div className="mt-4 space-y-2">
+          <p className="text-sm font-semibold text-parish-900">Relatórios (CSV para Excel)</p>
+          <ul className="flex flex-col gap-1 text-sm">
+            <li>
+              <a
+                href={`/api/admin/rifas/${id}/export?parte=completo`}
+                className="font-semibold text-parish-700 underline"
+              >
+                Relatório completo
+              </a>
+              <span className="text-parish-600">
+                {" "}
+                — pedidos, compras, disponíveis e todas as cotas
+              </span>
+            </li>
+            <li>
+              <a href={`/api/admin/rifas/${id}/export?parte=compras`} className="text-parish-700 underline">
+                Só compras (pedidos)
+              </a>
+            </li>
+            <li>
+              <a href={`/api/admin/rifas/${id}/export?parte=disponiveis`} className="text-parish-700 underline">
+                Só não comprados
+              </a>
+            </li>
+          </ul>
+        </div>
       </div>
 
-      <PendingOrders raffleId={id} />
+      <PendingOrders raffleId={id} orders={pendingOrders} />
 
       <section className={adminCard}>
         <h2 className="font-semibold">Sorteio do prêmio</h2>
@@ -125,6 +159,39 @@ export default async function AdminRifaDetailPage({
         )}
       </section>
 
+      <section className={`${adminCard} border-red-100`}>
+        <h2 className="font-semibold text-red-900">Excluir rifa</h2>
+        <p className="mt-2 text-sm text-parish-700">
+          Remove a rifa, todas as cotas e o histórico de pedidos.{" "}
+          {stats.sold > 0 || stats.reserved > 0 ? (
+            <strong className="text-red-800">
+              Há {stats.sold} vendida(s) e {stats.reserved} reservada(s) — só exclua se tiver certeza.
+            </strong>
+          ) : (
+            "Nenhuma cota vendida no momento."
+          )}
+        </p>
+        <AdminConfirmDeleteForm
+          className="mt-4"
+          action={deleteRaffleAction}
+          confirmMessage={
+            stats.sold > 0 || stats.reserved > 0
+              ? `ATENÇÃO: ${stats.sold} cota(s) vendida(s), ${stats.reserved} reservada(s). Excluir apaga tudo irreversivelmente.`
+              : "Excluir esta rifa e todas as cotas?"
+          }
+          confirmPhrase="EXCLUIR"
+        >
+          <input type="hidden" name="id" value={id} />
+          <input type="hidden" name="returnTo" value={`/admin/rifas/${id}`} />
+          <button
+            type="submit"
+            className="rounded-lg border border-red-300 bg-red-50 px-4 py-2 text-sm font-semibold text-red-800 hover:bg-red-100"
+          >
+            Excluir rifa permanentemente
+          </button>
+        </AdminConfirmDeleteForm>
+      </section>
+
       <section className={adminCard}>
         <h2 className="font-semibold">Amostra de cotas (20 primeiras)</h2>
         <ul className="mt-4 divide-y divide-parish-100 text-sm">
@@ -142,12 +209,13 @@ export default async function AdminRifaDetailPage({
   );
 }
 
-async function PendingOrders({ raffleId }: { raffleId: string }) {
-  const orders = await prisma.raffleOrder.findMany({
-    where: { raffleId, status: "PENDING" },
-    orderBy: { createdAt: "desc" },
-    take: 10,
-  });
+function PendingOrders({
+  raffleId,
+  orders,
+}: {
+  raffleId: string;
+  orders: Awaited<ReturnType<typeof prisma.raffleOrder.findMany>>;
+}) {
   if (orders.length === 0) return null;
   return (
     <section className={adminCard}>
