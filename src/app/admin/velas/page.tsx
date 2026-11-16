@@ -13,8 +13,13 @@ import { prisma } from "@/lib/prisma";
 import { candleAccessModeLabel, formatCandlePrice } from "@/lib/candle-commerce";
 import { getCandleDurationHours, getSiteSettings } from "@/lib/settings";
 
-export default async function AdminVelasPage() {
+export default async function AdminVelasPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ erro?: string }>;
+}) {
   if (!(await getSessionAdmin())) redirect("/admin/login");
+  const { erro } = await searchParams;
   const [candles, settings, durationHours] = await Promise.all([
     prisma.virtualCandle.findMany({
       orderBy: { createdAt: "desc" },
@@ -33,6 +38,9 @@ export default async function AdminVelasPage() {
 
   return (
     <div className="space-y-8">
+      {erro ? (
+        <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">{erro}</p>
+      ) : null}
       <section className={adminCard}>
         <h1 className="text-lg font-semibold text-parish-900">Velas virtuais</h1>
         <p className="mt-1 text-sm text-parish-600">

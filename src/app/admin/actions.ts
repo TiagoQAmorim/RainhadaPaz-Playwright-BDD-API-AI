@@ -480,46 +480,57 @@ function normalizeOptionalEmail(raw: FormDataEntryValue | null): string | null {
   return v;
 }
 
+function redirectCandleSettingsError(message: string): never {
+  redirect(`/admin/velas?erro=${encodeURIComponent(message)}`);
+}
+
 export async function updateCandleSettings(formData: FormData) {
   await requireAdmin();
-  const amount = Number(String(formData.get("candleDurationAmount") ?? "").trim());
-  const unit = String(formData.get("candleDurationUnit") ?? "hours");
-  const candlesNotifyEmail = normalizeOptionalEmail(formData.get("candlesNotifyEmail"));
-  const accessMode = String(formData.get("candleAccessMode") ?? "paid");
-  const priceRaw = String(formData.get("candlePriceBrl") ?? "").trim().replace(",", ".");
-  const priceBrl = priceRaw ? Number(priceRaw) : NaN;
-  const candlePaymentPix = formData.get("candlePaymentPix") === "on";
-  const candlePaymentSicredi = formData.get("candlePaymentSicredi") === "on";
-  if (!Number.isFinite(amount) || amount <= 0) {
-    throw new Error("Informe um tempo válido para a vela.");
-  }
-  if (unit !== "hours" && unit !== "days") {
-    throw new Error("Unidade inválida.");
-  }
-  if (accessMode !== "free" && accessMode !== "free_donation" && accessMode !== "paid") {
-    throw new Error("Modo de vela inválido.");
-  }
-  let candlePriceCents = Math.round(priceBrl * 100);
-  if (accessMode === "paid") {
-    if (!Number.isFinite(priceBrl) || priceBrl <= 0) {
-      throw new Error("Informe o valor da vela paga (em reais).");
+  try {
+    const amount = Number(String(formData.get("candleDurationAmount") ?? "").trim());
+    const unit = String(formData.get("candleDurationUnit") ?? "hours");
+    let candlesNotifyEmail: string | null;
+    try {
+      candlesNotifyEmail = normalizeOptionalEmail(formData.get("candlesNotifyEmail"));
+    } catch (e) {
+      redirectCandleSettingsError(
+        e instanceof Error ? e.message : "E-mail de notificação inválido.",
+      );
     }
-    candlePriceCents = Math.round(priceBrl * 100);
-  } else if (!Number.isFinite(priceBrl) || priceBrl <= 0) {
-    const existing = await prisma.siteSettings.findUnique({ where: { id: 1 } });
-    candlePriceCents = existing?.candlePriceCents ?? 1000;
-  }
-  if (accessMode === "paid" && !candlePaymentPix && !candlePaymentSicredi) {
-    throw new Error("Velas pagas precisam de ao menos um meio: PIX ou Sicredi.");
-  }
-  if (accessMode === "free_donation" && !candlePaymentPix && !candlePaymentSicredi) {
-    throw new Error(
-      "Com oferta opcional, marque PIX e/ou Sicredi para quem quiser contribuir.",
-    );
-  }
-  await prisma.siteSettings.update({
-    where: { id: 1 },
-    data: {
+    const accessMode = String(formData.get("candleAccessMode") ?? "paid");
+    const priceRaw = String(formData.get("candlePriceBrl") ?? "").trim().replace(",", ".");
+    const priceBrl = priceRaw ? Number(priceRaw) : NaN;
+    const candlePaymentPix = formData.get("candlePaymentPix") === "on";
+    const candlePaymentSicredi = formData.get("candlePaymentSicredi") === "on";
+    if (!Number.isFinite(amount) || amount <= 0) {
+      redirectCandleSettingsError("Informe um tempo válido para a vela.");
+    }
+    if (unit !== "hours" && unit !== "days") {
+      redirectCandleSettingsError("Unidade inválida.");
+    }
+    if (accessMode !== "free" && accessMode !== "free_donation" && accessMode !== "paid") {
+      redirectCandleSettingsError("Modo de vela inválido.");
+    }
+    let candlePriceCents = Math.round(priceBrl * 100);
+    if (accessMode === "paid") {
+      if (!Number.isFinite(priceBrl) || priceBrl <= 0) {
+        redirectCandleSettingsError("Informe o valor da vela paga (em reais).");
+      }
+      candlePriceCents = Math.round(priceBrl * 100);
+    } else if (!Number.isFinite(priceBrl) || priceBrl <= 0) {
+      const existing = await prisma.siteSettings.findUnique({ where: { id: 1 } });
+      candlePriceCents = existing?.candlePriceCents ?? 1000;
+    }
+    if (accessMode === "paid" && !candlePaymentPix && !candlePaymentSicredi) {
+      redirectCandleSettingsError("Velas pagas precisam de ao menos um meio: PIX ou Sicredi.");
+    }
+    if (accessMode === "free_donation" && !candlePaymentPix && !candlePaymentSicredi) {
+      redirectCandleSettingsError(
+        "Com oferta opcional, marque PIX e/ou Sicredi para quem quiser contribuir.",
+      );
+    }
+
+    const candleData = {
       candleDurationAmount: Math.round(amount),
       candleDurationUnit: unit,
       candlesNotifyEmail,
@@ -527,8 +538,29 @@ export async function updateCandleSettings(formData: FormData) {
       candlePriceCents,
       candlePaymentPix,
       candlePaymentSicredi,
-    },
-  });
+    };
+
+    await prisma.siteSettings.upsert({
+      where: { id: 1 },
+      update: candleData,
+      create: {
+        id: 1,
+        parishName: "Paróquia Nossa Senhora Rainha da Paz",
+        diocese: "Diocese de Santo Amaro",
+        address: "São Paulo — SP",
+        phone: "",
+        heroTitle: "Unidos pela fé, guiados por Maria.",
+        heroSubtitle: "Uma comunidade que acolhe e vive o amor de Cristo.",
+        aboutHtml: "",
+        massScheduleHtml: "",
+        ...candleData,
+      },
+    });
+  } catch (e) {
+    if (e && typeof e === "object" && "digest" in e) throw e;
+    const msg = e instanceof Error ? e.message : "Não foi possível salvar as configurações.";
+    redirectCandleSettingsError(msg);
+  }
   revalidatePath("/velas");
   revalidatePath("/");
   revalidatePath("/admin/velas");
