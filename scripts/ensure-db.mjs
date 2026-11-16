@@ -50,15 +50,12 @@ if (isProdRuntime()) {
   const dbUrl = (process.env.DATABASE_URL ?? "").replace(/\\/g, "/");
   if (!dbUrl.startsWith("file:/data/")) {
     console.error(
-      "[ensure-db] SERVIDOR PARADO: DATABASE_URL deve ser file:/data/rainhadapaz.db (volume Railway em /data).",
-      "Valor atual:",
+      "[ensure-db] ALERTA: DATABASE_URL deve ser file:/data/rainhadapaz.db. Atual:",
       dbUrl || "(vazio)",
+      "— sem volume, cada deploy usa banco vazio.",
     );
-    process.exit(1);
-  }
-  if (!fs.existsSync("/data")) {
-    console.error("[ensure-db] SERVIDOR PARADO: pasta /data não existe — monte o volume no serviço Railway.");
-    process.exit(1);
+  } else if (!fs.existsSync("/data")) {
+    console.error("[ensure-db] ALERTA: /data não existe — monte volume Railway em /data.");
   }
 }
 
