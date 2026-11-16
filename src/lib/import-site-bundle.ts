@@ -2,14 +2,66 @@ import type { PrismaClient } from "@prisma/client";
 import siteBundle from "@/data/site-bundle.json";
 import { syncSaintCatalogToDb } from "@/lib/saints-catalog";
 
-type Bundle = typeof siteBundle;
+type Bundle = typeof siteBundle & {
+  saints?: Array<{
+    id: number;
+    name: string;
+    feastDay: number;
+    feastMonth: number;
+    celebration: string;
+    description: string;
+  }>;
+};
+
+const SAINT_IMPORT_BATCH = 50;
+
+/** Santos referenciados pelas cotas — preserva `id` do ambiente de origem. */
+async function importBundleSaints(
+  prisma: PrismaClient,
+  saints: NonNullable<Bundle["saints"]>,
+): Promise<void> {
+  for (let i = 0; i < saints.length; i += SAINT_IMPORT_BATCH) {
+    const chunk = saints.slice(i, i + SAINT_IMPORT_BATCH);
+    await prisma.$transaction(
+      chunk.map((s) =>
+        prisma.saint.upsert({
+          where: { id: s.id },
+          update: {
+            name: s.name,
+            feastDay: s.feastDay,
+            feastMonth: s.feastMonth,
+            celebration: s.celebration,
+            description: s.description,
+          },
+          create: {
+            id: s.id,
+            name: s.name,
+            feastDay: s.feastDay,
+            feastMonth: s.feastMonth,
+            celebration: s.celebration,
+            description: s.description,
+          },
+        }),
+      ),
+    );
+  }
+  const max = saints.reduce((m, s) => Math.max(m, s.id), 0);
+  if (max > 0) {
+    await prisma.$executeRawUnsafe(
+      "INSERT OR IGNORE INTO sqlite_sequence (name, seq) VALUES ('Saint', ?)",
+      max,
+    );
+    await prisma.$executeRawUnsafe(
+      "UPDATE sqlite_sequence SET seq = ? WHERE name = 'Saint'",
+      max,
+    );
+  }
+}
 
 /** Conteúdo completo migrado do ambiente local (rifas, velas, posts, etc.). */
 export async function importSiteBundle(prisma: PrismaClient): Promise<void> {
   const bundle = siteBundle as Bundle;
   if (!bundle.siteSettings) return;
-
-  await syncSaintCatalogToDb(prisma);
 
   const s = bundle.siteSettings;
   await prisma.siteSettings.upsert({
@@ -287,6 +339,12 @@ export async function importSiteBundle(prisma: PrismaClient): Promise<void> {
         createdAt: new Date(candle.createdAt),
       },
     });
+  }
+
+  if (bundle.saints?.length) {
+    await importBundleSaints(prisma, bundle.saints);
+  } else {
+    await syncSaintCatalogToDb(prisma);
   }
 
   for (const raffle of bundle.raffles) {

@@ -15,6 +15,9 @@ const prisma = new PrismaClient({
   datasources: { db: { url: `file:${dbPath}` } },
 });
 
+const raffleTickets = await prisma.raffleTicket.findMany();
+const saintIds = [...new Set(raffleTickets.map((t) => t.saintId))];
+
 const bundle = {
   exportedAt: new Date().toISOString(),
   siteSettings: await prisma.siteSettings.findUnique({ where: { id: 1 } }),
@@ -29,7 +32,11 @@ const bundle = {
   homeHeroCtas: await prisma.homeHeroCta.findMany(),
   virtualCandles: await prisma.virtualCandle.findMany(),
   raffles: await prisma.raffle.findMany(),
-  raffleTickets: await prisma.raffleTicket.findMany(),
+  raffleTickets,
+  saints:
+    saintIds.length > 0
+      ? await prisma.saint.findMany({ where: { id: { in: saintIds } }, orderBy: { id: "asc" } })
+      : [],
 };
 
 await prisma.$disconnect();
@@ -38,7 +45,7 @@ const out = path.join(root, "src", "data", "site-bundle.json");
 writeFileSync(out, JSON.stringify(bundle, null, 2), "utf8");
 console.log(`[export] ${out} (${(JSON.stringify(bundle).length / 1024).toFixed(1)} KB)`);
 console.log(
-  `[export] posts=${bundle.posts.length} notices=${bundle.notices.length} candles=${bundle.virtualCandles.length} raffles=${bundle.raffles.length} tickets=${bundle.raffleTickets.length}`,
+  `[export] posts=${bundle.posts.length} pages=${bundle.pages.length} notices=${bundle.notices.length} candles=${bundle.virtualCandles.length} raffles=${bundle.raffles.length} tickets=${bundle.raffleTickets.length} saints=${bundle.saints.length}`,
 );
 
 const sync = spawnSync(process.execPath, [path.join(root, "scripts", "sync-bundle-uploads.mjs")], {
