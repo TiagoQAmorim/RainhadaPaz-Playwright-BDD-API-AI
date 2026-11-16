@@ -4,6 +4,7 @@ import { importSiteBundle } from "@/lib/import-site-bundle";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 300;
 
 /**
  * Repõe conteúdo do `site-bundle.json` do deploy (upsert — não apaga linhas extras).
@@ -24,14 +25,25 @@ export async function POST(req: Request) {
   const prisma = new PrismaClient();
   try {
     await importSiteBundle(prisma);
-    const [posts, pages, notices, raffles, candles] = await Promise.all([
+    const [posts, pages, notices, raffles, raffleTickets, raffleOrders, candles] = await Promise.all([
       prisma.post.count(),
       prisma.page.count(),
       prisma.notice.count(),
       prisma.raffle.count(),
+      prisma.raffleTicket.count(),
+      prisma.raffleOrder.count(),
       prisma.virtualCandle.count(),
     ]);
-    return NextResponse.json({ ok: true, posts, pages, notices, raffles, candles });
+    return NextResponse.json({
+      ok: true,
+      posts,
+      pages,
+      notices,
+      raffles,
+      raffleTickets,
+      raffleOrders,
+      candles,
+    });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Erro ao importar bundle";
     return NextResponse.json({ error: message }, { status: 500 });

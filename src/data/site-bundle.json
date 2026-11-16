@@ -1,5 +1,5 @@
 {
-  "exportedAt": "2026-11-16T23:31:06.641Z",
+  "exportedAt": "2026-11-16T23:35:02.944Z",
   "siteSettings": {
     "id": 1,
     "parishName": "Paróquia Nossa Senhora Rainha da Paz",
@@ -8982,6 +8982,173 @@
       "reservationExpiresAt": null,
       "reservedSessionId": null,
       "soldAt": null
+    }
+  ],
+  "raffleOrders": [
+    {
+      "id": "cmvvrwpfg0003z0q9nbkaxs9h",
+      "raffleId": "cmvvri4tw0001umirv78mnmyd",
+      "buyerName": "Tiago Amorim",
+      "buyerEmail": "tiago-famorim@hotmail.com",
+      "buyerPhone": "11982736607",
+      "buyerCpf": null,
+      "totalCents": 2000,
+      "status": "PAID",
+      "idempotencyKey": "35403084-ff43-4ad8-a1f5-5a4a993eb554",
+      "createdAt": "2026-10-31T02:19:49.564Z",
+      "updatedAt": "2026-10-31T02:19:49.600Z",
+      "lines": [
+        {
+          "id": "cmvvrwpfm0004z0q9vn5o0oi9",
+          "orderId": "cmvvrwpfg0003z0q9nbkaxs9h",
+          "ticketId": "cmvvri4uj000lumirz3nk1yf2"
+        }
+      ],
+      "payments": [
+        {
+          "id": "cmvvrwpft0006z0q9su808dtr",
+          "orderId": "cmvvrwpfg0003z0q9nbkaxs9h",
+          "provider": "mercadopago",
+          "externalPaymentId": null,
+          "externalPreferenceId": null,
+          "status": "PENDING",
+          "confirmedAt": null,
+          "rawPayload": null,
+          "createdAt": "2026-10-31T02:19:49.577Z"
+        }
+      ]
+    },
+    {
+      "id": "cmvwerutd000fz0q9be3j3f4f",
+      "raffleId": "cmvvri4tw0001umirv78mnmyd",
+      "buyerName": "Tiago Amorim",
+      "buyerEmail": "tiago-famorim@hotmail.com",
+      "buyerPhone": "11982736607",
+      "buyerCpf": null,
+      "totalCents": 2000,
+      "status": "PAID",
+      "idempotencyKey": "2ed5aa81-4885-43ed-9de0-841f669c8c22",
+      "createdAt": "2026-10-31T12:59:54.433Z",
+      "updatedAt": "2026-10-31T12:59:54.449Z",
+      "lines": [
+        {
+          "id": "cmvwerutg000gz0q9xl1g6j2o",
+          "orderId": "cmvwerutd000fz0q9be3j3f4f",
+          "ticketId": "cmvvri4uj0004umiribhwoqs8"
+        }
+      ],
+      "payments": [
+        {
+          "id": "cmvweruth000iz0q9fw3x2aml",
+          "orderId": "cmvwerutd000fz0q9be3j3f4f",
+          "provider": "mercadopago",
+          "externalPaymentId": null,
+          "externalPreferenceId": null,
+          "status": "PENDING",
+          "confirmedAt": null,
+          "rawPayload": null,
+          "createdAt": "2026-10-31T12:59:54.438Z"
+        }
+      ]
+    },
+    {
+      "id": "cmvwu1g8l000nz0q98knqt4zb",
+      "raffleId": "cmvvri4tw0001umirv78mnmyd",
+      "buyerName": "João de Arimatéia",
+      "buyerEmail": "teste@teste.com",
+      "buyerPhone": "11998257836224",
+      "buyerCpf": null,
+      "totalCents": 2000,
+      "status": "PAID",
+      "idempotencyKey": "3f902d24-60f2-428a-95a7-b2831851e18d",
+      "createdAt": "2026-10-31T20:07:16.342Z",
+      "updatedAt": "2026-10-31T20:07:16.355Z",
+      "lines": [
+        {
+          "id": "cmvwu1g8o000oz0q9wsubytnt",
+          "orderId": "cmvwu1g8l000nz0q98knqt4zb",
+          "ticketId": "cmvvri4uj0002umirdvriro8a"
+        }
+      ],
+      "payments": [
+        {
+          "id": "cmvwu1g8p000qz0q9hzbbkowf",
+          "orderId": "cmvwu1g8l000nz0q98knqt4zb",
+          "provider": "mercadopago",
+          "externalPaymentId": null,
+          "externalPreferenceId": null,
+          "status": "PENDING",
+          "confirmedAt": null,
+          "rawPayload": null,
+          "createdAt": "2026-10-31T20:07:16.346Z"
+        }
+      ]
+    },
+    {
+      "id": "cmw5lfhv30006whzc71u4tyan",
+      "raffleId": "cmvvri4tw0001umirv78mnmyd",
+      "buyerName": "Tiago Amorim",
+      "buyerEmail": "tiago-famorim@hotmail.com",
+      "buyerPhone": "11982736607",
+      "buyerCpf": null,
+      "totalCents": 2000,
+      "status": "PAID",
+      "idempotencyKey": "592cd18c-84b4-49bc-bdf9-b297423144da",
+      "createdAt": "2026-11-06T23:16:10.671Z",
+      "updatedAt": "2026-11-06T23:16:10.690Z",
+      "lines": [
+        {
+          "id": "cmw5lfhv60007whzc4r7249az",
+          "orderId": "cmw5lfhv30006whzc71u4tyan",
+          "ticketId": "cmvvri4uj0003umir9oe8ukmw"
+        }
+      ],
+      "payments": [
+        {
+          "id": "cmw5lfhva0009whzck4qkve2i",
+          "orderId": "cmw5lfhv30006whzc71u4tyan",
+          "provider": "mercadopago",
+          "externalPaymentId": null,
+          "externalPreferenceId": null,
+          "status": "PENDING",
+          "confirmedAt": null,
+          "rawPayload": null,
+          "createdAt": "2026-11-06T23:16:10.679Z"
+        }
+      ]
+    },
+    {
+      "id": "cmw710efq000ewhzcm0wnx1uh",
+      "raffleId": "cmvvri4tw0001umirv78mnmyd",
+      "buyerName": "Tiago Amorim",
+      "buyerEmail": "tiago-famorim@hotmail.com",
+      "buyerPhone": "11982736607",
+      "buyerCpf": null,
+      "totalCents": 2000,
+      "status": "CANCELLED",
+      "idempotencyKey": "98b16b39-9aad-4aad-ac3c-10b709d6a27c",
+      "createdAt": "2026-11-07T23:20:06.422Z",
+      "updatedAt": "2026-11-07T23:20:06.446Z",
+      "lines": [
+        {
+          "id": "cmw710efu000fwhzcjxlucguq",
+          "orderId": "cmw710efq000ewhzcm0wnx1uh",
+          "ticketId": "cmvvri4uj0005umiry2kgvzkf"
+        }
+      ],
+      "payments": [
+        {
+          "id": "cmw710efw000hwhzcfh2w6smy",
+          "orderId": "cmw710efq000ewhzcm0wnx1uh",
+          "provider": "mercadopago",
+          "externalPaymentId": null,
+          "externalPreferenceId": null,
+          "status": "PENDING",
+          "confirmedAt": null,
+          "rawPayload": null,
+          "createdAt": "2026-11-07T23:20:06.428Z"
+        }
+      ]
     }
   ],
   "saints": [

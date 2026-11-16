@@ -433,7 +433,12 @@ export function RaffleExperience({
       <div className="relative rounded-2xl border-2 border-parish-200 bg-parish-100/90 p-4 shadow-inner md:p-6">
         {loading && tickets.length === 0 && !loadError ? (
           <RaffleTicketGridSkeleton />
-        ) : loadError && tickets.length === 0 ? null : (
+        ) : loadError && tickets.length === 0 ? null : tickets.length === 0 ? (
+          <p className="py-12 text-center text-sm text-parish-700">
+            Nenhuma cota carregada. Atualize a página; se continuar vazio, no admin use{" "}
+            <strong>Restaurar conteúdo completo</strong> ou contate a secretaria.
+          </p>
+        ) : (
           <>
             {loading ? (
               <div

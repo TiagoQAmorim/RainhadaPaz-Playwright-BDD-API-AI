@@ -11,9 +11,35 @@ type Bundle = typeof siteBundle & {
     celebration: string;
     description: string;
   }>;
+  raffleOrders?: Array<{
+    id: string;
+    raffleId: string;
+    buyerName: string;
+    buyerEmail: string;
+    buyerPhone: string;
+    buyerCpf: string | null;
+    totalCents: number;
+    status: string;
+    idempotencyKey: string | null;
+    createdAt: string;
+    updatedAt: string;
+    lines: Array<{ id: string; orderId: string; ticketId: string }>;
+    payments: Array<{
+      id: string;
+      orderId: string;
+      provider: string;
+      externalPaymentId: string | null;
+      externalPreferenceId: string | null;
+      status: string;
+      confirmedAt: string | null;
+      rawPayload: string | null;
+      createdAt: string;
+    }>;
+  }>;
 };
 
 const SAINT_IMPORT_BATCH = 50;
+const TICKET_IMPORT_BATCH = 40;
 
 /** Santos referenciados pelas cotas — preserva `id` do ambiente de origem. */
 async function importBundleSaints(
@@ -400,32 +426,103 @@ export async function importSiteBundle(prisma: PrismaClient): Promise<void> {
     });
   }
 
-  for (const ticket of bundle.raffleTickets) {
-    await prisma.raffleTicket.upsert({
-      where: { id: ticket.id },
+  const tickets = bundle.raffleTickets ?? [];
+  for (let i = 0; i < tickets.length; i += TICKET_IMPORT_BATCH) {
+    const chunk = tickets.slice(i, i + TICKET_IMPORT_BATCH);
+    await prisma.$transaction(
+      chunk.map((ticket) =>
+        prisma.raffleTicket.upsert({
+          where: { id: ticket.id },
+          update: {
+            raffleId: ticket.raffleId,
+            saintId: ticket.saintId,
+            ticketNumber: ticket.ticketNumber,
+            status: ticket.status,
+            reservationExpiresAt: ticket.reservationExpiresAt
+              ? new Date(ticket.reservationExpiresAt)
+              : null,
+            reservedSessionId: ticket.reservedSessionId,
+            soldAt: ticket.soldAt ? new Date(ticket.soldAt) : null,
+          },
+          create: {
+            id: ticket.id,
+            raffleId: ticket.raffleId,
+            saintId: ticket.saintId,
+            ticketNumber: ticket.ticketNumber,
+            status: ticket.status,
+            reservationExpiresAt: ticket.reservationExpiresAt
+              ? new Date(ticket.reservationExpiresAt)
+              : null,
+            reservedSessionId: ticket.reservedSessionId,
+            soldAt: ticket.soldAt ? new Date(ticket.soldAt) : null,
+          },
+        }),
+      ),
+    );
+  }
+
+  for (const order of bundle.raffleOrders ?? []) {
+    const { lines, payments, ...orderData } = order;
+    await prisma.raffleOrder.upsert({
+      where: { id: order.id },
       update: {
-        raffleId: ticket.raffleId,
-        saintId: ticket.saintId,
-        ticketNumber: ticket.ticketNumber,
-        status: ticket.status,
-        reservationExpiresAt: ticket.reservationExpiresAt
-          ? new Date(ticket.reservationExpiresAt)
-          : null,
-        reservedSessionId: ticket.reservedSessionId,
-        soldAt: ticket.soldAt ? new Date(ticket.soldAt) : null,
+        raffleId: orderData.raffleId,
+        buyerName: orderData.buyerName,
+        buyerEmail: orderData.buyerEmail,
+        buyerPhone: orderData.buyerPhone,
+        buyerCpf: orderData.buyerCpf,
+        totalCents: orderData.totalCents,
+        status: orderData.status,
+        idempotencyKey: orderData.idempotencyKey,
+        createdAt: new Date(orderData.createdAt),
+        updatedAt: new Date(orderData.updatedAt),
       },
       create: {
-        id: ticket.id,
-        raffleId: ticket.raffleId,
-        saintId: ticket.saintId,
-        ticketNumber: ticket.ticketNumber,
-        status: ticket.status,
-        reservationExpiresAt: ticket.reservationExpiresAt
-          ? new Date(ticket.reservationExpiresAt)
-          : null,
-        reservedSessionId: ticket.reservedSessionId,
-        soldAt: ticket.soldAt ? new Date(ticket.soldAt) : null,
+        id: order.id,
+        raffleId: orderData.raffleId,
+        buyerName: orderData.buyerName,
+        buyerEmail: orderData.buyerEmail,
+        buyerPhone: orderData.buyerPhone,
+        buyerCpf: orderData.buyerCpf,
+        totalCents: orderData.totalCents,
+        status: orderData.status,
+        idempotencyKey: orderData.idempotencyKey,
+        createdAt: new Date(orderData.createdAt),
+        updatedAt: new Date(orderData.updatedAt),
       },
     });
+    for (const line of lines) {
+      await prisma.raffleOrderTicket.upsert({
+        where: { id: line.id },
+        update: { orderId: line.orderId, ticketId: line.ticketId },
+        create: { id: line.id, orderId: line.orderId, ticketId: line.ticketId },
+      });
+    }
+    for (const pay of payments) {
+      await prisma.rafflePayment.upsert({
+        where: { id: pay.id },
+        update: {
+          orderId: pay.orderId,
+          provider: pay.provider,
+          externalPaymentId: pay.externalPaymentId,
+          externalPreferenceId: pay.externalPreferenceId,
+          status: pay.status,
+          confirmedAt: pay.confirmedAt ? new Date(pay.confirmedAt) : null,
+          rawPayload: pay.rawPayload,
+          createdAt: new Date(pay.createdAt),
+        },
+        create: {
+          id: pay.id,
+          orderId: pay.orderId,
+          provider: pay.provider,
+          externalPaymentId: pay.externalPaymentId,
+          externalPreferenceId: pay.externalPreferenceId,
+          status: pay.status,
+          confirmedAt: pay.confirmedAt ? new Date(pay.confirmedAt) : null,
+          rawPayload: pay.rawPayload,
+          createdAt: new Date(pay.createdAt),
+        },
+      });
+    }
   }
 }

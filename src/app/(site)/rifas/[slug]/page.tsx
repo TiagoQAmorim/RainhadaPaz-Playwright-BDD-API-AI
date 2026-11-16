@@ -68,7 +68,11 @@ export default async function RifaPublicPage({ params }: { params: Promise<{ slu
               alt={raffle.prizeTitle}
               className="mb-4 max-w-md"
             />
-          ) : null}
+          ) : (
+            <div className="mb-4 flex justify-center sm:justify-start">
+              <RaffleCartelaIllustration size={140} className="opacity-95" />
+            </div>
+          )}
           <p className="mt-2 font-medium">{raffle.prizeTitle}</p>
           {raffle.prizeDescription ? (
             <p className="mt-2 text-sm text-parish-700">{raffle.prizeDescription}</p>
