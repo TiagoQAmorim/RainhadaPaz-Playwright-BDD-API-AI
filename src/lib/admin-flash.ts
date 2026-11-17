@@ -1,6 +1,14 @@
 import { redirect } from "next/navigation";
 
-export type AdminFlashKind = "created" | "updated" | "deleted" | "drawn" | "restored" | "backed";
+export type AdminFlashKind =
+  | "created"
+  | "updated"
+  | "deleted"
+  | "drawn"
+  | "restored"
+  | "backed"
+  | "hidden"
+  | "shown";
 
 const MESSAGES: Record<AdminFlashKind, string> = {
   created: "Cadastro realizado com sucesso.",
@@ -10,6 +18,8 @@ const MESSAGES: Record<AdminFlashKind, string> = {
   restored:
     "Banco restaurado a partir do último backup de produção (/data/backups) — o que estava cadastrado no servidor.",
   backed: "Backup de hoje gravado em /data/backups. O site em uso não foi alterado.",
+  hidden: "Página oculta. Ela saiu do site e continua nesta lista.",
+  shown: "Página visível de novo no site.",
 };
 
 export function adminFlashMessage(kind: AdminFlashKind): string {

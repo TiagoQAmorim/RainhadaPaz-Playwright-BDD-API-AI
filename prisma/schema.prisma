@@ -105,6 +105,7 @@ model Page {
   title          String
   body           String
   featuredImage  String?
+  published      Boolean  @default(true)
   updatedAt      DateTime @updatedAt
 }
 
@@ -149,6 +150,7 @@ model MassLocation {
   name         String
   address      String
   scheduleText String
+  imageUrl     String?
   sortOrder    Int      @default(0)
   published    Boolean  @default(true)
   createdAt    DateTime @default(now())

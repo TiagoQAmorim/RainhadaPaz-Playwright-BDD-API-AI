@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import { ContentCoverImage } from "@/components/ContentCoverImage";
 import { PageContainer } from "@/components/PageContainer";
 
@@ -17,6 +18,7 @@ export const metadata = { title: "Padroeira" };
 export default async function PadroeiraPage() {
 
   const page = await prisma.page.findUnique({ where: { slug: "padroeira" } });
+  if (page && !page.published) notFound();
 
 
 

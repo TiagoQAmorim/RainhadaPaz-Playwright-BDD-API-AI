@@ -8,7 +8,7 @@ export const metadata = { title: "Sacramentos" };
 
 export default async function SacramentosPage() {
   const pages = await prisma.page.findMany({
-    where: { slug: { in: [...SACRAMENT_INDEX_SLUGS] } },
+    where: { published: true, slug: { in: [...SACRAMENT_INDEX_SLUGS] } },
     orderBy: { title: "asc" },
   });
   return (

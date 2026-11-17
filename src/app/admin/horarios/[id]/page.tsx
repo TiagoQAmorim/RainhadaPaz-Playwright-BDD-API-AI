@@ -30,6 +30,7 @@ export default async function AdminEditHorarioPage({ params }: Props) {
               name: loc.name,
               address: loc.address,
               scheduleText: loc.scheduleText,
+              imageUrl: loc.imageUrl,
               sortOrder: loc.sortOrder,
               published: loc.published,
             }}

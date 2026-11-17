@@ -302,8 +302,17 @@ export async function upsertMassLocation(formData: FormData) {
   const scheduleText = String(formData.get("scheduleText") ?? "");
   const sortOrder = Number(formData.get("sortOrder") ?? "0") || 0;
   const published = formCheckboxOn(formData, "published");
+  const existing = id
+    ? await prisma.massLocation.findUnique({ where: { id }, select: { imageUrl: true } })
+    : null;
+  const imageUrl = await resolveImageFromForm(
+    formData,
+    "imageUrl",
+    "imageUrlFile",
+    existing?.imageUrl,
+  );
 
-  const data = { name, address, scheduleText, sortOrder, published };
+  const data = { name, address, scheduleText, imageUrl, sortOrder, published };
 
   let locationId = id;
   if (id) {
@@ -467,6 +476,29 @@ export async function updatePage(formData: FormData) {
     returnTo || `/admin/informacoes/paginas/${id}`,
     "updated",
   );
+}
+
+export async function setPagePublished(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const published = String(formData.get("published") ?? "") === "true";
+  const page = id
+    ? await prisma.page.update({
+        where: { id },
+        data: { published },
+        select: { slug: true },
+      })
+    : null;
+  revalidatePath("/sacramentos");
+  if (page) revalidatePath(`/sacramentos/${page.slug}`);
+  revalidatePath("/");
+  revalidatePath("/terco-online");
+  revalidatePath("/padroeira");
+  revalidatePath("/paroco");
+  revalidatePath("/contato");
+  revalidatePath("/admin/informacoes/paginas");
+  const flash = published ? "shown" : "hidden";
+  redirect(`/admin/informacoes/paginas?flash=${flash}#pagina-${id}`);
 }
 
 export async function deletePage(formData: FormData) {

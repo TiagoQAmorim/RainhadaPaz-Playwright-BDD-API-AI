@@ -1,5 +1,6 @@
 import { resolveImageSrc } from "@/lib/local-image-url";
 import { prisma } from "@/lib/prisma";
+import { unpublishedPublicHrefs } from "@/lib/public-pages";
 import { QUICK_LINKS, SITE_IMAGES } from "@/lib/wordpress-assets";
 
 export type QuickLinkItem = {
@@ -16,12 +17,16 @@ export async function listHomeQuickLinksForAdmin() {
 }
 
 export async function getPublishedHomeQuickLinks(): Promise<QuickLinkItem[]> {
-  const rows = await prisma.homeQuickLink.findMany({
-    where: { published: true },
-    orderBy: { sortOrder: "asc" },
-  });
+  const [rows, hidden] = await Promise.all([
+    prisma.homeQuickLink.findMany({
+      where: { published: true },
+      orderBy: { sortOrder: "asc" },
+    }),
+    unpublishedPublicHrefs(),
+  ]);
+  const hiddenHrefs = new Set(hidden);
   if (rows.length === 0) {
-    return QUICK_LINKS.map((item, i) => ({
+    return QUICK_LINKS.filter((item) => !hiddenHrefs.has(item.href)).map((item, i) => ({
       id: `fallback-${i}`,
       title: item.title,
       description: item.description,
@@ -30,7 +35,7 @@ export async function getPublishedHomeQuickLinks(): Promise<QuickLinkItem[]> {
       ...("external" in item && item.external ? { external: true } : {}),
     }));
   }
-  return rows.map((row) => ({
+  return rows.filter((row) => !hiddenHrefs.has(row.href)).map((row) => ({
     id: row.id,
     title: row.title,
     description: row.description,

@@ -32,7 +32,10 @@ export default async function HomePage() {
     await Promise.all([
     getSiteSettings(),
     getTercoOnlineSlots(),
-    prisma.page.findUnique({ where: { slug: "terco-online" }, select: { featuredImage: true } }),
+    prisma.page.findUnique({
+      where: { slug: "terco-online" },
+      select: { featuredImage: true, published: true },
+    }),
     listLitCandles({ take: 8 }),
     prisma.post.findMany({
       where: { published: true },
@@ -215,6 +218,7 @@ export default async function HomePage() {
         ) : null}
       </PageContainer>
 
+      {tercoPage?.published === false ? null : (
       <PageContainer wide className="pb-20">
         <div className="glass-card grid gap-8 p-8 md:grid-cols-2 md:p-10">
           <div className="relative min-h-[280px] overflow-hidden rounded-2xl md:min-h-[320px]">
@@ -252,6 +256,7 @@ export default async function HomePage() {
           </div>
         </div>
       </PageContainer>
+      )}
     </>
   );
 }

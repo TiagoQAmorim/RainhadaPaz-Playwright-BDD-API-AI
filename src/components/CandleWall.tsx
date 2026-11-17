@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { CandleVisual } from "@/components/CandleVisual";
 import { candleVisualSlotHeight, type CandleVisualSize } from "@/lib/candle-visual-size";
-import { resolveCandleBurnWindow } from "@/lib/candle-burn";
-import { formatCandleTimeLeft } from "@/lib/candles";
+import { formatCandleTimeLeft, resolveCandleBurnWindow } from "@/lib/candle-burn";
 import { cn } from "@/lib/cn";
 
 export type CandleItem = {
@@ -89,7 +88,7 @@ export function CandleWall({
       : "grid grid-cols-1 items-start gap-5 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4";
 
   return (
-    <div className={cn("candle-velario", velario && "candle-velario--sanctuary")}>
+    <div className={cn("candle-velario", rail && "w-max", velario && "candle-velario--sanctuary")}>
       {velario ? <div className="candle-velario__rack-glow" aria-hidden /> : null}
 
       <ul className={cn(gridClass, "relative z-[1]")}>

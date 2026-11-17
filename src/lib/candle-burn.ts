@@ -90,6 +90,18 @@ export function candleBurnScale(
   return CANDLE_BURN_SCALE_MIN + ratio * (CANDLE_BURN_SCALE_MAX - CANDLE_BURN_SCALE_MIN);
 }
 
+export function formatCandleTimeLeft(
+  litAt: Date | string | null | undefined,
+  expiresAt: Date | string | null | undefined,
+  durationHours?: number,
+): string | null {
+  const hours = durationHours ?? DEFAULT_CANDLE_DURATION_HOURS;
+  const window = resolveCandleBurnWindow(litAt, expiresAt, hours);
+  if (!window) return null;
+  const ms = window.expiresAt.getTime() - Date.now();
+  return formatCandleTimeLeftMs(ms);
+}
+
 export function formatCandleTimeLeftMs(ms: number): string | null {
   if (ms <= 0) return null;
   const totalMin = Math.ceil(ms / 60_000);

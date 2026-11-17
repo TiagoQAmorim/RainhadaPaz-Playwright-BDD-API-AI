@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { CandleWall, type CandleItem } from "@/components/CandleWall";
-import type { PublicCandle } from "@/lib/candles";
+import type { PublicCandle } from "@/lib/candle-public";
 
 const PAGE = 8;
 const SPEED_PX_PER_MS = 0.028;
@@ -40,8 +40,10 @@ export function HomeCandleRail({
   const dragged = useRef(false);
   const loadingRef = useRef(false);
   const hasMoreRef = useRef(initial.length < total);
+  const fitsRef = useRef(true);
   const [candles, setCandles] = useState(initial);
   const [hasMore, setHasMore] = useState(initial.length < total);
+  const [fits, setFits] = useState(true);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -54,18 +56,50 @@ export function HomeCandleRail({
     }
   }
 
-  function loopWidth() {
+  function contentWidth() {
     const first = track.current?.firstElementChild as HTMLElement | null;
-    if (!first) return 0;
-    return first.offsetWidth + 12;
+    return first?.offsetWidth ?? 0;
+  }
+
+  function viewWidth() {
+    return viewport.current?.clientWidth ?? 0;
+  }
+
+  /** Uma fileira que cabe inteira fica parada no centro. */
+  function contentFits() {
+    const view = viewWidth();
+    const width = contentWidth();
+    if (view <= 0 || width <= 0) return true;
+    return width <= view;
+  }
+
+  function syncFits() {
+    const next = contentFits();
+    if (next) xRef.current = 0;
+    if (fitsRef.current !== next) {
+      fitsRef.current = next;
+      setFits(next);
+    }
+    return next;
   }
 
   function wrap() {
-    if (hasMoreRef.current) return;
-    const width = loopWidth();
+    if (contentFits()) {
+      xRef.current = 0;
+      return;
+    }
+    const width = contentWidth();
     if (width <= 0) return;
-    if (xRef.current <= -width) xRef.current += width;
-    if (xRef.current > 0) xRef.current -= width;
+    const gap = (track.current?.children.length ?? 0) > 1 ? 12 : 0;
+    const span = width + gap;
+    if (hasMoreRef.current) {
+      const max = Math.max(0, width - viewWidth());
+      if (xRef.current < -max) xRef.current = -max;
+      if (xRef.current > 0) xRef.current = 0;
+      return;
+    }
+    if (xRef.current <= -span) xRef.current += span;
+    if (xRef.current > 0) xRef.current -= span;
   }
 
   async function loadMore() {
@@ -96,15 +130,18 @@ export function HomeCandleRail({
     const tick = (now: number) => {
       const dt = Math.min(32, now - last);
       last = now;
-      if (!media.matches && !paused.current && !dragging.current && candles.length > 1) {
+      const still = syncFits();
+      if (!still && !media.matches && !paused.current && !dragging.current && candles.length > 1) {
         xRef.current -= SPEED_PX_PER_MS * dt;
         wrap();
         apply();
-        const view = viewport.current?.clientWidth ?? 0;
-        const width = loopWidth();
+        const view = viewWidth();
+        const width = contentWidth();
         if (hasMoreRef.current && width > 0 && -xRef.current + view > width - 280) {
           void loadMore();
         }
+      } else {
+        apply();
       }
       frame = requestAnimationFrame(tick);
     };
@@ -114,7 +151,21 @@ export function HomeCandleRail({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [candles.length]);
 
+  useEffect(() => {
+    const node = viewport.current;
+    if (!node) return;
+    const observer = new ResizeObserver(() => {
+      syncFits();
+      apply();
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
+    // syncFits lê o DOM atual
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [candles.length]);
+
   function nudge(dir: -1 | 1) {
+    if (fitsRef.current) return;
     const card = track.current?.querySelector("li");
     const delta = (card?.getBoundingClientRect().width ?? 200) + 12;
     xRef.current += dir * delta;
@@ -124,6 +175,7 @@ export function HomeCandleRail({
   }
 
   function onPointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    if (fitsRef.current) return;
     dragging.current = true;
     dragged.current = false;
     paused.current = true;
@@ -144,8 +196,8 @@ export function HomeCandleRail({
     xRef.current = dragStart.current.offset + dx;
     wrap();
     apply();
-    const view = viewport.current?.clientWidth ?? 0;
-    const width = loopWidth();
+    const view = viewWidth();
+    const width = contentWidth();
     if (hasMoreRef.current && width > 0 && -xRef.current + view > width - 280) {
       void loadMore();
     }
@@ -161,28 +213,37 @@ export function HomeCandleRail({
   }
 
   const items = candles.map(toItem);
-  const loop = !hasMore && items.length > 1;
+  const loop = !fits && !hasMore && items.length > 1;
 
   return (
     <div>
       <div className="relative">
-        <button
-          type="button"
-          aria-label="Velas anteriores"
-          onClick={() => nudge(1)}
-          className="absolute top-1/2 left-1 z-10 -translate-y-1/2 rounded-full bg-black/50 px-2.5 py-2 text-lg font-bold leading-none text-white"
-        >
-          ‹
-        </button>
+        {fits ? null : (
+          <button
+            type="button"
+            aria-label="Velas anteriores"
+            onClick={() => nudge(1)}
+            className="absolute top-1/2 left-1 z-10 -translate-y-1/2 rounded-full bg-black/50 px-2.5 py-2 text-lg font-bold leading-none text-white"
+          >
+            ‹
+          </button>
+        )}
         <div
           ref={viewport}
-          className="cursor-grab overflow-hidden active:cursor-grabbing"
+          className={fits ? "overflow-hidden" : "cursor-grab overflow-hidden active:cursor-grabbing"}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
         >
-          <div ref={track} className="flex w-max gap-3 will-change-transform">
+          <div
+            ref={track}
+            className={
+              fits
+                ? "mx-auto flex w-max justify-center"
+                : "flex w-max gap-3 will-change-transform"
+            }
+          >
             <div className="w-max shrink-0">
               <CandleWall candles={items} banner compact dense rail durationHours={durationHours} />
             </div>
@@ -193,14 +254,16 @@ export function HomeCandleRail({
             ) : null}
           </div>
         </div>
-        <button
-          type="button"
-          aria-label="Próximas velas"
-          onClick={() => nudge(-1)}
-          className="absolute top-1/2 right-1 z-10 -translate-y-1/2 rounded-full bg-black/50 px-2.5 py-2 text-lg font-bold leading-none text-white"
-        >
-          ›
-        </button>
+        {fits ? null : (
+          <button
+            type="button"
+            aria-label="Próximas velas"
+            onClick={() => nudge(-1)}
+            className="absolute top-1/2 right-1 z-10 -translate-y-1/2 rounded-full bg-black/50 px-2.5 py-2 text-lg font-bold leading-none text-white"
+          >
+            ›
+          </button>
+        )}
       </div>
       {loading ? <p className="mt-2 text-center text-xs text-amber-100/70">Carregando mais velas…</p> : null}
       <div className="relative z-[1] mt-3 text-center">

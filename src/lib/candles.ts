@@ -1,8 +1,5 @@
-import {
-  formatCandleTimeLeftMs,
-  isCandleLitNow,
-  resolveCandleBurnWindow,
-} from "@/lib/candle-burn";
+import { isCandleLitNow } from "@/lib/candle-burn";
+import type { PublicCandle } from "@/lib/candle-public";
 import { prisma } from "@/lib/prisma";
 import { getCandleDurationHours } from "@/lib/settings";
 import { sendCandlePrayerToParish } from "@/lib/candle-parish-email";
@@ -57,18 +54,6 @@ export async function activateCandle(candleId: string) {
   return candle;
 }
 
-export function formatCandleTimeLeft(
-  litAt: Date | null | undefined,
-  expiresAt: Date | null | undefined,
-  durationHours?: number,
-): string | null {
-  const hours = durationHours ?? 8;
-  const window = resolveCandleBurnWindow(litAt, expiresAt, hours);
-  if (!window) return null;
-  const ms = window.expiresAt.getTime() - Date.now();
-  return formatCandleTimeLeftMs(ms);
-}
-
 export async function listLitCandles(options: { skip?: number; take: number }) {
   const now = new Date();
   const hours = await getCandleDurationHours();
@@ -94,17 +79,7 @@ export async function listActiveCandles(limit = 48) {
   return candles;
 }
 
-export type PublicCandle = {
-  id: string;
-  donorName: string;
-  intention: string;
-  prayer: string | null;
-  intentionPublic: boolean;
-  prayerPublic: boolean;
-  litAt: string;
-  expiresAt: string | null;
-  paid: boolean;
-};
+export type { PublicCandle } from "@/lib/candle-public";
 
 export function toPublicCandle(candle: {
   id: string;

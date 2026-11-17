@@ -10,6 +10,7 @@ type Props = {
   youtubeUrl?: string | null;
   instagramUrl?: string | null;
   logoUrl?: string | null;
+  hiddenHrefs?: string[];
 };
 
 export function SiteFooter({
@@ -21,7 +22,9 @@ export function SiteFooter({
   youtubeUrl,
   instagramUrl,
   logoUrl,
+  hiddenHrefs = [],
 }: Props) {
+  const hidden = new Set(hiddenHrefs);
   return (
     <footer className="mt-20 border-t border-parish-500 bg-parish-600 text-white">
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 md:grid-cols-12">
@@ -46,7 +49,9 @@ export function SiteFooter({
           <p className="text-xs font-bold uppercase tracking-widest text-gold-400">Navegação</p>
           <ul className="mt-4 space-y-2 text-sm">
             <li><Link href="/horarios" className="hover:text-gold-300">Horários</Link></li>
-            <li><Link href="/terco-online" className="hover:text-gold-300">Terço online</Link></li>
+            {hidden.has("/terco-online") ? null : (
+              <li><Link href="/terco-online" className="hover:text-gold-300">Terço online</Link></li>
+            )}
             <li><Link href="/velas" className="hover:text-gold-300">Vela virtual</Link></li>
             <li><Link href="/rifas" className="hover:text-gold-300">Rifas dos Santos</Link></li>
             <li><Link href="/sacramentos" className="hover:text-gold-300">Sacramentos</Link></li>

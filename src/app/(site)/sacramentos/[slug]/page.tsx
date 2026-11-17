@@ -9,13 +9,13 @@ type Props = { params: Promise<{ slug: string }> };
 export async function generateMetadata({ params }: Props) {
   const { slug } = await params;
   const page = await prisma.page.findUnique({ where: { slug } });
-  return { title: page?.title ?? "Sacramento" };
+  return { title: page?.published ? page.title : "Sacramento" };
 }
 
 export default async function SacramentPage({ params }: Props) {
   const { slug } = await params;
   const page = await prisma.page.findUnique({ where: { slug } });
-  if (!page) notFound();
+  if (!page || !page.published) notFound();
 
   return (
     <PageContainer className="py-12 md:py-16">

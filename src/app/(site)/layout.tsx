@@ -9,6 +9,7 @@ import { TopBar } from "@/components/TopBar";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { hasValidAdminSession } from "@/lib/auth";
 import { resolveMaintenance } from "@/lib/maintenance";
+import { unpublishedPublicHrefs } from "@/lib/public-pages";
 import { getSiteSettings } from "@/lib/settings";
 
 export default async function SiteLayout({
@@ -30,12 +31,19 @@ export default async function SiteLayout({
     );
   }
 
-  const settings = await getSiteSettings();
+  const [settings, hiddenHrefs] = await Promise.all([
+    getSiteSettings(),
+    unpublishedPublicHrefs(),
+  ]);
 
   return (
     <>
       <TopBar address={settings.address} phone={settings.phone} />
-      <SiteHeader parishName={settings.parishName} logoUrl={settings.logoUrl} />
+      <SiteHeader
+        parishName={settings.parishName}
+        logoUrl={settings.logoUrl}
+        hiddenHrefs={hiddenHrefs}
+      />
       <main className="flex-1">{children}</main>
       <SiteFooter
         parishName={settings.parishName}
@@ -46,6 +54,7 @@ export default async function SiteLayout({
         youtubeUrl={settings.youtubeChannelUrl ?? settings.youtubeUrl}
         instagramUrl={settings.instagramUrl}
         logoUrl={settings.logoUrl}
+        hiddenHrefs={hiddenHrefs}
       />
       <WhatsAppButton phone={settings.phone} />
     </>

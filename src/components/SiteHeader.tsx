@@ -27,10 +27,15 @@ type Props = {
   logoUrl?: string | null;
   /** false = só nome da paróquia (ex.: painel admin), sem links do site. */
   showNav?: boolean;
+  /** Endereços de páginas ocultas no admin, para não deixar o menu apontando para elas. */
+  hiddenHrefs?: string[];
 };
 
-export function SiteHeader({ parishName, showNav = true }: Props) {
+export function SiteHeader({ parishName, showNav = true, hiddenHrefs = [] }: Props) {
   const pathname = usePathname();
+  const hidden = new Set(hiddenHrefs);
+  const navLinks = links.filter((item) => !hidden.has(item.href));
+  const showTerco = !hidden.has("/terco-online");
 
   if (!showNav) {
     return (
@@ -79,7 +84,7 @@ export function SiteHeader({ parishName, showNav = true }: Props) {
         </Link>
 
         <nav className="hidden items-center gap-1 lg:flex">
-          {links.map((item) => {
+          {navLinks.map((item) => {
             const active =
               pathname === item.href || pathname.startsWith(`${item.href}/`);
             return (
@@ -97,12 +102,14 @@ export function SiteHeader({ parishName, showNav = true }: Props) {
               </Link>
             );
           })}
-          <Link
-            href="/terco-online"
-            className="ml-2 inline-flex items-center rounded-full bg-gold-500 px-4 py-2 text-sm font-bold text-parish-950 transition hover:bg-gold-400"
-          >
-            Terço online
-          </Link>
+          {showTerco ? (
+            <Link
+              href="/terco-online"
+              className="ml-2 inline-flex items-center rounded-full bg-gold-500 px-4 py-2 text-sm font-bold text-parish-950 transition hover:bg-gold-400"
+            >
+              Terço online
+            </Link>
+          ) : null}
         </nav>
 
         <label
@@ -127,7 +134,7 @@ export function SiteHeader({ parishName, showNav = true }: Props) {
               Início
             </Link>
           </li>
-          {links.map((item) => {
+          {navLinks.map((item) => {
             const active =
               pathname === item.href || pathname.startsWith(`${item.href}/`);
             return (
@@ -147,15 +154,17 @@ export function SiteHeader({ parishName, showNav = true }: Props) {
               </li>
             );
           })}
-          <li className="px-3 pt-2">
-            <Link
-              href="/terco-online"
-              className="inline-flex w-full justify-center rounded-full bg-gold-500 px-4 py-2.5 text-sm font-bold text-parish-950"
-              onClick={closeMobileNav}
-            >
-              Terço online
-            </Link>
-          </li>
+          {showTerco ? (
+            <li className="px-3 pt-2">
+              <Link
+                href="/terco-online"
+                className="inline-flex w-full justify-center rounded-full bg-gold-500 px-4 py-2.5 text-sm font-bold text-parish-950"
+                onClick={closeMobileNav}
+              >
+                Terço online
+              </Link>
+            </li>
+          ) : null}
         </ul>
       </nav>
     </header>

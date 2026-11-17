@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { deletePage } from "@/app/admin/actions";
+import { deletePage, setPagePublished } from "@/app/admin/actions";
 import { AdminConfirmDeleteForm } from "@/components/admin/AdminConfirmDeleteForm";
 import {
   adminBtn,
@@ -34,16 +34,43 @@ export default async function AdminPaginasListPage() {
       <section className={adminCard}>
         <h1 className="text-lg font-semibold text-parish-900">Páginas de conteúdo</h1>
         <p className="mt-1 text-sm text-parish-600">
-          Clique em <strong>Editar</strong> para alterar texto e imagem. Exclusão pede confirmação.
+          Cada página mostra se está <strong>visível</strong> ou <strong>oculta</strong>. Ocultar tira do
+          site sem apagar. Exclusão pede confirmação.
         </p>
         <ul className="mt-6 divide-y divide-parish-100">
           {sorted.map((page) => (
-            <li key={page.id} className="flex flex-wrap items-center justify-between gap-3 py-4">
+            <li
+              key={page.id}
+              id={`pagina-${page.id}`}
+              className={
+                page.published
+                  ? "flex scroll-mt-28 flex-wrap items-center justify-between gap-3 py-4"
+                  : "flex scroll-mt-28 flex-wrap items-center justify-between gap-3 rounded-xl bg-amber-50 px-3 py-4"
+              }
+            >
               <div>
-                <p className="font-medium text-parish-900">{page.title}</p>
+                <p className="flex flex-wrap items-center gap-2 font-medium text-parish-900">
+                  {page.title}
+                  {page.published ? (
+                    <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide text-emerald-800">
+                      Visível
+                    </span>
+                  ) : (
+                    <span className="rounded-full border border-amber-300 bg-amber-100 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide text-amber-950">
+                      Oculta
+                    </span>
+                  )}
+                </p>
                 <p className="text-xs text-parish-500">/{page.slug}</p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
+                <form action={setPagePublished}>
+                  <input type="hidden" name="id" value={page.id} />
+                  <input type="hidden" name="published" value={page.published ? "false" : "true"} />
+                  <button type="submit" className={page.published ? adminLink : adminBtn}>
+                    {page.published ? "Ocultar" : "Mostrar no site"}
+                  </button>
+                </form>
                 <Link href={`/admin/informacoes/paginas/${page.id}`} className={adminLink}>
                   Editar
                 </Link>

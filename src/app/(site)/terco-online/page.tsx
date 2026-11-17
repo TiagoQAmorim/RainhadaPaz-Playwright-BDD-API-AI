@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { PageContainer } from "@/components/PageContainer";
 import { TercoOnlineSlots } from "@/components/TercoOnlineSlots";
 import { prisma } from "@/lib/prisma";
@@ -14,6 +15,7 @@ export default async function TercoOnlinePage() {
     prisma.page.findUnique({ where: { slug: "terco-online" } }),
     getTercoOnlineSlots(),
   ]);
+  if (page && !page.published) notFound();
 
   const hero = resolveImageSrc(
     page?.featuredImage ?? page?.body.match(/src="([^"]+)"/)?.[1],

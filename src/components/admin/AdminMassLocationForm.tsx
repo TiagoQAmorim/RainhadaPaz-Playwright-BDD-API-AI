@@ -1,11 +1,18 @@
 import { upsertMassLocation } from "@/app/admin/actions";
-import { adminBtn, adminInput, adminTextarea } from "@/components/admin/AdminFormStyles";
+import { AdminImageField } from "@/components/admin/AdminImageField";
+import {
+  adminBtn,
+  adminFormEncType,
+  adminInput,
+  adminTextarea,
+} from "@/components/admin/AdminFormStyles";
 
 export type MassLocationFormValues = {
   id?: string;
   name: string;
   address: string;
   scheduleText: string;
+  imageUrl?: string | null;
   sortOrder: number;
   published: boolean;
 };
@@ -17,10 +24,11 @@ type Props = {
 
 export function AdminMassLocationForm({ location, submitLabel }: Props) {
   return (
-    <form action={upsertMassLocation} className="space-y-3">
+    <form action={upsertMassLocation} encType={adminFormEncType} className="space-y-3">
       {location?.id ? <input type="hidden" name="id" value={location.id} /> : null}
       <p className="text-sm text-parish-600">
-        Locais exibidos em /horarios. Uma linha por horário no campo de agenda.
+        Locais exibidos em /horarios. Uma linha por horário no campo de agenda. A foto fica ao
+        lado desse bloco: o primeiro local à direita, o segundo à esquerda, e assim por diante.
       </p>
       <Field label="Nome" name="name" defaultValue={location?.name} required />
       <Field label="Endereço" name="address" defaultValue={location?.address} required />
@@ -29,6 +37,12 @@ export function AdminMassLocationForm({ location, submitLabel }: Props) {
         name="scheduleText"
         defaultValue={location?.scheduleText}
         required
+      />
+      <AdminImageField
+        label="Foto do local"
+        name="imageUrl"
+        fileFieldName="imageUrlFile"
+        defaultValue={location?.imageUrl}
       />
       <Field
         label="Ordem"

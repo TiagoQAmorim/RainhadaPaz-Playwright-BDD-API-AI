@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { ContentCoverImage } from "@/components/ContentCoverImage";
 import { PageContainer } from "@/components/PageContainer";
 import { PAROCHIAL } from "@/lib/parish-social";
@@ -13,6 +14,7 @@ export default async function ParocoPage() {
     getSiteSettings(),
     prisma.page.findUnique({ where: { slug: "paroco" } }),
   ]);
+  if (page && !page.published) notFound();
 
   return (
     <PageContainer className="py-12 md:py-16">

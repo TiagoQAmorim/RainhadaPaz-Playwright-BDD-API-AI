@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import { ContentCoverImage } from "@/components/ContentCoverImage";
 import { PageContainer } from "@/components/PageContainer";
 
@@ -24,6 +25,7 @@ export default async function ContatoPage() {
     prisma.page.findUnique({ where: { slug: "contato" } }),
 
   ]);
+  if (page && !page.published) notFound();
 
 
 
