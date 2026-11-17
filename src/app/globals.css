@@ -117,6 +117,22 @@ body {
   opacity: 1;
 }
 
+.candle-photo__halo {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  z-index: 2;
+  width: 78%;
+  height: 22%;
+  transform: translate(-50%, -145%);
+  border-radius: 50%;
+  border: 2px solid rgba(255, 224, 150, 0.95);
+  box-shadow:
+    0 0 0 1px rgba(255, 196, 70, 0.45),
+    0 0 14px 4px rgba(255, 196, 80, 0.72);
+  pointer-events: none;
+}
+
 .candle-photo__wax-slot {
   isolation: isolate;
 }

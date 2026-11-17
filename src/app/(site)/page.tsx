@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { CandleWall } from "@/components/CandleWall";
+import { HomeCandleRail } from "@/components/HomeCandleRail";
 import { NoticePreviewCard } from "@/components/NoticePreviewCard";
 import { HeroHome } from "@/components/HeroHome";
 import { PageContainer } from "@/components/PageContainer";
@@ -8,7 +8,7 @@ import { PostCard } from "@/components/PostCard";
 import { QuickLinksGrid } from "@/components/QuickLinksGrid";
 import { SectionHeading } from "@/components/SectionHeading";
 import { VerseStrip } from "@/components/VerseStrip";
-import { listActiveCandles } from "@/lib/candles";
+import { listLitCandles, toPublicCandle } from "@/lib/candles";
 import { getHomeCarouselSlides } from "@/lib/home-carousel";
 import { getPublishedHomeQuickLinks } from "@/lib/home-quick-links";
 import { getHomeHeroCtas } from "@/lib/home-hero-ctas";
@@ -17,7 +17,7 @@ import { prisma } from "@/lib/prisma";
 import { VaticanNewsCard } from "@/components/VaticanNewsCard";
 import { PhotoHeroBanner } from "@/components/PhotoHeroBanner";
 import { CANDLES_BANNER_PATH } from "@/lib/parish-brand";
-import { getCandleDurationHours, getSiteSettings } from "@/lib/settings";
+import { getSiteSettings } from "@/lib/settings";
 import { listVaticanNews, VATICAN_NEWS_HOME_URL } from "@/lib/vatican-news";
 import { TercoOnlineSlots } from "@/components/TercoOnlineSlots";
 import { getTercoOnlineSlots, summarizeTercoSchedules } from "@/lib/terco-online";
@@ -28,12 +28,12 @@ import { SITE_IMAGES } from "@/lib/wordpress-assets";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [settings, tercoSlots, tercoPage, candles, posts, notices, carouselSlides, candleHours, vaticanNews, quickLinks, heroCtas] =
+  const [settings, tercoSlots, tercoPage, candleMural, posts, notices, carouselSlides, vaticanNews, quickLinks, heroCtas] =
     await Promise.all([
     getSiteSettings(),
     getTercoOnlineSlots(),
     prisma.page.findUnique({ where: { slug: "terco-online" }, select: { featuredImage: true } }),
-    listActiveCandles(5),
+    listLitCandles({ take: 8 }),
     prisma.post.findMany({
       where: { published: true },
       orderBy: { publishedAt: "desc" },
@@ -41,7 +41,6 @@ export default async function HomePage() {
     }),
     getPublishedNotices(3),
     getHomeCarouselSlides(),
-    getCandleDurationHours(),
     listVaticanNews(2),
     getPublishedHomeQuickLinks(),
     getHomeHeroCtas(),
@@ -137,13 +136,10 @@ export default async function HomePage() {
           description="Intenções acesas pela comunidade."
         />
         <div className="overflow-visible rounded-2xl border border-white/15 bg-black/40 p-2 pt-3 backdrop-blur-sm md:p-3 md:pt-4">
-          <CandleWall
-            candles={candles}
-            banner
-            compact
-            dense
-            showViewAllHref="/velas#mural"
-            durationHours={candleHours}
+          <HomeCandleRail
+            initial={candleMural.candles.map(toPublicCandle)}
+            total={candleMural.total}
+            durationHours={candleMural.durationHours}
           />
         </div>
         <div className="mt-4 text-center">

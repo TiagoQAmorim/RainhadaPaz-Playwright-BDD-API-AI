@@ -1,5 +1,6 @@
 import {
   formatCandleTimeLeftMs,
+  isCandleLitNow,
   resolveCandleBurnWindow,
 } from "@/lib/candle-burn";
 import { prisma } from "@/lib/prisma";
@@ -68,22 +69,63 @@ export function formatCandleTimeLeft(
   return formatCandleTimeLeftMs(ms);
 }
 
-export async function listActiveCandles(limit = 48) {
+export async function listLitCandles(options: { skip?: number; take: number }) {
   const now = new Date();
   const hours = await getCandleDurationHours();
   const rows = await prisma.virtualCandle.findMany({
     where: {
-      status: "PAID",
+      litAt: { not: null },
+      NOT: { status: "EXPIRED" },
       OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
     },
     orderBy: { litAt: "desc" },
-    take: limit * 2,
   });
+  const lit = rows.filter((c) => isCandleLitNow(c, hours, now.getTime()));
+  const skip = Math.max(0, options.skip ?? 0);
+  return {
+    candles: lit.slice(skip, skip + options.take),
+    total: lit.length,
+    durationHours: hours,
+  };
+}
 
-  return rows
-    .filter((c) => {
-      const w = resolveCandleBurnWindow(c.litAt, c.expiresAt, hours);
-      return w && w.expiresAt.getTime() > now.getTime();
-    })
-    .slice(0, limit);
+export async function listActiveCandles(limit = 48) {
+  const { candles } = await listLitCandles({ take: limit });
+  return candles;
+}
+
+export type PublicCandle = {
+  id: string;
+  donorName: string;
+  intention: string;
+  prayer: string | null;
+  intentionPublic: boolean;
+  prayerPublic: boolean;
+  litAt: string;
+  expiresAt: string | null;
+  paid: boolean;
+};
+
+export function toPublicCandle(candle: {
+  id: string;
+  donorName: string;
+  intention: string;
+  prayer: string | null;
+  intentionPublic: boolean;
+  prayerPublic: boolean;
+  litAt: Date | null;
+  expiresAt: Date | null;
+  amountCents: number;
+}): PublicCandle {
+  return {
+    id: candle.id,
+    donorName: candle.donorName,
+    intention: candle.intention,
+    prayer: candle.prayer,
+    intentionPublic: candle.intentionPublic,
+    prayerPublic: candle.prayerPublic,
+    litAt: (candle.litAt ?? new Date()).toISOString(),
+    expiresAt: candle.expiresAt ? candle.expiresAt.toISOString() : null,
+    paid: candle.amountCents > 0,
+  };
 }

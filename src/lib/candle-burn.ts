@@ -46,6 +46,17 @@ export function resolveCandleBurnWindow(
   return null;
 }
 
+/** Acesa agora: já tem início e o prazo não acabou. Pagamento não entra nessa conta. */
+export function isCandleLitNow(
+  candle: { status: string; litAt: Date | null; expiresAt: Date | null },
+  durationHours: number,
+  nowMs = Date.now(),
+): boolean {
+  if (!candle.litAt || candle.status === "EXPIRED") return false;
+  const window = resolveCandleBurnWindow(candle.litAt, candle.expiresAt, durationHours);
+  return !!window && window.expiresAt.getTime() > nowMs;
+}
+
 /** 1 = recém acesa, 0 = tempo esgotado */
 export function candleRemainingRatio(
   litAt: Date | null,

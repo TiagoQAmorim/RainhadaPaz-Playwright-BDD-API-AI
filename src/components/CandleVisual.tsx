@@ -27,6 +27,8 @@ type Props = {
   priority?: boolean;
   /** Mural /velas — estilos isolados (não altera a home). */
   mural?: boolean;
+  /** Contribuição paga: auréola dourada sobre a chama. */
+  paid?: boolean;
 };
 
 function parseDate(v: Date | string | null | undefined): Date | null {
@@ -64,6 +66,7 @@ export function CandleVisual({
   durationHours = DEFAULT_CANDLE_DURATION_HOURS,
   priority,
   mural,
+  paid,
 }: Props) {
   const w = candleVisualPixelWidth(size);
   const burnWindow = resolveCandleBurnWindow(litAtProp, expiresAtProp, durationHours);
@@ -95,6 +98,7 @@ export function CandleVisual({
       className={cn(
         "candle-photo relative mx-auto shrink-0 transition-[height] duration-700 ease-out",
         isLit && "candle-photo--lit",
+        paid && isLit && "candle-photo--paid",
         mural && "candle-photo--mural",
       )}
       style={
@@ -126,6 +130,7 @@ export function CandleVisual({
 
         {isLit && flameScale > 0 ? (
           <>
+            {paid ? <div className="candle-photo__halo pointer-events-none" aria-hidden /> : null}
             <div className="candle-photo__glow pointer-events-none" aria-hidden />
             <div className="candle-photo__flame-stage pointer-events-none">
               <Image

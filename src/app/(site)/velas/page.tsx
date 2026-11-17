@@ -1,22 +1,36 @@
+import Link from "next/link";
 import { CandleForm } from "@/components/CandleForm";
 import { CandleWall } from "@/components/CandleWall";
 import { PageContainer } from "@/components/PageContainer";
 import { PhotoHeroBanner } from "@/components/PhotoHeroBanner";
 import { SectionHeading } from "@/components/SectionHeading";
-import { listActiveCandles } from "@/lib/candles";
+import { listLitCandles } from "@/lib/candles";
 import { CANDLES_BANNER_PATH } from "@/lib/parish-brand";
 import { formatCandlePrice, getCandleCommerceConfig } from "@/lib/candle-commerce";
 import { getCandleDurationHours, getSiteSettings } from "@/lib/settings";
 
 export const metadata = { title: "Vela virtual" };
 
-export default async function VelasPage() {
-  const [candles, settings, durationHours, commerce] = await Promise.all([
-    listActiveCandles(24),
+const PAGE_SIZE = 12;
+
+type Props = { searchParams: Promise<{ pagina?: string }> };
+
+export default async function VelasPage({ searchParams }: Props) {
+  const { pagina } = await searchParams;
+  const requested = Math.max(1, Number(pagina) || 1);
+  const [firstPage, settings, durationHours, commerce] = await Promise.all([
+    listLitCandles({ skip: (requested - 1) * PAGE_SIZE, take: PAGE_SIZE }),
     getSiteSettings(),
     getCandleDurationHours(),
     getCandleCommerceConfig(),
   ]);
+  const totalPages = Math.max(1, Math.ceil(firstPage.total / PAGE_SIZE));
+  const page = Math.min(totalPages, requested);
+  const mural =
+    page === requested
+      ? firstPage
+      : await listLitCandles({ skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE });
+  const candles = mural.candles;
   const muralDurationText =
     settings.candleDurationUnit === "days"
       ? `${settings.candleDurationAmount} dia(s)`
@@ -65,7 +79,63 @@ export default async function VelasPage() {
             title="Mural de velas"
             description={`Cada vela permanece acesa por ${muralDurationText}. Por padrão, intenção e oração ficam em sigilo; você pode optar por exibi-las no mural ao acender.`}
           />
-          <CandleWall candles={candles} embedded muralDark durationHours={durationHours} />
+          <CandleWall
+            candles={candles.map((c) => ({
+              id: c.id,
+              donorName: c.donorName,
+              intention: c.intention,
+              prayer: c.prayer,
+              intentionPublic: c.intentionPublic,
+              prayerPublic: c.prayerPublic,
+              litAt: c.litAt,
+              expiresAt: c.expiresAt,
+              paid: c.amountCents > 0,
+            }))}
+            embedded
+            muralDark
+            durationHours={durationHours}
+          />
+          {totalPages > 1 ? (
+            <nav className="mt-6 flex flex-wrap items-center justify-center gap-2" aria-label="Páginas do mural">
+              {page > 1 ? (
+                <Link
+                  href={`/velas?pagina=${page - 1}#mural`}
+                  className="rounded-full border border-white/25 px-3 py-1.5 text-sm font-semibold text-amber-50 hover:bg-white/10"
+                >
+                  Anterior
+                </Link>
+              ) : null}
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter((n) => n === 1 || n === totalPages || Math.abs(n - page) <= 2)
+                .map((n, index, list) => {
+                  const prev = list[index - 1];
+                  return (
+                    <span key={n} className="flex items-center gap-2">
+                      {prev != null && n - prev > 1 ? <span className="text-amber-100/50">…</span> : null}
+                      <Link
+                        href={`/velas?pagina=${n}#mural`}
+                        aria-current={n === page ? "page" : undefined}
+                        className={
+                          n === page
+                            ? "rounded-full bg-gold-500 px-3 py-1.5 text-sm font-bold text-parish-950"
+                            : "rounded-full px-3 py-1.5 text-sm font-semibold text-amber-50 hover:bg-white/10"
+                        }
+                      >
+                        {n}
+                      </Link>
+                    </span>
+                  );
+                })}
+              {page < totalPages ? (
+                <Link
+                  href={`/velas?pagina=${page + 1}#mural`}
+                  className="rounded-full border border-white/25 px-3 py-1.5 text-sm font-semibold text-amber-50 hover:bg-white/10"
+                >
+                  Próxima
+                </Link>
+              ) : null}
+            </nav>
+          ) : null}
         </div>
       </div>
       </PageContainer>

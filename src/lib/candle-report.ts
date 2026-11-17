@@ -1,4 +1,4 @@
-import { resolveCandleBurnWindow } from "@/lib/candle-burn";
+import { isCandleLitNow } from "@/lib/candle-burn";
 import { prisma } from "@/lib/prisma";
 
 export type CandleReportRow = {
@@ -31,12 +31,12 @@ type CandleLike = {
   createdAt: Date;
 };
 
-/** Velas visíveis no mural agora (não confundir com total PAID no histórico). */
+/** Velas acesas no mural agora, pagas ou não. */
 export async function countCandlesActiveOnMural(): Promise<number> {
   const { getCandleDurationHours } = await import("@/lib/settings");
   const durationHours = await getCandleDurationHours();
   const candles = await prisma.virtualCandle.findMany({
-    where: { status: "PAID" },
+    where: { litAt: { not: null }, NOT: { status: "EXPIRED" } },
     select: { status: true, litAt: true, expiresAt: true },
   });
   return candles.filter((c) => isCandleActiveOnMural(c, durationHours)).length;
@@ -47,10 +47,7 @@ export function isCandleActiveOnMural(
   durationHours: number,
   nowMs = Date.now(),
 ): boolean {
-  if (candle.status !== "PAID") return false;
-  const window = resolveCandleBurnWindow(candle.litAt, candle.expiresAt, durationHours);
-  if (!window) return false;
-  return window.expiresAt.getTime() > nowMs;
+  return isCandleLitNow(candle, durationHours, nowMs);
 }
 
 export function candleReportDate(candle: CandleLike): Date {

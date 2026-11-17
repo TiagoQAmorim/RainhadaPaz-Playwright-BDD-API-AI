@@ -14,6 +14,8 @@ export type CandleItem = {
   prayerPublic?: boolean;
   litAt: Date | null;
   expiresAt?: Date | null;
+  /** Contribuição em dinheiro. A vela gratuita acesa não leva auréola. */
+  paid?: boolean;
 };
 
 const textBlock =
@@ -33,6 +35,7 @@ export function CandleWall({
   durationHours,
   dense,
   muralDark,
+  rail,
 }: {
   candles: CandleItem[];
   dark?: boolean;
@@ -41,6 +44,8 @@ export function CandleWall({
   compact?: boolean;
   embedded?: boolean;
   dense?: boolean;
+  /** Faixa horizontal: um card por vez na rolagem, sem grade. */
+  rail?: boolean;
   showViewAllHref?: string;
   durationHours: number;
 }) {
@@ -71,7 +76,9 @@ export function CandleWall({
     );
   }
 
-  const gridClass = compact
+  const gridClass = rail
+    ? "flex w-max items-stretch gap-3"
+    : compact
     ? onPhoto
       ? "grid grid-cols-2 items-stretch gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
       : "grid grid-cols-2 items-stretch gap-3 sm:grid-cols-3 lg:grid-cols-5 lg:gap-4"
@@ -102,7 +109,8 @@ export function CandleWall({
               key={c.id}
               className={cn(
                 "candle-velario-slot flex min-h-0 min-w-0",
-                !uniformMural && "[content-visibility:auto]",
+                rail && "w-[12.25rem] shrink-0 snap-start sm:w-56",
+                !uniformMural && !rail && "[content-visibility:auto]",
                 (tightText || uniformMural) && "h-full min-h-0",
                 embedded && !tightText && !uniformMural && "mx-auto w-full max-w-[19rem] sm:max-w-none",
               )}
@@ -127,6 +135,7 @@ export function CandleWall({
                 >
                   <CandleVisual
                     size={candleSize}
+                    paid={c.paid === true}
                     mural={uniformMural}
                     delaySec={i * 0.13}
                     litAt={burn?.litAt ?? c.litAt}
