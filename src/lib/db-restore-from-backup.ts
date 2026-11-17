@@ -4,7 +4,9 @@ import path from "node:path";
 type ManifestCounts = {
   pages?: number;
   posts?: number;
+  notices?: number;
   raffles?: number;
+  candles?: number;
 };
 
 export type ProductionBackupCandidate = {
@@ -75,6 +77,8 @@ export type RestoreFromBackupOptions = {
   respectAutoRestoreDisable?: boolean;
   /** Restaurar um dia específico (YYYY-MM-DD); padrão = mais recente com conteúdo */
   day?: string;
+  /** Entre as cópias com conteúdo, escolhe a mais cheia (empate: a mais nova). */
+  preferFullest?: boolean;
 };
 
 /** Copia o .db do backup de produção (manifest em /data/backups). */
@@ -91,7 +95,9 @@ export function restoreDatabaseFromLatestBackup(
 
   const pick = options.day
     ? candidates.find((c) => c.day === options.day) ?? null
-    : candidates[0];
+    : options.preferFullest
+      ? fullestBackup(candidates)
+      : candidates[0];
   if (!pick) return null;
 
   try {
@@ -107,6 +113,21 @@ export function restoreDatabaseFromLatestBackup(
 }
 
 /** O diário do banco vazio, se ficar ao lado do .db, reaplica o wipe por cima do backup. */
+function fullestBackup(candidates: ProductionBackupCandidate[]): ProductionBackupCandidate | null {
+  if (candidates.length === 0) return null;
+  return [...candidates].sort((a, b) => {
+    const score = (c: ProductionBackupCandidate) =>
+      (c.counts.pages ?? 0) +
+      (c.counts.posts ?? 0) +
+      (c.counts.notices ?? 0) +
+      (c.counts.raffles ?? 0) +
+      (c.counts.candles ?? 0);
+    const byScore = score(b) - score(a);
+    if (byScore !== 0) return byScore;
+    return b.day.localeCompare(a.day);
+  })[0];
+}
+
 function removeSqliteSidecars(dbPath: string) {
   for (const ext of ["-wal", "-shm"]) {
     const sidecar = `${dbPath}${ext}`;

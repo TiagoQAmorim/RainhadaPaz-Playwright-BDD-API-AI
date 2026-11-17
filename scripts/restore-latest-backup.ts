@@ -10,7 +10,10 @@ if (!dbPath) {
   process.exit(1);
 }
 
-const src = restoreDatabaseFromLatestBackup(dbPath, { respectAutoRestoreDisable: true });
+const src = restoreDatabaseFromLatestBackup(dbPath, {
+  respectAutoRestoreDisable: true,
+  preferFullest: process.argv.includes("--fullest"),
+});
 if (src) {
   console.log("[restore-latest-backup] OK:", src);
   process.exit(0);
