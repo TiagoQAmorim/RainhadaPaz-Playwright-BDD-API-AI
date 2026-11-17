@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CandleWall, type CandleItem } from "@/components/CandleWall";
 import type { PublicCandle } from "@/lib/candles";
 
 const PAGE = 8;
+const SPEED_PX_PER_MS = 0.028;
 
 function toItem(candle: PublicCandle): CandleItem {
   return {
@@ -30,14 +31,45 @@ export function HomeCandleRail({
   total: number;
   durationHours: number;
 }) {
-  const scroller = useRef<HTMLDivElement>(null);
+  const viewport = useRef<HTMLDivElement>(null);
+  const track = useRef<HTMLDivElement>(null);
+  const xRef = useRef(0);
+  const paused = useRef(false);
+  const dragging = useRef(false);
+  const dragStart = useRef({ x: 0, y: 0, offset: 0 });
+  const dragged = useRef(false);
   const loadingRef = useRef(false);
+  const hasMoreRef = useRef(initial.length < total);
   const [candles, setCandles] = useState(initial);
   const [hasMore, setHasMore] = useState(initial.length < total);
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    hasMoreRef.current = hasMore;
+  }, [hasMore]);
+
+  function apply() {
+    if (track.current) {
+      track.current.style.transform = `translate3d(${xRef.current}px,0,0)`;
+    }
+  }
+
+  function loopWidth() {
+    const first = track.current?.firstElementChild as HTMLElement | null;
+    if (!first) return 0;
+    return first.offsetWidth + 12;
+  }
+
+  function wrap() {
+    if (hasMoreRef.current) return;
+    const width = loopWidth();
+    if (width <= 0) return;
+    if (xRef.current <= -width) xRef.current += width;
+    if (xRef.current > 0) xRef.current -= width;
+  }
+
   async function loadMore() {
-    if (loadingRef.current || !hasMore) return;
+    if (loadingRef.current || !hasMoreRef.current) return;
     loadingRef.current = true;
     setLoading(true);
     try {
@@ -46,8 +78,10 @@ export function HomeCandleRail({
       const data = (await res.json()) as { candles: PublicCandle[]; hasMore: boolean };
       setCandles((current) => {
         const seen = new Set(current.map((c) => c.id));
-        return [...current, ...data.candles.filter((c) => !seen.has(c.id))];
+        const extra = data.candles.filter((c) => !seen.has(c.id));
+        return extra.length ? [...current, ...extra] : current;
       });
+      hasMoreRef.current = data.hasMore;
       setHasMore(data.hasMore);
     } finally {
       loadingRef.current = false;
@@ -55,60 +89,115 @@ export function HomeCandleRail({
     }
   }
 
-  function onScroll() {
-    const el = scroller.current;
-    if (!el) return;
-    if (el.scrollLeft + el.clientWidth >= el.scrollWidth - 140) {
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let frame = 0;
+    let last = performance.now();
+    const tick = (now: number) => {
+      const dt = Math.min(32, now - last);
+      last = now;
+      if (!media.matches && !paused.current && !dragging.current && candles.length > 1) {
+        xRef.current -= SPEED_PX_PER_MS * dt;
+        wrap();
+        apply();
+        const view = viewport.current?.clientWidth ?? 0;
+        const width = loopWidth();
+        if (hasMoreRef.current && width > 0 && -xRef.current + view > width - 280) {
+          void loadMore();
+        }
+      }
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+    // loadMore fecha sobre o tamanho atual da lista de propósito
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [candles.length]);
+
+  function nudge(dir: -1 | 1) {
+    const card = track.current?.querySelector("li");
+    const delta = (card?.getBoundingClientRect().width ?? 200) + 12;
+    xRef.current += dir * delta;
+    if (dir < 0 && hasMoreRef.current) void loadMore();
+    wrap();
+    apply();
+  }
+
+  function onPointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    dragging.current = true;
+    dragged.current = false;
+    paused.current = true;
+    dragStart.current = { x: e.clientX, y: e.clientY, offset: xRef.current };
+  }
+
+  function onPointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    if (!dragging.current) return;
+    const dx = e.clientX - dragStart.current.x;
+    const dy = e.clientY - dragStart.current.y;
+    if (!dragged.current && Math.abs(dx) < 8) return;
+    if (!dragged.current && Math.abs(dy) > Math.abs(dx)) {
+      dragging.current = false;
+      paused.current = false;
+      return;
+    }
+    dragged.current = true;
+    xRef.current = dragStart.current.offset + dx;
+    wrap();
+    apply();
+    const view = viewport.current?.clientWidth ?? 0;
+    const width = loopWidth();
+    if (hasMoreRef.current && width > 0 && -xRef.current + view > width - 280) {
       void loadMore();
     }
   }
 
-  async function step(dir: -1 | 1) {
-    const el = scroller.current;
-    if (!el) return;
-    const nearEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 24;
-    if (dir > 0 && nearEnd) await loadMore();
-    const card = el.querySelector("li");
-    const delta = (card?.getBoundingClientRect().width ?? 200) + 12;
-    el.scrollBy({ left: dir * delta, behavior: "smooth" });
+  function onPointerUp() {
+    dragging.current = false;
+    paused.current = false;
   }
 
   if (candles.length === 0) {
-    return (
-      <CandleWall candles={[]} banner compact dense durationHours={durationHours} />
-    );
+    return <CandleWall candles={[]} banner compact dense durationHours={durationHours} />;
   }
+
+  const items = candles.map(toItem);
+  const loop = !hasMore && items.length > 1;
 
   return (
     <div>
-      <div className="flex items-center gap-1">
+      <div className="relative">
         <button
           type="button"
           aria-label="Velas anteriores"
-          onClick={() => void step(-1)}
-          className="shrink-0 rounded-full bg-black/40 px-2.5 py-2 text-lg font-bold leading-none text-white"
+          onClick={() => nudge(1)}
+          className="absolute top-1/2 left-1 z-10 -translate-y-1/2 rounded-full bg-black/50 px-2.5 py-2 text-lg font-bold leading-none text-white"
         >
           ‹
         </button>
         <div
-          ref={scroller}
-          onScroll={onScroll}
-          className="min-w-0 flex-1 overflow-x-auto overscroll-x-contain scroll-smooth snap-x snap-mandatory pb-1 [scrollbar-width:thin]"
+          ref={viewport}
+          className="cursor-grab overflow-hidden active:cursor-grabbing"
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={onPointerUp}
         >
-          <CandleWall
-            candles={candles.map(toItem)}
-            banner
-            compact
-            dense
-            rail
-            durationHours={durationHours}
-          />
+          <div ref={track} className="flex w-max gap-3 will-change-transform">
+            <div className="w-max shrink-0">
+              <CandleWall candles={items} banner compact dense rail durationHours={durationHours} />
+            </div>
+            {loop ? (
+              <div className="w-max shrink-0" aria-hidden>
+                <CandleWall candles={items} banner compact dense rail durationHours={durationHours} />
+              </div>
+            ) : null}
+          </div>
         </div>
         <button
           type="button"
           aria-label="Próximas velas"
-          onClick={() => void step(1)}
-          className="shrink-0 rounded-full bg-black/40 px-2.5 py-2 text-lg font-bold leading-none text-white"
+          onClick={() => nudge(-1)}
+          className="absolute top-1/2 right-1 z-10 -translate-y-1/2 rounded-full bg-black/50 px-2.5 py-2 text-lg font-bold leading-none text-white"
         >
           ›
         </button>
