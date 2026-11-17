@@ -61,6 +61,8 @@ export async function runDatabaseBackup(prisma: PrismaClient): Promise<BackupRes
     throw new Error(`Arquivo do banco não encontrado: ${dbPath}`);
   }
 
+  await prisma.$executeRawUnsafe("PRAGMA wal_checkpoint(FULL)");
+
   const backupDir = backupDirectory(dbPath);
   fs.mkdirSync(backupDir, { recursive: true });
 

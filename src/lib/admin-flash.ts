@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-export type AdminFlashKind = "created" | "updated" | "deleted" | "drawn" | "restored";
+export type AdminFlashKind = "created" | "updated" | "deleted" | "drawn" | "restored" | "backed";
 
 const MESSAGES: Record<AdminFlashKind, string> = {
   created: "Cadastro realizado com sucesso.",
@@ -9,6 +9,7 @@ const MESSAGES: Record<AdminFlashKind, string> = {
   drawn: "Sorteio realizado com sucesso. O nome do ganhador foi preenchido automaticamente.",
   restored:
     "Banco restaurado a partir do último backup de produção (/data/backups) — o que estava cadastrado no servidor.",
+  backed: "Backup de hoje gravado em /data/backups. O site em uso não foi alterado.",
 };
 
 export function adminFlashMessage(kind: AdminFlashKind): string {

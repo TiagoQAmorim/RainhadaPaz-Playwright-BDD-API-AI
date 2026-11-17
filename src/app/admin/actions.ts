@@ -718,6 +718,20 @@ export async function deleteAdminUser(formData: FormData) {
   await redirectWithAdminFlash("/admin/usuarios", "deleted");
 }
 
+/** Copia o banco atual para /data/backups. Não altera o site. */
+export async function backupProductionDatabase() {
+  await requireAdmin();
+  try {
+    const { runDatabaseBackup } = await import("@/lib/db-backup");
+    await runDatabaseBackup(prisma);
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Falha ao gravar o backup.";
+    redirect(`/admin?erro=${encodeURIComponent(message)}`);
+  }
+  revalidatePath("/admin");
+  await redirectWithAdminFlash("/admin", "backed");
+}
+
 /**
  * Única forma de trazer a cópia do Git: o admin clica, e só com o banco vazio.
  * O boot não chama isto.

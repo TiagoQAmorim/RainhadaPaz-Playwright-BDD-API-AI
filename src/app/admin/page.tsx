@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { importGitSnapshotIfEmpty, restoreFromProductionBackup } from "@/app/admin/actions";
+import {
+  backupProductionDatabase,
+  importGitSnapshotIfEmpty,
+  restoreFromProductionBackup,
+} from "@/app/admin/actions";
 import { hasUsableProductionBackup, sqlitePathFromDatabaseUrl } from "@/lib/db-restore-from-backup";
 import { adminCard, adminBtn } from "@/components/admin/AdminFormStyles";
 import { getSessionAdmin } from "@/lib/auth";
@@ -103,6 +107,18 @@ export default async function AdminHomePage({
           )}
         </section>
       )}
+      <section className={adminCard}>
+        <h2 className="text-lg font-semibold text-parish-900">Backup do banco</h2>
+        <p className="mt-1 text-sm text-parish-600">
+          Grava uma cópia do que está no ar agora, no arquivo de hoje em /data/backups. Não mexe nas
+          notícias, rifas nem velas.
+        </p>
+        <form action={backupProductionDatabase} className="mt-4">
+          <button type="submit" className={adminBtn}>
+            Fazer backup agora
+          </button>
+        </form>
+      </section>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat n={posts} label="Notícias" />
         <Stat n={notices} label="Avisos" />
