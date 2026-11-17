@@ -455,6 +455,7 @@ export async function updatePage(formData: FormData) {
   revalidatePath("/sacramentos");
   revalidatePath(`/sacramentos/${slug}`);
   revalidatePath("/institucional");
+  revalidatePath("/");
   revalidatePath("/terco-online");
   revalidatePath("/padroeira");
   revalidatePath("/paroco");

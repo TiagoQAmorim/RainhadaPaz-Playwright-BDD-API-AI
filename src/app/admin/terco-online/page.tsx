@@ -24,7 +24,7 @@ export default async function AdminTercoOnlineHubPage() {
           Novo bloco de horário
         </Link>
         <Link href="/admin/terco-online/conteudo" className={adminLink}>
-          Conteúdo da página
+          Imagem e texto
         </Link>
         <Link href="/terco-online" target="_blank" className={adminLink}>
           Ver no site →

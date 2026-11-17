@@ -13,6 +13,7 @@ import {
 } from "@/components/admin/AdminFormStyles";
 import { getSessionAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { SITE_IMAGES } from "@/lib/wordpress-assets";
 
 const adminLink =
   "inline-flex items-center rounded-xl border border-parish-200 bg-white px-4 py-2 text-sm font-semibold text-parish-800 hover:bg-parish-50";
@@ -50,10 +51,14 @@ export default async function AdminEditPaginaPage({ params }: Props) {
             <input name="slug" defaultValue={page.slug} className={adminInput} />
           </div>
           <AdminImageField
-            label="Imagem de destaque"
+            label={
+              page.slug === "terco-online"
+                ? "Imagem ilustrativa (home e página do terço)"
+                : "Imagem de destaque"
+            }
             name="featuredImage"
             fileFieldName="featuredImageFile"
-            defaultValue={page.featuredImage}
+            defaultValue={page.featuredImage || (page.slug === "terco-online" ? SITE_IMAGES.tercoOnline : null)}
           />
           <AdminRichTextField label="Conteúdo" name="body" defaultValue={page.body} required />
           <div className="flex flex-wrap gap-2">

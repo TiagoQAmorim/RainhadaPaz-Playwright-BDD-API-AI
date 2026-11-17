@@ -28,10 +28,11 @@ import { SITE_IMAGES } from "@/lib/wordpress-assets";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [settings, tercoSlots, candles, posts, notices, carouselSlides, candleHours, vaticanNews, quickLinks, heroCtas] =
+  const [settings, tercoSlots, tercoPage, candles, posts, notices, carouselSlides, candleHours, vaticanNews, quickLinks, heroCtas] =
     await Promise.all([
     getSiteSettings(),
     getTercoOnlineSlots(),
+    prisma.page.findUnique({ where: { slug: "terco-online" }, select: { featuredImage: true } }),
     listActiveCandles(5),
     prisma.post.findMany({
       where: { published: true },
@@ -53,6 +54,7 @@ export default async function HomePage() {
   const heroImage = resolveImageSrc(heroImages[0], SITE_IMAGES.heroChurchWide);
   const matriz = resolveImageSrc(settings.matrizImageUrl, SITE_IMAGES.matriz);
   const capela = resolveImageSrc(settings.capelaImageUrl, SITE_IMAGES.capela);
+  const tercoImage = resolveImageSrc(tercoPage?.featuredImage, SITE_IMAGES.tercoOnline);
 
   return (
     <>
@@ -221,11 +223,12 @@ export default async function HomePage() {
         <div className="glass-card grid gap-8 p-8 md:grid-cols-2 md:p-10">
           <div className="relative min-h-[280px] overflow-hidden rounded-2xl md:min-h-[320px]">
             <Image
-              src={SITE_IMAGES.tercoOnline}
+              src={tercoImage}
               alt="Terço online"
               fill
               className="object-cover"
-              sizes="50vw"
+              sizes="(max-width: 768px) 100vw, 50vw"
+              unoptimized={tercoImage.startsWith("/uploads/") || tercoImage.startsWith("/images/")}
             />
             <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-parish-600/90 p-6 text-white">
               <h3 className="font-[family-name:var(--font-display)] text-2xl font-semibold">Terço online</h3>
