@@ -95,11 +95,25 @@ export function restoreDatabaseFromLatestBackup(
   if (!pick) return null;
 
   try {
+    removeSqliteSidecars(dbPath);
     const tmp = `${dbPath}.restore.tmp`;
     fs.copyFileSync(pick.dbFile, tmp);
     fs.renameSync(tmp, dbPath);
+    removeSqliteSidecars(dbPath);
     return pick.dbFile;
   } catch {
     return null;
+  }
+}
+
+/** O diário do banco vazio, se ficar ao lado do .db, reaplica o wipe por cima do backup. */
+function removeSqliteSidecars(dbPath: string) {
+  for (const ext of ["-wal", "-shm"]) {
+    const sidecar = `${dbPath}${ext}`;
+    try {
+      if (fs.existsSync(sidecar)) fs.unlinkSync(sidecar);
+    } catch {
+      /* o próximo open recria se ainda houver conexão */
+    }
   }
 }

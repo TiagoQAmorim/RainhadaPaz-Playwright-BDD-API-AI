@@ -19,6 +19,7 @@ import {
 } from "@/lib/datetime-local";
 import { imageUrlFromForm, resolveImageFromForm } from "@/lib/uploads";
 import { sanitizeAdminHtml } from "@/lib/sanitize-admin-html";
+import { ensureSiteSettings } from "@/lib/settings";
 function slugify(text: string) {
   return text
     .toLowerCase()
@@ -87,6 +88,7 @@ export async function updateMaintenanceSettings(formData: FormData) {
     ? parseDatetimeLocalField(String(formData.get("maintenanceEndsAt") ?? ""))
     : null;
 
+  await ensureSiteSettings();
   await prisma.siteSettings.update({
     where: { id: 1 },
     data: {

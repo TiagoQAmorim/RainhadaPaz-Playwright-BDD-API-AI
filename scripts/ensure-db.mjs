@@ -1,5 +1,6 @@
 /**
- * Boot: prisma db push + sync admin. Produção nunca roda seed nem site-bundle.
+ * Boot: prisma db push + sync admin. Produção não roda seed.
+ * Site-bundle só entra se o banco estiver vazio e não houver backup no volume.
  */
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
@@ -10,6 +11,10 @@ import { PrismaClient } from "@prisma/client";
 const appRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 function runNode(args, label) {
+  if (!tryNode(args, label)) process.exit(1);
+}
+
+function tryNode(args, label) {
   console.log(`[ensure-db] ${label}…`);
   const r = spawnSync(process.execPath, args, {
     cwd: appRoot,
@@ -18,8 +23,9 @@ function runNode(args, label) {
   });
   if (r.status !== 0) {
     console.error(`[ensure-db] ${label} falhou (code ${r.status ?? 1})`);
-    process.exit(r.status ?? 1);
+    return false;
   }
+  return true;
 }
 
 function isProdRuntime() {
@@ -100,12 +106,22 @@ async function prodDbHealthCheck() {
 
     let [pages, posts, raffles] = await readCounts();
     if (pages === 0 && posts === 0 && raffles === 0 && filePath) {
+      await prisma.$disconnect();
       const restored = restoreFromLatestBackup(filePath);
-      if (restored) {
-        await prisma.$disconnect();
-        prisma = new PrismaClient();
-        [pages, posts, raffles] = await readCounts();
+      if (!restored && process.env.BOOT_EMPTY_BUNDLE_IMPORT !== "false") {
+        console.log(
+          "[ensure-db] Banco vazio e sem backup em /data/backups. Importando site-bundle (cópia de 16/11 no Git)…",
+        );
+        const imported = tryNode(
+          ["--import", "tsx", path.join(appRoot, "prisma", "import-bundle.ts")],
+          "site bundle no banco vazio",
+        );
+        if (!imported) {
+          console.error("[ensure-db] Import do site-bundle falhou. O site sobe mesmo assim.");
+        }
       }
+      prisma = new PrismaClient();
+      [pages, posts, raffles] = await readCounts();
     }
     console.log(`[ensure-db] Contagens: pages=${pages} posts=${posts} raffles=${raffles}`);
     if (pages === 0 && posts === 0 && raffles === 0) {

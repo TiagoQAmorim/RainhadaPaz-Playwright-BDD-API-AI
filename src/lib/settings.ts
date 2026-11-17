@@ -39,25 +39,32 @@ const DEFAULT_SITE_SETTINGS: SiteSettings = {
   maintenanceEndsAt: null,
 };
 
+/** Cria a linha id=1 se o banco estiver vazio. Sem isso, o admin não consegue gravar manutenção. */
+export async function ensureSiteSettings() {
+  const existing = await prisma.siteSettings.findUnique({ where: { id: 1 } });
+  if (existing) return existing;
+  return prisma.siteSettings.create({
+    data: {
+      parishName: DEFAULT_SITE_SETTINGS.parishName,
+      diocese: DEFAULT_SITE_SETTINGS.diocese,
+      address: DEFAULT_SITE_SETTINGS.address,
+      phone: DEFAULT_SITE_SETTINGS.phone,
+      heroTitle: DEFAULT_SITE_SETTINGS.heroTitle,
+      heroSubtitle: DEFAULT_SITE_SETTINGS.heroSubtitle,
+      aboutHtml: DEFAULT_SITE_SETTINGS.aboutHtml,
+      massScheduleHtml: DEFAULT_SITE_SETTINGS.massScheduleHtml,
+      logoUrl: PARISH_LOGO_PATH,
+    },
+  });
+}
+
 export async function getSiteSettings() {
   let settings = await prisma.siteSettings.findUnique({ where: { id: 1 } });
   if (!settings) {
     if (process.env.NODE_ENV === "production") {
       return { ...DEFAULT_SITE_SETTINGS };
     }
-    settings = await prisma.siteSettings.create({
-      data: {
-        parishName: DEFAULT_SITE_SETTINGS.parishName,
-        diocese: DEFAULT_SITE_SETTINGS.diocese,
-        address: DEFAULT_SITE_SETTINGS.address,
-        phone: DEFAULT_SITE_SETTINGS.phone,
-        heroTitle: DEFAULT_SITE_SETTINGS.heroTitle,
-        heroSubtitle: DEFAULT_SITE_SETTINGS.heroSubtitle,
-        aboutHtml: DEFAULT_SITE_SETTINGS.aboutHtml,
-        massScheduleHtml: DEFAULT_SITE_SETTINGS.massScheduleHtml,
-        logoUrl: PARISH_LOGO_PATH,
-      },
-    });
+    settings = await ensureSiteSettings();
   }
   if (!settings.logoUrl) {
     settings = await prisma.siteSettings.update({
