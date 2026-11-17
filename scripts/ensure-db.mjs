@@ -1,7 +1,6 @@
 /**
- * Boot: prisma db push + sync admin.
- * Produção nunca importa site-bundle e nunca cria rainhadapaz.db.
- * Se o arquivo não existe em /data, o processo para.
+ * Boot: em produção o arquivo /data/rainhadapaz.db não é criado,
+ * não é restaurado e não é substituído. Se ele não existe, o processo para.
  */
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
@@ -68,18 +67,6 @@ function backupWouldShrink(filePath, pages, posts, raffles) {
   }
 }
 
-function restoreFullestBackup(filePath) {
-  const script = path.join(appRoot, "scripts", "restore-latest-backup.ts");
-  const r = spawnSync(process.execPath, ["--import", "tsx", script, filePath, "--fullest"], {
-    cwd: appRoot,
-    encoding: "utf8",
-    env: process.env,
-  });
-  if (r.stdout?.trim()) console.log(r.stdout.trim());
-  if (r.stderr?.trim()) console.error(r.stderr.trim());
-  return r.status === 0 && fs.existsSync(filePath);
-}
-
 function sqliteFileFromEnv() {
   const url = (process.env.DATABASE_URL ?? "").trim().replace(/\\/g, "/");
   if (!url.startsWith("file:")) return "";
@@ -100,11 +87,10 @@ if (isProdRuntime()) {
     process.exit(1);
   }
   if (!fs.existsSync(filePath)) {
-    console.error(`[ensure-db] ${filePath} não existe. Não crio arquivo vazio. Usando o backup mais completo…`);
-    if (!restoreFullestBackup(filePath)) {
-      console.error("[ensure-db] PARADO. Sem banco e sem backup. Não crio arquivo vazio.");
-      process.exit(1);
-    }
+    console.error(
+      `[ensure-db] PARADO. ${filePath} não existe. Não crio arquivo vazio e não copio backup por cima.`,
+    );
+    process.exit(1);
   }
 }
 
@@ -138,24 +124,8 @@ async function prodDbHealthCheck() {
     ]);
     console.log(`[ensure-db] Contagens: pages=${pages} posts=${posts} raffles=${raffles}`);
     if (pages === 0 && posts === 0 && raffles === 0) {
-      await prisma.$disconnect();
-      console.error("[ensure-db] Banco vazio. Não abro o site nesse arquivo. Restaurando o backup mais completo…");
-      if (!restoreFullestBackup(filePath)) {
-        console.error("[ensure-db] PARADO. Banco vazio e sem backup. Não sirvo arquivo vazio.");
-        process.exit(1);
-      }
-      tryNode([prismaCli, "db", "push"], "prisma db push depois do backup");
-      prisma = new PrismaClient();
-      [pages, posts, raffles] = await Promise.all([
-        prisma.page.count(),
-        prisma.post.count(),
-        prisma.raffle.count(),
-      ]);
-      console.log(`[ensure-db] Depois do backup: pages=${pages} posts=${posts} raffles=${raffles}`);
-      if (pages === 0 && posts === 0 && raffles === 0) {
-        console.error("[ensure-db] PARADO. O backup também está vazio. Não abro o site.");
-        process.exit(1);
-      }
+      console.error("[ensure-db] PARADO. O arquivo está vazio. Não sirvo esse banco e não gravo por cima dele.");
+      process.exit(1);
     } else if (process.env.AUTO_BACKUP_ON_BOOT !== "false" && backupWouldShrink(filePath, pages, posts, raffles)) {
       console.error("[ensure-db] Backup do dia não foi substituído: o banco atual tem menos conteúdo que a cópia já gravada.");
     } else if (process.env.AUTO_BACKUP_ON_BOOT !== "false") {
@@ -170,7 +140,7 @@ async function prodDbHealthCheck() {
 }
 
 if (isProdRuntime()) {
-  console.log("[ensure-db] Produção: nenhum import, seed ou restore automático.");
+  console.log("[ensure-db] Produção: o arquivo do banco não é criado nem substituído.");
   await prodDbHealthCheck();
 } else {
   const prisma = new PrismaClient();
