@@ -1,6 +1,7 @@
 /**
- * Boot: prisma db push + sync admin. Produção não roda seed.
- * Site-bundle só entra se o banco estiver vazio e não houver backup no volume.
+ * Boot: prisma db push + sync admin.
+ * Produção nunca importa site-bundle, nunca restaura arquivo e nunca sai
+ * antes do Next escutar a porta. Banco vazio permanece vazio.
  */
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
@@ -66,21 +67,8 @@ if (isProdRuntime()) {
 }
 
 const prismaCli = path.join(appRoot, "node_modules", "prisma", "build", "index.js");
-runNode([prismaCli, "db", "push"], "prisma db push");
-runNode(["--import", "tsx", path.join(appRoot, "scripts", "sync-admin-from-env.ts")], "sync admin password");
-
-function restoreFromLatestBackup(dbPath) {
-  const r = spawnSync(
-    process.execPath,
-    ["--import", "tsx", path.join(appRoot, "scripts", "restore-latest-backup.ts"), dbPath],
-    { cwd: appRoot, encoding: "utf8" },
-  );
-  if (r.status === 0 && r.stdout?.trim()) {
-    console.log("[ensure-db] SQLite restaurado do backup de produção:", r.stdout.trim());
-    return true;
-  }
-  return null;
-}
+tryNode([prismaCli, "db", "push"], "prisma db push");
+tryNode(["--import", "tsx", path.join(appRoot, "scripts", "sync-admin-from-env.ts")], "sync admin password");
 
 async function prodDbHealthCheck() {
   const dbUrl = process.env.DATABASE_URL ?? "";
@@ -90,57 +78,40 @@ async function prodDbHealthCheck() {
       "[ensure-db] ALERTA CRÍTICO: produção deve usar file:/data/rainhadapaz.db com volume Railway em /data. Sem isso cada deploy cria banco vazio.",
     );
   }
-  const filePath = dbUrl.startsWith("file:") ? dbUrl.slice(5) : "";
+  const filePath = dbUrl.startsWith("file:") ? dbUrl.slice(5).split("?")[0] : "";
   if (filePath) {
     try {
       const st = fs.statSync(filePath);
       console.log(`[ensure-db] SQLite: ${filePath} (${(st.size / 1024).toFixed(1)} KB)`);
     } catch {
-      console.error(`[ensure-db] SQLite não encontrado em ${filePath} — db push criou arquivo novo/vazio.`);
+      console.error(`[ensure-db] SQLite não encontrado em ${filePath}.`);
     }
   }
-  let prisma = new PrismaClient();
+  const prisma = new PrismaClient();
   try {
-    const readCounts = async () =>
-      Promise.all([prisma.page.count(), prisma.post.count(), prisma.raffle.count()]);
-
-    let [pages, posts, raffles] = await readCounts();
-    if (pages === 0 && posts === 0 && raffles === 0 && filePath) {
-      await prisma.$disconnect();
-      const restored = restoreFromLatestBackup(filePath);
-      if (!restored && process.env.BOOT_EMPTY_BUNDLE_IMPORT !== "false") {
-        console.log(
-          "[ensure-db] Banco vazio e sem backup em /data/backups. Importando site-bundle (cópia de 16/11 no Git)…",
-        );
-        const imported = tryNode(
-          ["--import", "tsx", path.join(appRoot, "prisma", "import-bundle.ts")],
-          "site bundle no banco vazio",
-        );
-        if (!imported) {
-          console.error("[ensure-db] Import do site-bundle falhou. O site sobe mesmo assim.");
-        }
-      }
-      prisma = new PrismaClient();
-      [pages, posts, raffles] = await readCounts();
-    }
+    const [pages, posts, raffles] = await Promise.all([
+      prisma.page.count(),
+      prisma.post.count(),
+      prisma.raffle.count(),
+    ]);
     console.log(`[ensure-db] Contagens: pages=${pages} posts=${posts} raffles=${raffles}`);
     if (pages === 0 && posts === 0 && raffles === 0) {
       console.error(
-        "[ensure-db] BANCO VAZIO — deploy não apaga dados; confira volume /data, POST /api/setup/restore-backup ou backup em /data/backups/.",
+        "[ensure-db] BANCO VAZIO — o boot não importa nem restaura. Confira o volume /data. Restaurar só pelo botão do admin, com um backup que exista.",
       );
     } else if (process.env.AUTO_BACKUP_ON_BOOT !== "false") {
-      console.log("[ensure-db] Backup pós-boot (com conteúdo)…");
+      console.log("[ensure-db] Backup pós-boot (cópia, sem substituir o banco)…");
       tryNode(["--import", "tsx", path.join(appRoot, "scripts", "post-boot-backup.ts")], "backup");
     }
+  } catch (e) {
+    console.error("[ensure-db] Leitura do banco falhou. O site sobe mesmo assim.", e);
   } finally {
     await prisma.$disconnect();
   }
 }
 
 if (isProdRuntime()) {
-  console.log(
-    "[ensure-db] Produção: conteúdo preservado (rifas, notícias, páginas, velas, etc. não são reimportados).",
-  );
+  console.log("[ensure-db] Produção: nenhum import, seed ou restore automático.");
   await prodDbHealthCheck();
 } else {
   const prisma = new PrismaClient();
@@ -173,7 +144,8 @@ if (isProdRuntime()) {
 
 console.log("[ensure-db] Subindo Next.js…");
 const nextBin = path.join(appRoot, "node_modules", "next", "dist", "bin", "next");
-const start = spawnSync(process.execPath, [nextBin, "start", "--hostname", "0.0.0.0"], {
+const port = process.env.PORT || "3000";
+const start = spawnSync(process.execPath, [nextBin, "start", "--hostname", "0.0.0.0", "--port", port], {
   cwd: appRoot,
   stdio: "inherit",
   env: process.env,
