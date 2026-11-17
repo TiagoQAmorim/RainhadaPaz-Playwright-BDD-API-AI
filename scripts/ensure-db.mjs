@@ -130,7 +130,7 @@ async function prodDbHealthCheck() {
       );
     } else if (process.env.AUTO_BACKUP_ON_BOOT !== "false") {
       console.log("[ensure-db] Backup pós-boot (com conteúdo)…");
-      runNode(["--import", "tsx", path.join(appRoot, "scripts", "post-boot-backup.ts")], "backup");
+      tryNode(["--import", "tsx", path.join(appRoot, "scripts", "post-boot-backup.ts")], "backup");
     }
   } finally {
     await prisma.$disconnect();
