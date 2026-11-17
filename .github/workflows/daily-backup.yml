@@ -1,0 +1,28 @@
+# Backup noturno do SQLite em produção (chama POST /api/setup/backup).
+# Configure em GitHub → Settings → Secrets → Actions:
+#   BACKUP_SITE_URL  (ex. https://www.paroquiarainhadapaz.com.br)
+#   AUTH_SECRET      (o mesmo do Railway)
+name: Backup diário produção
+
+on:
+  schedule:
+    # 06:00 UTC ≈ 03:00 horário de Brasília (sem horário de verão)
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Disparar backup no Railway
+        env:
+          SITE_URL: ${{ secrets.BACKUP_SITE_URL }}
+          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+        run: |
+          if [ -z "$SITE_URL" ] || [ -z "$AUTH_SECRET" ]; then
+            echo "Defina secrets BACKUP_SITE_URL e AUTH_SECRET no repositório GitHub."
+            exit 1
+          fi
+          curl -sfS -X POST "${SITE_URL%/}/api/setup/backup" \
+            -H "Authorization: Bearer ${AUTH_SECRET}" \
+            -H "Content-Type: application/json"

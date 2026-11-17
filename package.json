@@ -17,6 +17,7 @@
     "export:site-bundle": "node scripts/export-site-bundle.mjs",
     "sync:bundle-uploads": "node scripts/sync-bundle-uploads.mjs",
     "db:import-bundle": "tsx prisma/import-bundle.ts",
+    "db:backup": "tsx scripts/backup-db.ts",
     "import:wp": "tsx scripts/import-wp-content.ts",
     "images:localize": "tsx scripts/localize-site-images.ts",
     "import:saints": "tsx scripts/import-saints-catalog.ts",

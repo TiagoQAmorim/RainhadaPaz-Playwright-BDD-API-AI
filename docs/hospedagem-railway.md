@@ -101,6 +101,29 @@ Plano por uso (~**US$ 5–10/mês** típico para site paroquial pequeno, conform
 
 Push na branch conectada → Railway faz build, `prisma db push` e sobe de novo. O arquivo em `/data/rainhadapaz.db` permanece no volume.
 
+## Backup automático diário (recomendado)
+
+O app grava cópia do SQLite no **mesmo volume** (`/data/backups/rainhadapaz-AAAA-MM-DD.db`), com retenção de **14 dias** (`BACKUP_RETENTION_DAYS` opcional).
+
+1. **GitHub Actions** (`.github/workflows/daily-backup.yml`) — todo dia ~03h (Brasília) chama `POST /api/setup/backup`.
+2. No repositório GitHub → **Settings → Secrets and variables → Actions**:
+   - `BACKUP_SITE_URL` = `https://www.paroquiarainhadapaz.com.br`
+   - `AUTH_SECRET` = mesmo valor das Variables do Railway
+3. Teste manual: **Actions → Backup diário produção → Run workflow**.
+
+Também pelo PC:
+
+```bash
+curl -X POST "https://www.paroquiarainhadapaz.com.br/api/setup/backup" \
+  -H "Authorization: Bearer SEU_AUTH_SECRET"
+```
+
+Resposta `ok: true` com `bytes` e `counts` — confira se batem com o admin.
+
+**Limitação:** backup fica no volume `/data`. Se o volume sumir, leve cópias do `.db` para fora (download ocasional via Railway CLI ou export manual). Isso protege contra erro de import/deploy, não contra volume apagado.
+
+**Imagens do admin:** ficam em `public/uploads` na imagem do container; para não perder no deploy, monte outro volume em `/data/uploads` e ajuste upload (futuro) — o backup diário atual é o **banco** (textos, rifas, velas, pedidos).
+
 ## Troubleshooting
 
 | Problema | O que verificar |
