@@ -173,6 +173,7 @@ model VirtualCandle {
   intentionPublic Boolean        @default(false)
   prayerPublic    Boolean        @default(false)
   email           String?
+  phone           String?
   parishNotifiedAt DateTime?
   amountCents     Int
   status          String         @default("PENDING")

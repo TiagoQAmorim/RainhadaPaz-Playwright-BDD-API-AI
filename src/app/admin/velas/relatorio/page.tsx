@@ -6,6 +6,9 @@ import { getSessionAdmin } from "@/lib/auth";
 import {
   candleReportFilterLabel,
   filterCandleReportRows,
+  candlePaymentLabel,
+  formatCandleAmount,
+  parseCandlePaymentFilter,
   parseCandleReportFilter,
   parseReportDayEnd,
   parseReportDayStart,
@@ -24,7 +27,7 @@ function formatDateTime(d: Date) {
 }
 
 type Props = {
-  searchParams: Promise<{ filtro?: string; de?: string; ate?: string }>;
+  searchParams: Promise<{ filtro?: string; pagamento?: string; de?: string; ate?: string }>;
 };
 
 export default async function AdminVelasRelatorioPage({ searchParams }: Props) {
@@ -32,6 +35,7 @@ export default async function AdminVelasRelatorioPage({ searchParams }: Props) {
 
   const sp = await searchParams;
   const filtro = parseCandleReportFilter(sp.filtro);
+  const pagamento = parseCandlePaymentFilter(sp.pagamento);
   const deRaw = sp.de?.trim() ?? "";
   const ateRaw = sp.ate?.trim() ?? "";
 
@@ -60,8 +64,10 @@ export default async function AdminVelasRelatorioPage({ searchParams }: Props) {
   }
 
   const rows =
-    filtro === "periodo" && !period ? [] : filterCandleReportRows(allRows, filtro, period);
-  const filterLabel = candleReportFilterLabel(filtro, deRaw, ateRaw);
+    filtro === "periodo" && !period
+      ? []
+      : filterCandleReportRows(allRows, filtro, period, pagamento);
+  const filterLabel = candleReportFilterLabel(filtro, deRaw, ateRaw, pagamento);
   const generatedAt = new Date();
 
   return (
@@ -103,15 +109,18 @@ export default async function AdminVelasRelatorioPage({ searchParams }: Props) {
                 <th className="px-2 py-2 font-semibold">Data</th>
                 <th className="px-2 py-2 font-semibold">Nome</th>
                 <th className="px-2 py-2 font-semibold">E-mail</th>
+                <th className="px-2 py-2 font-semibold">Telefone</th>
                 <th className="px-2 py-2 font-semibold">Intenção</th>
                 <th className="px-2 py-2 font-semibold">Oração</th>
                 <th className="px-2 py-2 font-semibold text-center">Ativa</th>
+                <th className="px-2 py-2 font-semibold">Pagamento</th>
+                <th className="px-2 py-2 font-semibold">Valor</th>
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-2 py-8 text-center text-parish-500">
+                  <td colSpan={9} className="px-2 py-8 text-center text-parish-500">
                     Nenhuma vela encontrada com este filtro.
                   </td>
                 </tr>
@@ -121,11 +130,14 @@ export default async function AdminVelasRelatorioPage({ searchParams }: Props) {
                     <td className="whitespace-nowrap px-2 py-2">{formatDateTime(r.date)}</td>
                     <td className="px-2 py-2 font-medium">{r.donorName}</td>
                     <td className="max-w-[10rem] break-all px-2 py-2 text-xs">{r.email ?? "—"}</td>
+                    <td className="whitespace-nowrap px-2 py-2 text-xs">{r.phone ?? "—"}</td>
                     <td className="max-w-xs px-2 py-2">{r.intention}</td>
                     <td className="max-w-sm px-2 py-2 text-xs">{r.prayer ?? "—"}</td>
                     <td className="px-2 py-2 text-center font-semibold">
                       {r.activeOnMural ? "Sim" : "Não"}
                     </td>
+                    <td className="whitespace-nowrap px-2 py-2">{candlePaymentLabel(r.status)}</td>
+                    <td className="whitespace-nowrap px-2 py-2">R$ {formatCandleAmount(r.amountCents)}</td>
                   </tr>
                 ))
               )}

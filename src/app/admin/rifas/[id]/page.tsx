@@ -95,14 +95,21 @@ export default async function AdminRifaDetailPage({
           {ticketPriceLabel(stats.raisedCents)} · Progresso: {stats.progressPct.toFixed(1)}%
         </p>
         <div className="mt-4 space-y-2">
-          <p className="text-sm font-semibold text-parish-900">Relatórios (CSV para Excel)</p>
+          <p className="text-sm font-semibold text-parish-900">Relatórios (CSV para Excel e XML)</p>
           <ul className="flex flex-col gap-1 text-sm">
             <li>
               <a
                 href={`/api/admin/rifas/${id}/export?parte=completo`}
                 className="font-semibold text-parish-700 underline"
               >
-                Relatório completo
+                Relatório completo (CSV)
+              </a>
+              {" · "}
+              <a
+                href={`/api/admin/rifas/${id}/export?parte=completo&formato=xml`}
+                className="font-semibold text-parish-700 underline"
+              >
+                XML
               </a>
               <span className="text-parish-600">
                 {" "}
@@ -111,12 +118,26 @@ export default async function AdminRifaDetailPage({
             </li>
             <li>
               <a href={`/api/admin/rifas/${id}/export?parte=compras`} className="text-parish-700 underline">
-                Só compras (pedidos)
+                Só compras (CSV)
+              </a>
+              {" · "}
+              <a
+                href={`/api/admin/rifas/${id}/export?parte=compras&formato=xml`}
+                className="text-parish-700 underline"
+              >
+                XML
               </a>
             </li>
             <li>
               <a href={`/api/admin/rifas/${id}/export?parte=disponiveis`} className="text-parish-700 underline">
-                Só não comprados
+                Só não comprados (CSV)
+              </a>
+              {" · "}
+              <a
+                href={`/api/admin/rifas/${id}/export?parte=disponiveis&formato=xml`}
+                className="text-parish-700 underline"
+              >
+                XML
               </a>
             </li>
           </ul>

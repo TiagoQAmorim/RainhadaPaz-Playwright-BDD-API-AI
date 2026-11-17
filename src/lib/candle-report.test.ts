@@ -10,10 +10,12 @@ const row = (partial: Partial<CandleReportRow> & { id: string }): CandleReportRo
   date: new Date("2026-10-15T12:00:00"),
   donorName: "Ana",
   email: null,
+  phone: null,
   intention: "Intenção",
   prayer: null,
   activeOnMural: true,
   status: "PAID",
+  amountCents: 1000,
   ...partial,
 });
 
@@ -35,5 +37,14 @@ describe("filterCandleReportRows", () => {
     const from = parseReportDayStart("2026-10-01")!;
     const to = parseReportDayEnd("2026-10-15")!;
     expect(filterCandleReportRows(rows, "periodo", { from, to }).map((r) => r.id)).toEqual(["2"]);
+  });
+
+  it("filtra pagas e não pagas", () => {
+    const mixed = [
+      row({ id: "p", status: "PAID" }),
+      row({ id: "n", status: "PENDING", activeOnMural: false }),
+    ];
+    expect(filterCandleReportRows(mixed, "todas", undefined, "pagos").map((r) => r.id)).toEqual(["p"]);
+    expect(filterCandleReportRows(mixed, "todas", undefined, "nao-pagos").map((r) => r.id)).toEqual(["n"]);
   });
 });

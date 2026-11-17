@@ -42,6 +42,7 @@ export async function activateCandle(candleId: string) {
         intentionPublic: candle.intentionPublic,
         prayerPublic: candle.prayerPublic,
         email: candle.email,
+        phone: candle.phone,
       });
       await prisma.virtualCandle.update({
         where: { id: candleId },

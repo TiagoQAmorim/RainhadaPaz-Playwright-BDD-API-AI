@@ -7,6 +7,7 @@ type CandleEmailPayload = {
   intentionPublic: boolean;
   prayerPublic: boolean;
   email: string | null;
+  phone: string | null;
 };
 
 async function sendViaSmtp(params: { to: string; subject: string; text: string }) {
@@ -54,6 +55,7 @@ export async function sendCandlePrayerToParish(candle: CandleEmailPayload) {
     "",
     `Exibir no mural: intenção ${candle.intentionPublic ? "sim" : "não (sigilo)"}, oração ${candle.prayerPublic ? "sim" : "não (sigilo)"}.`,
     candle.email ? `E-mail do(a) devoto(a): ${candle.email}` : "E-mail do(a) devoto(a): não informado",
+    candle.phone ? `Telefone do(a) devoto(a): ${candle.phone}` : "Telefone do(a) devoto(a): não informado",
     "",
     "— Sistema de velas virtuais, Paróquia Rainha da Paz",
   ];

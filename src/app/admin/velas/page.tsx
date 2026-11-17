@@ -82,7 +82,7 @@ export default async function AdminVelasPage({
                 className={adminInput}
                 defaultValue={accessMode}
               >
-                <option value="paid">Paga (PIX ou Sicredi)</option>
+                <option value="paid">Paga (PIX ou cartão)</option>
                 <option value="free_donation">Gratuita com oferta opcional</option>
                 <option value="free">Gratuita (sem pagamento)</option>
               </select>
@@ -113,7 +113,7 @@ export default async function AdminVelasPage({
               />
               <p id="candle-price-hint" className="mt-1 text-xs text-parish-500">
                 {accessMode === "paid"
-                  ? "Usado quando o modo é pago (PIX ou Sicredi)."
+                  ? "Usado quando o modo é pago (PIX ou cartão)."
                   : accessMode === "free_donation"
                     ? "No modo com oferta opcional o fiél informa o valor; este campo só vale se voltar ao modo pago."
                     : "Sem uso no modo totalmente gratuito."}
@@ -134,12 +134,12 @@ export default async function AdminVelasPage({
                   name="candlePaymentSicredi"
                   defaultChecked={settings.candlePaymentSicredi === true}
                 />
-                Cartão Sicredi
+                Cartão
               </label>
             </div>
             <p className="text-xs text-parish-500">
-              Sicredi no site só aparece ativo quando <code className="text-parish-700">SICREDI_ENABLED=true</code>{" "}
-              e credenciais estiverem no servidor. Até lá, marque Sicredi aqui para preparar e use PIX na prática.
+              O cartão no site só aparece ativo quando <code className="text-parish-700">SICREDI_ENABLED=true</code>{" "}
+              e as credenciais estiverem no servidor. Até lá, marque Cartão aqui para preparar e use PIX na prática.
             </p>
           </div>
           <div className="max-w-md">
@@ -187,6 +187,7 @@ export default async function AdminVelasPage({
               <th className="py-2 pr-2">Data</th>
               <th className="py-2 pr-2">Nome</th>
               <th className="py-2 pr-2">E-mail</th>
+              <th className="py-2 pr-2">Telefone</th>
               <th className="py-2 pr-2">Intenção</th>
               <th className="py-2 pr-2">Oração</th>
               <th className="py-2 pr-2">Mural</th>
@@ -204,6 +205,7 @@ export default async function AdminVelasPage({
                 </td>
                 <td className="py-2 pr-2">{c.donorName}</td>
                 <td className="max-w-[8rem] break-all py-2 pr-2 text-xs">{c.email ?? "—"}</td>
+                <td className="whitespace-nowrap py-2 pr-2 text-xs">{c.phone ?? "—"}</td>
                 <td className="max-w-xs py-2 pr-2">{c.intention}</td>
                 <td className="max-w-xs py-2 pr-2 text-xs text-parish-700">
                   {c.prayer ?? "—"}

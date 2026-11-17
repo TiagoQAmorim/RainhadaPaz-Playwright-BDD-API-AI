@@ -28,7 +28,7 @@ export default async function VelasPage() {
       ? "Acenda uma luz de fé — contribuição gratuita neste período."
       : commerce.accessMode === "free_donation"
         ? "Acenda gratuitamente ou oferte o valor que desejar, se quiser contribuir."
-        : `Acenda uma luz de fé. Contribuição ${formatCandlePrice(commerce.priceCents)} (PIX ou Sicredi).`;
+        : `Acenda uma luz de fé. Contribuição ${formatCandlePrice(commerce.priceCents)} (PIX ou cartão).`;
 
   return (
     <>

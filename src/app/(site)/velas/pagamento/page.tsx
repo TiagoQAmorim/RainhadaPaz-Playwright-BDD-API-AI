@@ -31,14 +31,14 @@ export default async function VelaPagamentoPage({ searchParams }: Props) {
     return (
       <PageContainer className="py-10 md:py-14">
         <div className="mx-auto w-full max-w-lg space-y-4 rounded-2xl border border-parish-200 bg-white p-6 shadow-sm md:p-8">
-          <h1 className="text-xl font-semibold text-parish-900">Cartão Sicredi</h1>
+          <h1 className="text-xl font-semibold text-parish-900">Cartão</h1>
           <p className="text-sm text-parish-700">
             Valor: <strong>{formatCandlePrice(candle.amountCents)}</strong> — vela de{" "}
             <strong>{candle.donorName}</strong>.
           </p>
           <p className="text-sm text-parish-600">
-            O checkout com cartão Sicredi será conectado assim que a cooperativa liberar as credenciais no
-            servidor. Enquanto isso, você pode pagar pelo PIX com o mesmo valor.
+            O checkout com cartão será conectado em breve. Enquanto isso, você pode pagar pelo PIX com o
+            mesmo valor.
           </p>
           <Link
             href={`/velas/pagamento?candle=${candle.id}&pix=1`}

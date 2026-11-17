@@ -13,7 +13,7 @@ Quando o usuário pedir **atualizar**, **subir**, **deploy** ou **push** para pr
 
 - Commitar ou incluir no push: `src/data/site-bundle.json`, export do `dev.db`, `public/uploads/migrated` (salvo pedido **explícito** de backup de conteúdo).
 - Rodar em produção: `npm run db:seed`, `db:import-bundle`, `export:site-bundle` como parte do deploy.
-- Chamar `/api/setup/import-bundle` ou o botão admin **Restaurar conteúdo** sem o usuário pedir restauração e sem `ALLOW_SITE_BUNDLE_IMPORT=true` no Railway.
+- Chamar `/api/setup/import-bundle` sem `ALLOW_SITE_BUNDLE_IMPORT=true` (restauração normal: `/api/setup/restore-backup` ou botão admin **Restaurar do backup de produção**).
 - Ativar `FORCE_SITE_BUNDLE_IMPORT` em produção.
 
 ## Permitido no deploy
@@ -26,4 +26,4 @@ Quando o usuário pedir **atualizar**, **subir**, **deploy** ou **push** para pr
 
 Dados cadastrados (rifas, notícias, sacramentos/páginas, horários, avisos, velas) vivem no **SQLite do volume** `/data`. O Git não substitui esse banco no deploy.
 
-Se o site “zerou”: quase sempre **volume desmontado** ou `DATABASE_URL` fora de `file:/data/...` — não foi import no deploy. Restaurar só com banco vazio (`import-bundle`) ou backup do volume; com conteúdo existente, import fica bloqueado.
+Se o site “zerou”: quase sempre **volume desmontado** ou `DATABASE_URL` fora de `file:/data/...` — não foi import no deploy. Restaurar com **backup de produção** (`POST /api/setup/restore-backup`, boot automático em `/data/backups/`). `import-bundle` só último recurso com `ALLOW_SITE_BUNDLE_IMPORT=true` (snapshot do Git, não o que foi feito só em prod).

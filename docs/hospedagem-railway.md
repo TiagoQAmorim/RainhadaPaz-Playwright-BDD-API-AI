@@ -37,7 +37,8 @@ No painel **Variables** do serviço (produção):
 | `RAFFLE_FREE_MODE` | `false` para cobrar rifas |
 | `CANDLE_PRICE_BRL` | ex. `10` |
 | SMTP (`SMTP_*`) | opcional, e-mails de vela |
-| `ALLOW_SITE_BUNDLE_IMPORT` | **omitir** (padrão). Só `true` para restauração manual do bundle — nunca em deploys normais |
+| `ALLOW_SITE_BUNDLE_IMPORT` | **omitir** (padrão). Só `true` para import do Git (`site-bundle`) — último recurso |
+| `ALLOW_FORCE_PROD_BACKUP_RESTORE` | **omitir**. Só `true` para sobrescrever banco com backup quando já há conteúdo |
 
 `NODE_ENV` → Railway costuma definir `production` automaticamente.
 
@@ -53,11 +54,13 @@ No painel **Variables** do serviço (produção):
        -H "Authorization: Bearer SEU_AUTH_SECRET"
      ```
      Use o mesmo valor de `AUTH_SECRET` das Variables. **Em produção** isso só faz `db push` + sync do admin — **não** repõe notícias/rifas.
-   - **Restaurar conteúdo do Git** (só emergência, sobrescreve/upsert rifas, notícias, páginas, velas, etc.):
-     1. Defina `ALLOW_SITE_BUNDLE_IMPORT=true` nas Variables e redeploy.
-     2. `POST /api/setup/import-bundle` com `Authorization: Bearer AUTH_SECRET` **ou** botão no admin.
-     3. Remova `ALLOW_SITE_BUNDLE_IMPORT` depois (volta a desligado).
-     **Deploys de código não fazem isso sozinhos.**
+   - **Restaurar conteúdo de produção** (backup no volume — o que foi cadastrado no servidor):
+     ```bash
+     curl -X POST "https://SEU-DOMINIO/api/setup/restore-backup" \
+       -H "Authorization: Bearer SEU_AUTH_SECRET"
+     ```
+     Dia específico: `?day=2026-03-15`. No admin: **Restaurar do backup de produção** (se o banco estiver vazio/incompleto).
+   - **Último recurso — snapshot do Git** (não repõe o que existia só em prod): `ALLOW_SITE_BUNDLE_IMPORT=true` + `POST /api/setup/import-bundle`. Remova a flag depois.
 
 4. Teste `/admin/login` com `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
 
@@ -118,6 +121,13 @@ curl -X POST "https://www.paroquiarainhadapaz.com.br/api/setup/backup" \
   -H "Authorization: Bearer SEU_AUTH_SECRET"
 ```
 
+Restaurar (mesmo auth):
+
+```bash
+curl -X POST "https://www.paroquiarainhadapaz.com.br/api/setup/restore-backup" \
+  -H "Authorization: Bearer SEU_AUTH_SECRET"
+```
+
 Resposta `ok: true` com `bytes` e `counts` — confira se batem com o admin.
 
 **Limitação:** backup fica no volume `/data`. Se o volume sumir, leve cópias do `.db` para fora (download ocasional via Railway CLI ou export manual). Isso protege contra erro de import/deploy, não contra volume apagado.
@@ -131,7 +141,7 @@ Resposta `ok: true` com `bytes` e `counts` — confira se batem com o admin.
 | Problema | O que verificar |
 |----------|-----------------|
 | Admin não loga | Rodou `prisma db seed`? `AUTH_SECRET` definido? |
-| Dados sumiram (0 notícias/rifas) | **Não é seed no deploy.** Confira: (1) Volume no **mesmo serviço** do app, mount `/data`. (2) `DATABASE_URL=file:/data/rainhadapaz.db` (exato). (3) Logs `[ensure-db] SQLite` mostram tamanho do `.db` — se ~vazio, volume desmontou ou URL errada. Restaurar: `ALLOW_SITE_BUNDLE_IMPORT=true` + `POST /api/setup/import-bundle` **uma vez**, depois remova a flag. |
+| Dados sumiram (0 notícias/rifas) | **Não é seed no deploy.** Confira volume `/data` e `DATABASE_URL`. Restaurar: `POST /api/setup/restore-backup` ou botão no admin (backup em `/data/backups/`). Boot tenta isso sozinho se o banco zerar. Só se não houver backup: `ALLOW_SITE_BUNDLE_IMPORT=true` + `import-bundle`. |
 | PIX não libera vela/rifa | Admin confirma pagamento recebido (ver `pagamentos-producao.md`) |
 | Páginas vazias (institucional, padroeira) | Seed não rodou ou banco “oco” (`aboutHtml` vazio). Redeploy ou `POST /api/setup/seed` com `Authorization: Bearer AUTH_SECRET`. |
 | `/admin/login` erro 500 | `AUTH_SECRET` ≥ 32 chars; seed + volume `/data`; redeploy com deploy **Success**. |

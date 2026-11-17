@@ -6,21 +6,26 @@ export type CandleReportRow = {
   date: Date;
   donorName: string;
   email: string | null;
+  phone: string | null;
   intention: string;
   prayer: string | null;
   activeOnMural: boolean;
   status: string;
+  amountCents: number;
 };
 
 export type CandleReportFilter = "todas" | "ativas" | "inativas" | "periodo";
+export type CandlePaymentFilter = "todos" | "pagos" | "nao-pagos";
 
 type CandleLike = {
   id: string;
   donorName: string;
   email: string | null;
+  phone: string | null;
   intention: string;
   prayer: string | null;
   status: string;
+  amountCents: number;
   litAt: Date | null;
   expiresAt: Date | null;
   createdAt: Date;
@@ -62,10 +67,12 @@ export function toCandleReportRows(
       date: candleReportDate(c),
       donorName: c.donorName,
       email: c.email,
+      phone: c.phone,
       intention: c.intention,
       prayer: c.prayer,
       activeOnMural: isCandleActiveOnMural(c, durationHours),
       status: c.status,
+      amountCents: c.amountCents,
     }))
     .sort((a, b) => b.date.getTime() - a.date.getTime());
 }
@@ -90,28 +97,48 @@ export function parseCandleReportFilter(raw: string | undefined): CandleReportFi
   return "todas";
 }
 
+export function parseCandlePaymentFilter(raw: string | undefined): CandlePaymentFilter {
+  if (raw === "pagos" || raw === "nao-pagos") return raw;
+  return "todos";
+}
+
+export function candleIsPaid(status: string): boolean {
+  return status === "PAID";
+}
+
+export function candlePaymentLabel(status: string): "Pago" | "Não pago" {
+  return candleIsPaid(status) ? "Pago" : "Não pago";
+}
+
 export function candleReportFilterLabel(
   filtro: CandleReportFilter,
   de?: string,
   ate?: string,
+  pagamento: CandlePaymentFilter = "todos",
 ): string {
-  switch (filtro) {
-    case "ativas":
-      return "Somente velas ativas no mural";
-    case "inativas":
-      return "Somente velas inativas no mural";
-    case "periodo":
-      if (de && ate) return `Período de ${de.split("-").reverse().join("/")} a ${ate.split("-").reverse().join("/")}`;
-      return "Por período (datas não informadas)";
-    default:
-      return "Todas as velas";
-  }
+  const base = (() => {
+    switch (filtro) {
+      case "ativas":
+        return "Somente velas ativas no mural";
+      case "inativas":
+        return "Somente velas inativas no mural";
+      case "periodo":
+        if (de && ate) return `Período de ${de.split("-").reverse().join("/")} a ${ate.split("-").reverse().join("/")}`;
+        return "Por período (datas não informadas)";
+      default:
+        return "Todas as velas";
+    }
+  })();
+  if (pagamento === "pagos") return `${base} · somente pagas`;
+  if (pagamento === "nao-pagos") return `${base} · somente não pagas`;
+  return base;
 }
 
 export function filterCandleReportRows(
   rows: CandleReportRow[],
   filtro: CandleReportFilter,
   period?: { from: Date; to: Date },
+  pagamento: CandlePaymentFilter = "todos",
 ): CandleReportRow[] {
   let out = rows;
   if (filtro === "ativas") {
@@ -122,5 +149,96 @@ export function filterCandleReportRows(
   if (filtro === "periodo" && period) {
     out = out.filter((r) => r.date >= period.from && r.date <= period.to);
   }
+  if (pagamento === "pagos") {
+    out = out.filter((r) => candleIsPaid(r.status));
+  } else if (pagamento === "nao-pagos") {
+    out = out.filter((r) => !candleIsPaid(r.status));
+  }
   return out;
+}
+
+function xmlEscape(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+export function formatCandleReportDate(d: Date): string {
+  return d.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+}
+
+export function formatCandleAmount(cents: number): string {
+  return (cents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+const CANDLE_EXPORT_HEADERS = [
+  "Data",
+  "Nome",
+  "E-mail",
+  "Telefone",
+  "Intenção",
+  "Oração",
+  "Ativa no mural",
+  "Pagamento",
+  "Valor (R$)",
+] as const;
+
+function candleExportCells(row: CandleReportRow): string[] {
+  return [
+    formatCandleReportDate(row.date),
+    row.donorName,
+    row.email ?? "",
+    row.phone ?? "",
+    row.intention,
+    row.prayer ?? "",
+    row.activeOnMural ? "Sim" : "Não",
+    candlePaymentLabel(row.status),
+    formatCandleAmount(row.amountCents),
+  ];
+}
+
+/** Planilha Excel 2003 (XML) — abre no Excel como .xls, sem biblioteca extra. */
+export function candleRowsToXls(rows: CandleReportRow[]): string {
+  const header = CANDLE_EXPORT_HEADERS.map(
+    (h) => `<Cell><Data ss:Type="String">${xmlEscape(h)}</Data></Cell>`,
+  ).join("");
+  const body = rows
+    .map((row) => {
+      const cells = candleExportCells(row)
+        .map((value) => `<Cell><Data ss:Type="String">${xmlEscape(value)}</Data></Cell>`)
+        .join("");
+      return `<Row>${cells}</Row>`;
+    })
+    .join("");
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+<Worksheet ss:Name="Velas"><Table>
+<Row>${header}</Row>
+${body}
+</Table></Worksheet></Workbook>`;
+}
+
+export function candleRowsToXml(rows: CandleReportRow[]): string {
+  const items = rows
+    .map((row) => {
+      const cells = candleExportCells(row);
+      const tags = [
+        "data",
+        "nome",
+        "email",
+        "telefone",
+        "intencao",
+        "oracao",
+        "ativa",
+        "pagamento",
+        "valor",
+      ];
+      const inner = tags.map((tag, i) => `<${tag}>${xmlEscape(cells[i] ?? "")}</${tag}>`).join("");
+      return `<vela id="${xmlEscape(row.id)}">${inner}</vela>`;
+    })
+    .join("");
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<velas>${items}</velas>\n`;
 }

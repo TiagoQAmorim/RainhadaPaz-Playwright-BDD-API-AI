@@ -19,9 +19,6 @@ import {
 } from "@/lib/datetime-local";
 import { imageUrlFromForm, resolveImageFromForm } from "@/lib/uploads";
 import { sanitizeAdminHtml } from "@/lib/sanitize-admin-html";
-import { importSiteBundle } from "@/lib/import-site-bundle";
-import { allowSiteBundleRestore } from "@/lib/prod-content-policy";
-
 function slugify(text: string) {
   return text
     .toLowerCase()
@@ -524,11 +521,11 @@ export async function updateCandleSettings(formData: FormData) {
       candlePriceCents = existing?.candlePriceCents ?? 1000;
     }
     if (accessMode === "paid" && !candlePaymentPix && !candlePaymentSicredi) {
-      redirectCandleSettingsError("Velas pagas precisam de ao menos um meio: PIX ou Sicredi.");
+      redirectCandleSettingsError("Velas pagas precisam de ao menos um meio: PIX ou cartão.");
     }
     if (accessMode === "free_donation" && !candlePaymentPix && !candlePaymentSicredi) {
       redirectCandleSettingsError(
-        "Com oferta opcional, marque PIX e/ou Sicredi para quem quiser contribuir.",
+        "Com oferta opcional, marque PIX e/ou cartão para quem quiser contribuir.",
       );
     }
 
@@ -719,22 +716,35 @@ export async function deleteAdminUser(formData: FormData) {
   await redirectWithAdminFlash("/admin/usuarios", "deleted");
 }
 
-/** Repõe produção a partir de `site-bundle.json` (mesmo conteúdo do ambiente local no Git). */
-export async function restoreSiteBundleFromDeploy() {
+/** Repõe o SQLite a partir do último backup de produção (/data/backups). */
+export async function restoreFromProductionBackup() {
   await requireAdmin();
-  if (!(await allowSiteBundleRestore(prisma))) {
+  const { restoreDatabaseFromLatestBackup, sqlitePathFromDatabaseUrl, hasUsableProductionBackup } =
+    await import("@/lib/db-restore-from-backup");
+  const { allowProdBackupRestore } = await import("@/lib/prod-content-policy");
+
+  const dbPath = sqlitePathFromDatabaseUrl();
+  if (!dbPath || !hasUsableProductionBackup(dbPath)) {
     redirect(
       `/admin?erro=${encodeURIComponent(
-        "Restauração bloqueada: o banco já tem conteúdo. Use só se o site estiver vazio ou com ALLOW_SITE_BUNDLE_IMPORT=true no Railway.",
+        "Nenhum backup de produção em /data/backups. Aguarde o backup diário ou chame POST /api/setup/backup.",
       )}`,
     );
   }
-  try {
-    await importSiteBundle(prisma);
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : "Falha ao restaurar conteúdo";
-    redirect(`/admin?erro=${encodeURIComponent(msg.slice(0, 200))}`);
+
+  if (!(await allowProdBackupRestore(prisma))) {
+    redirect(
+      `/admin?erro=${encodeURIComponent(
+        "Restauração bloqueada: o banco já tem conteúdo. Para sobrescrever, defina ALLOW_FORCE_PROD_BACKUP_RESTORE=true no Railway.",
+      )}`,
+    );
   }
+
+  const restoredFrom = restoreDatabaseFromLatestBackup(dbPath);
+  if (!restoredFrom) {
+    redirect(`/admin?erro=${encodeURIComponent("Falha ao copiar o arquivo de backup.")}`);
+  }
+
   revalidatePath("/", "layout");
   revalidatePath("/admin");
   await redirectWithAdminFlash("/admin", "restored");

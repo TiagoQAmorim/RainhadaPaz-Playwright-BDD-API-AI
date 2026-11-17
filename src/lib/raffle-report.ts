@@ -188,3 +188,77 @@ export async function buildRaffleReportCsv(
           : "cotas";
   return { filename: `rifa-${slug}-${suffix}.csv`, body };
 }
+
+function parseCsvLine(line: string): string[] {
+  const out: string[] = [];
+  let cur = "";
+  let quoted = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (quoted) {
+      if (ch === '"' && line[i + 1] === '"') {
+        cur += '"';
+        i++;
+      } else if (ch === '"') {
+        quoted = false;
+      } else {
+        cur += ch;
+      }
+    } else if (ch === '"') {
+      quoted = true;
+    } else if (ch === ";") {
+      out.push(cur);
+      cur = "";
+    } else {
+      cur += ch;
+    }
+  }
+  out.push(cur);
+  return out;
+}
+
+function xmlEscape(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/** Mesmo conteúdo do CSV, em XML. */
+export async function buildRaffleReportXml(
+  raffleId: string,
+  part: RaffleReportPart = "completo",
+): Promise<{ filename: string; body: string }> {
+  const csv = await buildRaffleReportCsv(raffleId, part);
+  const lines = csv.body.replace(/^\uFEFF/, "").split("\n");
+  const sections: string[] = [];
+  let i = 0;
+  while (i < lines.length) {
+    const titleLine = lines[i]?.trim();
+    if (!titleLine) {
+      i++;
+      continue;
+    }
+    const title = parseCsvLine(titleLine)[0] ?? "secao";
+    const headers = parseCsvLine(lines[i + 1] ?? "");
+    i += 2;
+    const rows: string[] = [];
+    while (i < lines.length && lines[i]?.trim()) {
+      const cells = parseCsvLine(lines[i] ?? "");
+      const fields = headers
+        .map((header, idx) => {
+          const tag = (header || `campo${idx + 1}`).replace(/[^a-zA-Z0-9_]/g, "_");
+          return `<${tag}>${xmlEscape(cells[idx] ?? "")}</${tag}>`;
+        })
+        .join("");
+      rows.push(`<linha>${fields}</linha>`);
+      i++;
+    }
+    sections.push(`<secao nome="${xmlEscape(title)}">${rows.join("")}</secao>`);
+  }
+  return {
+    filename: csv.filename.replace(/\.csv$/i, ".xml"),
+    body: `<?xml version="1.0" encoding="UTF-8"?>\n<relatorio>${sections.join("")}</relatorio>\n`,
+  };
+}

@@ -8,8 +8,8 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 /**
- * Repõe conteúdo do `site-bundle.json` do deploy (upsert — não apaga linhas extras).
- * Só manual: POST + Bearer AUTH_SECRET. Deploy nunca chama isso sozinho.
+ * Último recurso: repõe do `site-bundle.json` do Git (ambiente local), não do que foi feito só em prod.
+ * Exige ALLOW_SITE_BUNDLE_IMPORT=true em produção. Restauração normal: POST /api/setup/restore-backup.
  */
 export async function POST(req: Request) {
   const secret = process.env.AUTH_SECRET?.trim();
@@ -29,7 +29,7 @@ export async function POST(req: Request) {
       return NextResponse.json(
         {
           error:
-            "Import bloqueado: já existe conteúdo no banco. Deploys não alteram dados. Para forçar: ALLOW_SITE_BUNDLE_IMPORT=true.",
+            "Import bloqueado em produção sem ALLOW_SITE_BUNDLE_IMPORT=true. Prefira POST /api/setup/restore-backup (backup do volume).",
         },
         { status: 403 },
       );

@@ -71,14 +71,33 @@ export function CandleForm({ commerce }: Props) {
       prayer: String(form.get("prayer") ?? "") || undefined,
       intentionPublic: form.get("contentPublic") === "on",
       prayerPublic: form.get("contentPublic") === "on",
-      email: String(form.get("email") ?? "") || undefined,
+      email: String(form.get("email") ?? "").trim(),
+      phone: String(form.get("phone") ?? "").trim(),
     };
+  }
+
+  function submitFromButton(e: React.MouseEvent<HTMLButtonElement>) {
+    const form = e.currentTarget.form;
+    if (!form || !form.reportValidity()) return;
+    void onSubmit({
+      preventDefault() {},
+      currentTarget: form,
+    } as React.FormEvent<HTMLFormElement>);
   }
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
     const base = formValues(form);
+    if (!base.email) {
+      setError("Informe o e-mail.");
+      return;
+    }
+    const phoneDigits = base.phone.replace(/\D/g, "");
+    if (phoneDigits.length < 10 || phoneDigits.length > 11) {
+      setError("Informe um telefone com DDD (10 ou 11 dígitos).");
+      return;
+    }
 
     if (commerce.forceFree) {
       await submit({ ...base, paymentMethod: "FREE" });
@@ -99,7 +118,7 @@ export function CandleForm({ commerce }: Props) {
 
     const method = payMethod;
     if (method === "SICREDI" && !commerce.sicrediLive) {
-      setError("Pagamento com cartão Sicredi ainda não está ativo. Escolha PIX ou acenda sem oferta.");
+      setError("Pagamento com cartão ainda não está ativo. Escolha PIX ou acenda sem oferta.");
       return;
     }
 
@@ -159,10 +178,25 @@ export function CandleForm({ commerce }: Props) {
         </label>
       </div>
       <div>
-        <label className="mb-1 block text-sm font-medium">E-mail (opcional)</label>
+        <label className="mb-1 block text-sm font-medium">E-mail *</label>
         <input
           name="email"
           type="email"
+          required
+          maxLength={120}
+          autoComplete="email"
+          className="w-full rounded-xl border border-parish-200 px-3 py-2 outline-none ring-parish-500 focus:ring-2"
+        />
+      </div>
+      <div>
+        <label className="mb-1 block text-sm font-medium">Telefone *</label>
+        <input
+          name="phone"
+          type="tel"
+          required
+          maxLength={20}
+          autoComplete="tel"
+          placeholder="(11) 99999-9999"
           className="w-full rounded-xl border border-parish-200 px-3 py-2 outline-none ring-parish-500 focus:ring-2"
         />
       </div>
@@ -195,7 +229,7 @@ export function CandleForm({ commerce }: Props) {
                 checked={payMethod === "SICREDI"}
                 onChange={() => setPayMethod("SICREDI")}
               />
-              Cartão Sicredi
+              Cartão
               {!voluntaryDonation ? ` (${priceLabel})` : ""}
               {!commerce.sicrediLive ? (
                 <span className="text-xs text-parish-600">— em breve</span>
@@ -215,7 +249,8 @@ export function CandleForm({ commerce }: Props) {
         {fields}
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
         <button
-          type="submit"
+          type="button"
+          onClick={submitFromButton}
           disabled={loading}
           className="w-full rounded-xl bg-parish-600 py-3.5 text-base font-bold text-white shadow-lg shadow-parish-600/25 transition hover:bg-parish-500 disabled:opacity-60"
         >
@@ -229,13 +264,14 @@ export function CandleForm({ commerce }: Props) {
     return (
       <form onSubmit={onSubmit} className="glass-card space-y-4 p-6 md:p-8">
         <p className="rounded-xl border border-parish-200 bg-parish-50 px-4 py-3 text-sm text-parish-800">
-          A paróquia liberou o <strong>acendimento gratuito</strong> neste período. Basta enviar nome,
-          intenção e oração.
+          A paróquia liberou o <strong>acendimento gratuito</strong> neste período. Informe nome,
+          intenção, e-mail e telefone.
         </p>
         {fields}
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
         <button
-          type="submit"
+          type="button"
+          onClick={submitFromButton}
           disabled={loading}
           className="w-full rounded-xl bg-parish-600 py-3.5 text-base font-bold text-white transition hover:bg-parish-500 disabled:opacity-60"
         >
@@ -250,7 +286,7 @@ export function CandleForm({ commerce }: Props) {
       <form onSubmit={onSubmit} className="glass-card space-y-4 p-6 md:p-8">
         <p className="rounded-xl border border-parish-200 bg-parish-50 px-4 py-3 text-sm text-parish-800">
           Acenda <strong>sem custo</strong> ou, se desejar, faça uma <strong>oferta no valor que escolher</strong>{" "}
-          via PIX ou Sicredi.
+          via PIX ou cartão.
         </p>
         <fieldset className="space-y-2 text-sm">
           <legend className="mb-1 text-sm font-medium text-parish-900">Contribuição</legend>
@@ -300,7 +336,8 @@ export function CandleForm({ commerce }: Props) {
         {fields}
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
         <button
-          type="submit"
+          type="button"
+          onClick={submitFromButton}
           disabled={loading}
           className="w-full rounded-xl bg-gold-500 py-3 font-semibold text-white transition hover:bg-gold-400 disabled:opacity-60"
         >
@@ -323,7 +360,8 @@ export function CandleForm({ commerce }: Props) {
       {fields}
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
       <button
-        type="submit"
+        type="button"
+        onClick={submitFromButton}
         disabled={loading}
         className="w-full rounded-xl bg-gold-500 py-3 font-semibold text-white transition hover:bg-gold-400 disabled:opacity-60"
       >

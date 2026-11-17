@@ -8,7 +8,7 @@ const MESSAGES: Record<AdminFlashKind, string> = {
   deleted: "Exclusão realizada com sucesso.",
   drawn: "Sorteio realizado com sucesso. O nome do ganhador foi preenchido automaticamente.",
   restored:
-    "Conteúdo reposto: páginas, notícias, avisos, horários, velas e rifa (snapshot do último deploy).",
+    "Banco restaurado a partir do último backup de produção (/data/backups) — o que estava cadastrado no servidor.",
 };
 
 export function adminFlashMessage(kind: AdminFlashKind): string {

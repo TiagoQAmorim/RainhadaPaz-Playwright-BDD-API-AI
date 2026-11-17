@@ -64,30 +64,14 @@ runNode([prismaCli, "db", "push"], "prisma db push");
 runNode(["--import", "tsx", path.join(appRoot, "scripts", "sync-admin-from-env.ts")], "sync admin password");
 
 function restoreFromLatestBackup(dbPath) {
-  if (process.env.AUTO_RESTORE_FROM_BACKUP === "false") return null;
-  const backupDir = path.join(path.dirname(dbPath), "backups");
-  if (!fs.existsSync(backupDir)) return null;
-  const manifests = fs
-    .readdirSync(backupDir)
-    .filter((f) => f.startsWith("manifest-") && f.endsWith(".json"))
-    .sort()
-    .reverse();
-  for (const mf of manifests) {
-    try {
-      const manifest = JSON.parse(fs.readFileSync(path.join(backupDir, mf), "utf8"));
-      const c = manifest.counts ?? {};
-      if ((c.pages ?? 0) === 0 && (c.raffles ?? 0) === 0 && (c.posts ?? 0) === 0) continue;
-      const day = mf.slice("manifest-".length, -".json".length);
-      const src = path.join(backupDir, `rainhadapaz-${day}.db`);
-      if (!fs.existsSync(src)) continue;
-      const tmp = `${dbPath}.restore.tmp`;
-      fs.copyFileSync(src, tmp);
-      fs.renameSync(tmp, dbPath);
-      console.log("[ensure-db] SQLite restaurado do backup:", src, c);
-      return src;
-    } catch {
-      /* próximo manifest */
-    }
+  const r = spawnSync(
+    process.execPath,
+    ["--import", "tsx", path.join(appRoot, "scripts", "restore-latest-backup.ts"), dbPath],
+    { cwd: appRoot, encoding: "utf8" },
+  );
+  if (r.status === 0 && r.stdout?.trim()) {
+    console.log("[ensure-db] SQLite restaurado do backup de produção:", r.stdout.trim());
+    return true;
   }
   return null;
 }
@@ -126,7 +110,7 @@ async function prodDbHealthCheck() {
     console.log(`[ensure-db] Contagens: pages=${pages} posts=${posts} raffles=${raffles}`);
     if (pages === 0 && posts === 0 && raffles === 0) {
       console.error(
-        "[ensure-db] BANCO VAZIO — deploy não apaga dados; restaure import-bundle ou confira volume /data.",
+        "[ensure-db] BANCO VAZIO — deploy não apaga dados; confira volume /data, POST /api/setup/restore-backup ou backup em /data/backups/.",
       );
     } else if (process.env.AUTO_BACKUP_ON_BOOT !== "false") {
       console.log("[ensure-db] Backup pós-boot (com conteúdo)…");

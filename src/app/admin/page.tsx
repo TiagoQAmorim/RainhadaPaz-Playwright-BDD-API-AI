@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { restoreSiteBundleFromDeploy } from "@/app/admin/actions";
-import { allowSiteBundleRestore } from "@/lib/prod-content-policy";
+import { restoreFromProductionBackup } from "@/app/admin/actions";
+import { hasUsableProductionBackup, sqlitePathFromDatabaseUrl } from "@/lib/db-restore-from-backup";
 import { adminCard, adminBtn } from "@/components/admin/AdminFormStyles";
 import { getSessionAdmin } from "@/lib/auth";
 import { countCandlesActiveOnMural } from "@/lib/candle-report";
@@ -52,13 +52,15 @@ export default async function AdminHomePage({
   if (!admin) redirect("/admin/login");
   const { erro } = await searchParams;
 
-  const [posts, notices, locations, candlesActive, pages, canRestore] = await Promise.all([
+  const dbPath = sqlitePathFromDatabaseUrl();
+  const hasProdBackup = dbPath ? hasUsableProductionBackup(dbPath) : false;
+
+  const [posts, notices, locations, candlesActive, pages] = await Promise.all([
     prisma.post.count(),
     prisma.notice.count(),
     prisma.massLocation.count(),
     countCandlesActiveOnMural(),
     prisma.page.count(),
-    allowSiteBundleRestore(prisma),
   ]);
 
   return (
@@ -66,18 +68,26 @@ export default async function AdminHomePage({
       {erro ? (
         <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">{erro}</p>
       ) : null}
-      {canRestore && (posts === 0 || pages === 0 || locations === 0) && (
+      {(posts === 0 || pages === 0 || locations === 0) && (
         <section className={`${adminCard} border-amber-200 bg-amber-50/80`}>
           <h2 className="text-lg font-semibold text-parish-900">Conteúdo ausente no servidor</h2>
           <p className="mt-2 text-sm text-parish-700">
-            O banco no volume está vazio (deploy não apagou — volume/URL incorretos). Use uma vez para repor do
-            backup no Git. Com dados já cadastrados, isso fica bloqueado.
+            O banco no volume parece incompleto (deploy não apaga linhas — confira volume <code>/data</code> e{" "}
+            <code>DATABASE_URL</code>). A restauração usa sempre a última cópia feita em{" "}
+            <strong>produção</strong> (<code>/data/backups/</code>), nunca o snapshot do Git.
           </p>
-          <form action={restoreSiteBundleFromDeploy} className="mt-4">
-            <button type="submit" className={adminBtn}>
-              Restaurar conteúdo completo agora
-            </button>
-          </form>
+          {hasProdBackup ? (
+            <form action={restoreFromProductionBackup} className="mt-4">
+              <button type="submit" className={adminBtn}>
+                Restaurar do backup de produção
+              </button>
+            </form>
+          ) : (
+            <p className="mt-4 text-sm text-parish-800">
+              Ainda não há backup no volume. Rode o backup diário (GitHub Action) ou{" "}
+              <code>POST /api/setup/backup</code> com <code>AUTH_SECRET</code>, depois tente de novo.
+            </p>
+          )}
         </section>
       )}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

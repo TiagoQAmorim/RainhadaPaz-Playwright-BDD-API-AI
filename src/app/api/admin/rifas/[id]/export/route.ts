@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSessionAdmin } from "@/lib/auth";
 import {
   buildRaffleReportCsv,
+  buildRaffleReportXml,
   type RaffleReportPart,
 } from "@/lib/raffle-report";
 
@@ -19,6 +20,17 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
   }
   const { id } = await ctx.params;
   const part = parseReportPart(new URL(req.url).searchParams.get("parte"));
+
+  const formato = new URL(req.url).searchParams.get("formato");
+  if (formato === "xml") {
+    const { filename, body } = await buildRaffleReportXml(id, part);
+    return new NextResponse(body, {
+      headers: {
+        "Content-Type": "application/xml; charset=utf-8",
+        "Content-Disposition": `attachment; filename="${filename}"`,
+      },
+    });
+  }
 
   const { filename, body } = await buildRaffleReportCsv(id, part);
   return new NextResponse(body, {

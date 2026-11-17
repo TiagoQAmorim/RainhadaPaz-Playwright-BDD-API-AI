@@ -9,12 +9,21 @@ import {
 import { prisma } from "@/lib/prisma";
 
 const schema = z.object({
-  donorName: z.string().min(2).max(80),
-  intention: z.string().min(2).max(120),
+  donorName: z.string().trim().min(2, "Informe seu nome.").max(80),
+  intention: z.string().trim().min(2, "Informe a intenção.").max(120),
   prayer: z.string().max(500).optional(),
   intentionPublic: z.boolean().optional(),
   prayerPublic: z.boolean().optional(),
-  email: z.string().email().optional(),
+  email: z.string().trim().email("Informe um e-mail válido.").max(120),
+  phone: z
+    .string()
+    .trim()
+    .min(8, "Informe o telefone.")
+    .max(20)
+    .refine((value) => {
+      const digits = value.replace(/\D/g, "");
+      return digits.length >= 10 && digits.length <= 11;
+    }, "Informe um telefone com DDD (10 ou 11 dígitos)."),
   paymentMethod: z.enum(["FREE", "PIX", "SICREDI"]).optional(),
   /** Só no modo gratuito com oferta opcional — valor escolhido pelo fiél (reais). */
   donationAmountBrl: z.number().positive().max(5000).optional(),
@@ -42,7 +51,8 @@ export async function POST(req: Request) {
     const json = await req.json().catch(() => null);
     const parsed = schema.safeParse(json);
     if (!parsed.success) {
-      return NextResponse.json({ error: "Dados inválidos." }, { status: 400 });
+      const message = parsed.error.issues[0]?.message ?? "Dados inválidos.";
+      return NextResponse.json({ error: message }, { status: 400 });
     }
 
     const commerce = await getCandleCommerceConfig();
@@ -84,11 +94,11 @@ export async function POST(req: Request) {
       }
     } else if (method === "SICREDI") {
       if (!commerce.allowSicredi) {
-        return NextResponse.json({ error: "Cartão Sicredi não está disponível." }, { status: 400 });
+        return NextResponse.json({ error: "Cartão não está disponível." }, { status: 400 });
       }
       if (!commerce.sicrediLive) {
         return NextResponse.json(
-          { error: "Cartão Sicredi ainda não está ativo. Use PIX ou aguarde." },
+          { error: "Cartão ainda não está ativo. Use PIX ou aguarde." },
           { status: 503 },
         );
       }
@@ -111,7 +121,7 @@ export async function POST(req: Request) {
     }
 
     if (commerce.accessMode === "paid" && free) {
-      return NextResponse.json({ error: "Velas pagas exigem PIX ou Sicredi." }, { status: 400 });
+      return NextResponse.json({ error: "Velas pagas exigem PIX ou cartão." }, { status: 400 });
     }
 
     if (
@@ -133,7 +143,8 @@ export async function POST(req: Request) {
         prayer: parsed.data.prayer?.trim(),
         intentionPublic: parsed.data.intentionPublic === true,
         prayerPublic: parsed.data.prayerPublic === true,
-        email: parsed.data.email?.trim(),
+        email: parsed.data.email.trim(),
+        phone: parsed.data.phone.trim(),
         amountCents,
         paymentMethod,
         status: "PENDING",
