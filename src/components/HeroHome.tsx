@@ -44,7 +44,7 @@ export function HeroHome({
       <div className="absolute inset-0 bg-gradient-to-r from-parish-600/92 via-parish-500/75 to-parish-400/30" />
       <div className="absolute inset-0 bg-gradient-to-t from-parish-600/70 via-transparent to-parish-500/20" />
 
-      <div className="relative mx-auto flex max-w-7xl flex-col gap-5 px-4 py-5 max-sm:gap-4 max-sm:py-4 sm:gap-8 sm:py-8 lg:flex-row lg:items-center lg:justify-between lg:gap-10 lg:py-10">
+      <div className="relative mx-auto flex min-w-0 max-w-7xl flex-col gap-5 px-4 py-5 max-sm:gap-4 max-sm:py-4 sm:gap-8 sm:py-8 lg:flex-row lg:items-center lg:justify-between lg:gap-10 lg:py-10">
         {logoUrl ? (
           <Link
             href="/"
@@ -87,7 +87,7 @@ export function HeroHome({
         </div>
 
         {carouselSlides.length > 0 ? (
-          <div className="w-full pb-8 lg:w-auto lg:pb-0">
+          <div className="mx-auto w-full min-w-0 max-w-full lg:mx-0 lg:w-auto">
             <HomeSpotlightCarousel slides={carouselSlides} />
           </div>
         ) : null}

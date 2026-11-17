@@ -30,9 +30,9 @@ export function HomeSpotlightCarousel({ slides }: Props) {
   if (count === 0) return null;
 
   return (
-    <div className="relative w-full shrink-0 lg:max-w-md">
+    <div className="relative w-full min-w-0 max-w-full lg:max-w-md">
       <div
-        className="group relative grid w-full touch-pan-y select-none"
+        className="group relative grid w-full min-w-0 grid-cols-[minmax(0,1fr)] touch-pan-y select-none"
         onTouchStart={(e) => {
           const t = e.changedTouches[0];
           if (!t) return;
@@ -68,7 +68,7 @@ export function HomeSpotlightCarousel({ slides }: Props) {
                   ? `news-${slide.slug}`
                   : `aviso-${slide.id}`
             }
-            className={`col-start-1 row-start-1 transition-opacity duration-700 ease-in-out ${
+            className={`col-start-1 row-start-1 min-w-0 max-w-full transition-opacity duration-700 ease-in-out ${
               i === index ? "z-10 opacity-100" : "pointer-events-none z-0 opacity-0"
             }`}
             aria-hidden={i !== index}
@@ -95,7 +95,7 @@ export function HomeSpotlightCarousel({ slides }: Props) {
       </div>
       {canNavigate ? (
         <div
-          className="absolute -bottom-6 left-0 right-0 flex justify-center gap-2"
+          className="mt-3 flex justify-center gap-2"
           role="tablist"
           aria-label="Destaques"
         >
@@ -149,7 +149,7 @@ function RaffleSlide({
       className={`${HOME_SPOTLIGHT_CARD_CLASS} border border-gold-400/50 bg-parish-900 hover:border-gold-400/80`}
     >
       {slide.coverImageUrl ? <SlidePhoto src={slide.coverImageUrl} priority={priority} /> : null}
-      <div className="relative z-10 flex flex-1 gap-4">
+      <div className="relative z-10 flex w-full min-w-0 flex-1 gap-3 sm:gap-4">
         <RaffleCartelaIllustration
           size={112}
           priority={priority}
@@ -157,7 +157,7 @@ function RaffleSlide({
         />
         <div className="flex min-w-0 flex-1 flex-col">
           <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gold-400">Rifa em destaque</p>
-          <h2 className="mt-2 font-[family-name:var(--font-display)] text-xl font-semibold text-white md:text-2xl">
+          <h2 className="mt-2 break-words font-[family-name:var(--font-display)] text-lg font-semibold leading-snug text-white sm:text-xl md:text-2xl">
             {slide.title}
           </h2>
           <p className="mt-2 line-clamp-2 text-sm text-white">
@@ -188,7 +188,7 @@ function NoticeSlide({
       className={`${HOME_SPOTLIGHT_CARD_CLASS} border border-white/20 bg-parish-900 hover:border-white/40`}
     >
       {slide.coverImage ? <SlidePhoto src={slide.coverImage} priority={priority} /> : null}
-      <div className="relative z-10 flex flex-1 gap-4">
+      <div className="relative z-10 flex w-full min-w-0 flex-1 gap-3 sm:gap-4">
         {slide.coverImage ? (
           <div className={HOME_SPOTLIGHT_MEDIA_BOX_CLASS}>
             <Image
@@ -210,7 +210,7 @@ function NoticeSlide({
         )}
         <div className="flex min-w-0 flex-1 flex-col">
           <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gold-300">Aviso em destaque</p>
-          <h2 className="mt-2 font-[family-name:var(--font-display)] text-xl font-semibold text-white md:text-2xl">
+          <h2 className="mt-2 break-words font-[family-name:var(--font-display)] text-lg font-semibold leading-snug text-white sm:text-xl md:text-2xl">
             {slide.title}
           </h2>
           {slide.excerpt ? (
@@ -238,7 +238,7 @@ function NewsSlide({
       className={`${HOME_SPOTLIGHT_CARD_CLASS} border border-white/20 bg-parish-900 hover:border-white/40`}
     >
       {slide.coverImage ? <SlidePhoto src={slide.coverImage} priority={priority} /> : null}
-      <div className="relative z-10 flex flex-1 gap-4">
+      <div className="relative z-10 flex w-full min-w-0 flex-1 gap-3 sm:gap-4">
         {slide.coverImage ? (
           <div className={HOME_SPOTLIGHT_MEDIA_BOX_CLASS}>
             <Image
@@ -260,7 +260,7 @@ function NewsSlide({
         )}
         <div className="flex min-w-0 flex-1 flex-col">
           <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gold-300">Notícia em destaque</p>
-          <h2 className="mt-2 font-[family-name:var(--font-display)] text-xl font-semibold text-white md:text-2xl">
+          <h2 className="mt-2 break-words font-[family-name:var(--font-display)] text-lg font-semibold leading-snug text-white sm:text-xl md:text-2xl">
             {slide.title}
           </h2>
           <p className="mt-2 line-clamp-3 flex-1 text-sm leading-relaxed text-white">{slide.excerpt}</p>
