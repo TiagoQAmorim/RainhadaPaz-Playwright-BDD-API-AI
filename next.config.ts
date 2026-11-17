@@ -15,6 +15,13 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "**.vaticannews.va", pathname: "/**" },
     ],
   },
+  async rewrites() {
+    return {
+      afterFiles: [
+        { source: "/uploads/:path*", destination: "/api/stored-uploads/:path*" },
+      ],
+    };
+  },
 };
 
 export default nextConfig;

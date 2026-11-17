@@ -69,8 +69,7 @@ export function AdminImageField({
         </button>
       ) : null}
       <p className="mt-1 text-xs text-parish-500">
-        Envie um arquivo (JPEG, PNG, WebP ou GIF, até 5 MB). As imagens ficam em{" "}
-        <code className="text-[11px]">/public/uploads</code> neste servidor.
+        Envie um arquivo (JPEG, PNG, WebP ou GIF, até 5 MB). A imagem fica no disco do servidor.
       </p>
     </div>
   );

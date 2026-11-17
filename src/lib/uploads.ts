@@ -2,6 +2,7 @@ import { randomBytes } from "crypto";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import { coerceStoredImageUrl } from "@/lib/local-image-url";
+import { persistentUploadRoot } from "@/lib/upload-storage";
 
 const ALLOWED_TYPES = new Set([
   "image/jpeg",
@@ -37,7 +38,7 @@ export async function saveAdminImageUpload(file: File): Promise<string> {
 
   const ext = extensionForMime(file.type);
   const filename = `${Date.now()}-${randomBytes(8).toString("hex")}${ext}`;
-  const dir = path.join(process.cwd(), "public", "uploads");
+  const dir = persistentUploadRoot();
   await mkdir(dir, { recursive: true });
 
   const bytes = Buffer.from(await file.arrayBuffer());
