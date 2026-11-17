@@ -1,7 +1,7 @@
 /**
  * Boot: prisma db push + sync admin.
- * Produção nunca importa site-bundle, nunca restaura arquivo e nunca sai
- * antes do Next escutar a porta. Banco vazio permanece vazio.
+ * Produção nunca importa site-bundle e nunca cria rainhadapaz.db.
+ * Se o arquivo não existe em /data, o processo para.
  */
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
@@ -53,16 +53,45 @@ async function databaseNeedsSeed(prisma) {
   }
 }
 
+function backupWouldShrink(filePath, pages, posts, raffles) {
+  if (!filePath) return false;
+  const day = new Date().toISOString().slice(0, 10);
+  const manifestPath = path.join(path.dirname(filePath), "backups", `manifest-${day}.json`);
+  if (!fs.existsSync(manifestPath)) return false;
+  try {
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    const counts = manifest.counts ?? {};
+    const previous = (counts.pages ?? 0) + (counts.posts ?? 0) + (counts.raffles ?? 0);
+    return pages + posts + raffles < previous;
+  } catch {
+    return true;
+  }
+}
+
+function sqliteFileFromEnv() {
+  const url = (process.env.DATABASE_URL ?? "").trim().replace(/\\/g, "/");
+  if (!url.startsWith("file:")) return "";
+  return url.slice("file:".length).split("?")[0];
+}
+
 if (isProdRuntime()) {
-  const dbUrl = (process.env.DATABASE_URL ?? "").replace(/\\/g, "/");
-  if (!dbUrl.startsWith("file:/data/")) {
+  const filePath = sqliteFileFromEnv();
+  if (!filePath.startsWith("/data/")) {
     console.error(
-      "[ensure-db] ALERTA: DATABASE_URL deve ser file:/data/rainhadapaz.db. Atual:",
-      dbUrl || "(vazio)",
-      "— sem volume, cada deploy usa banco vazio.",
+      "[ensure-db] PARADO. Produção só sobe com DATABASE_URL=file:/data/rainhadapaz.db. Não crio banco em outro caminho. Atual:",
+      filePath || "(vazio)",
     );
-  } else if (!fs.existsSync("/data")) {
-    console.error("[ensure-db] ALERTA: /data não existe — monte volume Railway em /data.");
+    process.exit(1);
+  }
+  if (!fs.existsSync("/data")) {
+    console.error("[ensure-db] PARADO. /data não está montado. Não crio banco vazio.");
+    process.exit(1);
+  }
+  if (!fs.existsSync(filePath)) {
+    console.error(
+      `[ensure-db] PARADO. ${filePath} não existe. Não crio arquivo vazio. O volume precisa já ter o banco.`,
+    );
+    process.exit(1);
   }
 }
 
@@ -97,8 +126,10 @@ async function prodDbHealthCheck() {
     console.log(`[ensure-db] Contagens: pages=${pages} posts=${posts} raffles=${raffles}`);
     if (pages === 0 && posts === 0 && raffles === 0) {
       console.error(
-        "[ensure-db] BANCO VAZIO — o boot não importa nem restaura. Confira o volume /data. Restaurar só pelo botão do admin, com um backup que exista.",
+        "[ensure-db] BANCO VAZIO — o boot não cria outro arquivo e não grava backup por cima do que já existe.",
       );
+    } else if (process.env.AUTO_BACKUP_ON_BOOT !== "false" && backupWouldShrink(filePath, pages, posts, raffles)) {
+      console.error("[ensure-db] Backup do dia não foi substituído: o banco atual tem menos conteúdo que a cópia já gravada.");
     } else if (process.env.AUTO_BACKUP_ON_BOOT !== "false") {
       console.log("[ensure-db] Backup pós-boot (cópia, sem substituir o banco)…");
       tryNode(["--import", "tsx", path.join(appRoot, "scripts", "post-boot-backup.ts")], "backup");
