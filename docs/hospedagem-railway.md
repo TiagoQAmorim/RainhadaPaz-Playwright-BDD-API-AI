@@ -122,6 +122,8 @@ Resposta `ok: true` com `bytes` e `counts` — confira se batem com o admin.
 
 **Limitação:** backup fica no volume `/data`. Se o volume sumir, leve cópias do `.db` para fora (download ocasional via Railway CLI ou export manual). Isso protege contra erro de import/deploy, não contra volume apagado.
 
+**Auto-restore no boot:** se após um deploy o banco estiver vazio mas existir backup com conteúdo em `/data/backups/`, o `ensure-db` **copia o último backup de volta** (`AUTO_RESTORE_FROM_BACKUP=false` desliga). Com conteúdo válido, roda backup de segurança (`AUTO_BACKUP_ON_BOOT=false` desliga).
+
 **Imagens do admin:** ficam em `public/uploads` na imagem do container; para não perder no deploy, monte outro volume em `/data/uploads` e ajuste upload (futuro) — o backup diário atual é o **banco** (textos, rifas, velas, pedidos).
 
 ## Troubleshooting

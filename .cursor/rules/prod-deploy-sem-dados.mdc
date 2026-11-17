@@ -5,6 +5,8 @@ alwaysApply: true
 
 # Produção — atualizar sistema sem mexer no banco
 
+**Nunca dê `git push` / deploy** a menos que o usuário diga explicitamente **“pode subir”**, **“push”** ou equivalente. Pedidos de código, backup ou análise ≠ autorização de deploy.
+
 Quando o usuário pedir **atualizar**, **subir**, **deploy** ou **push** para produção:
 
 ## Proibido
