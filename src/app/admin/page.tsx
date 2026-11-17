@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { restoreFromProductionBackup } from "@/app/admin/actions";
+import { importGitSnapshotIfEmpty, restoreFromProductionBackup } from "@/app/admin/actions";
 import { hasUsableProductionBackup, sqlitePathFromDatabaseUrl } from "@/lib/db-restore-from-backup";
 import { adminCard, adminBtn } from "@/components/admin/AdminFormStyles";
 import { getSessionAdmin } from "@/lib/auth";
 import { countCandlesActiveOnMural } from "@/lib/candle-report";
 import { prisma } from "@/lib/prisma";
+
+export const maxDuration = 300;
 
 const sections = [
   { href: "/admin/noticias", title: "Notícias", desc: "Cadastrar, editar e excluir notícias" },
@@ -55,13 +57,15 @@ export default async function AdminHomePage({
   const dbPath = sqlitePathFromDatabaseUrl();
   const hasProdBackup = dbPath ? hasUsableProductionBackup(dbPath) : false;
 
-  const [posts, notices, locations, candlesActive, pages] = await Promise.all([
+  const [posts, notices, locations, candlesActive, pages, raffles] = await Promise.all([
     prisma.post.count(),
     prisma.notice.count(),
     prisma.massLocation.count(),
     countCandlesActiveOnMural(),
     prisma.page.count(),
+    prisma.raffle.count(),
   ]);
+  const fullyEmpty = posts === 0 && pages === 0 && raffles === 0;
 
   return (
     <div className="space-y-8">
@@ -72,9 +76,8 @@ export default async function AdminHomePage({
         <section className={`${adminCard} border-amber-200 bg-amber-50/80`}>
           <h2 className="text-lg font-semibold text-parish-900">Conteúdo ausente no servidor</h2>
           <p className="mt-2 text-sm text-parish-700">
-            O banco no volume parece incompleto (deploy não apaga linhas — confira volume <code>/data</code> e{" "}
-            <code>DATABASE_URL</code>). A restauração usa sempre a última cópia feita em{" "}
-            <strong>produção</strong> (<code>/data/backups/</code>), nunca o snapshot do Git.
+            Neste disco não há notícias, páginas ou rifas completas. O deploy não preenche o banco sozinho.
+            Volume esperado: <code>/data</code> com <code>DATABASE_URL=file:/data/rainhadapaz.db</code>.
           </p>
           {hasProdBackup ? (
             <form action={restoreFromProductionBackup} className="mt-4">
@@ -82,10 +85,20 @@ export default async function AdminHomePage({
                 Restaurar do backup de produção
               </button>
             </form>
+          ) : fullyEmpty ? (
+            <form action={importGitSnapshotIfEmpty} className="mt-4 space-y-2">
+              <p className="text-sm text-parish-800">
+                Não existe backup em <code>/data/backups</code>. A única cópia disponível é a do Git, de 16/11
+                (páginas, notícias, rifa e velas daquele dia). Isso não roda no próximo deploy.
+              </p>
+              <button type="submit" className={adminBtn}>
+                Carregar a cópia de 16/11
+              </button>
+            </form>
           ) : (
             <p className="mt-4 text-sm text-parish-800">
-              Ainda não há backup no volume. Rode o backup diário (GitHub Action) ou{" "}
-              <code>POST /api/setup/backup</code> com <code>AUTH_SECRET</code>, depois tente de novo.
+              Não há backup no volume, e o banco não está totalmente vazio. A cópia do Git não será aplicada
+              para não cobrir o que já existe.
             </p>
           )}
         </section>

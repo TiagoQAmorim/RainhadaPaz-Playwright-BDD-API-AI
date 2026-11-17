@@ -718,6 +718,36 @@ export async function deleteAdminUser(formData: FormData) {
   await redirectWithAdminFlash("/admin/usuarios", "deleted");
 }
 
+/**
+ * Única forma de trazer a cópia do Git: o admin clica, e só com o banco vazio.
+ * O boot não chama isto.
+ */
+export async function importGitSnapshotIfEmpty() {
+  await requireAdmin();
+  const { databaseLooksEmpty } = await import("@/lib/prod-content-policy");
+  if (!(await databaseLooksEmpty(prisma))) {
+    redirect(
+      `/admin?erro=${encodeURIComponent(
+        "O banco já tem páginas, notícias ou rifas. A cópia do Git não foi aplicada.",
+      )}`,
+    );
+  }
+
+  const { importSiteBundle } = await import("@/lib/import-site-bundle");
+  await importSiteBundle(prisma);
+
+  try {
+    const { runDatabaseBackup } = await import("@/lib/db-backup");
+    await runDatabaseBackup(prisma);
+  } catch (e) {
+    console.error("[admin] backup depois da cópia do Git falhou", e);
+  }
+
+  revalidatePath("/", "layout");
+  revalidatePath("/admin");
+  await redirectWithAdminFlash("/admin", "restored");
+}
+
 /** Repõe o SQLite a partir do último backup de produção (/data/backups). */
 export async function restoreFromProductionBackup() {
   await requireAdmin();
