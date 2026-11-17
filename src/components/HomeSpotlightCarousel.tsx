@@ -29,7 +29,13 @@ export function HomeSpotlightCarousel({ slides }: Props) {
       <div className="group relative grid w-full">
         {slides.map((slide, i) => (
           <div
-            key={slide.type === "raffle" ? `rifa-${slide.slug}` : `news-${slide.slug}`}
+            key={
+              slide.type === "raffle"
+                ? `rifa-${slide.slug}`
+                : slide.type === "news"
+                  ? `news-${slide.slug}`
+                  : `aviso-${slide.id}`
+            }
             className={`col-start-1 row-start-1 transition-opacity duration-700 ease-in-out ${
               i === index ? "z-10 opacity-100" : "pointer-events-none z-0 opacity-0"
             }`}
@@ -37,6 +43,8 @@ export function HomeSpotlightCarousel({ slides }: Props) {
           >
             {slide.type === "raffle" ? (
               <RaffleSlide slide={slide} priority={i === 0} />
+            ) : slide.type === "notice" ? (
+              <NoticeSlide slide={slide} priority={i === 0} />
             ) : (
               <NewsSlide slide={slide} priority={i === 0} />
             )}
@@ -122,6 +130,67 @@ function RaffleSlide({
       </div>
       <span className="mt-4 inline-flex w-full items-center justify-center rounded-full bg-gold-500 py-3 text-sm font-bold text-parish-950 transition group-hover:bg-gold-400">
         Participar da rifa
+      </span>
+    </Link>
+  );
+}
+
+function NoticeSlide({
+  slide,
+  priority,
+}: {
+  slide: Extract<HomeCarouselSlide, { type: "notice" }>;
+  priority?: boolean;
+}) {
+  return (
+    <Link
+      href={`/avisos/${slide.id}`}
+      className={`${HOME_SPOTLIGHT_CARD_CLASS} border border-white/25 bg-parish-600/75 hover:border-white/40 hover:bg-parish-600/90`}
+    >
+      {slide.coverImage ? (
+        <div className="absolute inset-0 -z-10 opacity-35">
+          <Image
+            src={slide.coverImage}
+            alt=""
+            fill
+            priority={priority}
+            className="object-cover transition duration-500 group-hover:scale-105"
+            sizes="400px"
+          />
+        </div>
+      ) : null}
+      <div className="flex flex-1 gap-4">
+        {slide.coverImage ? (
+          <div className={HOME_SPOTLIGHT_MEDIA_BOX_CLASS}>
+            <Image
+              src={slide.coverImage}
+              alt=""
+              width={120}
+              height={120}
+              priority={priority}
+              className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+              sizes="120px"
+            />
+          </div>
+        ) : (
+          <div
+            className={`${HOME_SPOTLIGHT_MEDIA_BOX_CLASS} flex items-center justify-center text-[10px] font-bold uppercase tracking-wider text-gold-200`}
+          >
+            Aviso
+          </div>
+        )}
+        <div className="flex min-w-0 flex-1 flex-col">
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gold-300">Aviso em destaque</p>
+          <h2 className="mt-2 font-[family-name:var(--font-display)] text-xl font-semibold text-white md:text-2xl">
+            {slide.title}
+          </h2>
+          {slide.excerpt ? (
+            <p className="mt-2 line-clamp-3 flex-1 text-sm text-white/85">{slide.excerpt}</p>
+          ) : null}
+        </div>
+      </div>
+      <span className="mt-4 inline-flex w-full items-center justify-center rounded-full border-2 border-white/35 bg-white/10 py-3 text-sm font-bold text-white transition group-hover:bg-white/20">
+        Ler aviso
       </span>
     </Link>
   );

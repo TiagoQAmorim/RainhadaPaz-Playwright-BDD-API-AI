@@ -41,6 +41,7 @@ export default async function AdminAvisosListPage() {
                     ) : (
                       <span className="font-semibold text-parish-600">Rascunho</span>
                     )}
+                    {n.featuredOnHomeCarousel ? " · Carrossel do banner" : ""}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">

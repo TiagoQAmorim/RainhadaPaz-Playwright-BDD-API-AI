@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { stripHtml } from "@/lib/strip-html";
 import { getFeaturedHomeRaffle } from "@/lib/raffles";
 
 export const HOME_CAROUSEL_MAX = 3;
@@ -20,7 +21,23 @@ export type HomeCarouselNewsSlide = {
   coverImage: string | null;
 };
 
-export type HomeCarouselSlide = HomeCarouselRaffleSlide | HomeCarouselNewsSlide;
+export type HomeCarouselNoticeSlide = {
+  type: "notice";
+  id: string;
+  title: string;
+  excerpt: string;
+  coverImage: string | null;
+};
+
+export type HomeCarouselSlide = HomeCarouselRaffleSlide | HomeCarouselNewsSlide | HomeCarouselNoticeSlide;
+
+function visibleNoticeWhere(now: Date) {
+  return {
+    published: true,
+    featuredOnHomeCarousel: true,
+    OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+  };
+}
 
 export async function getHomeCarouselSlides(): Promise<HomeCarouselSlide[]> {
   const raffle = await getFeaturedHomeRaffle();
@@ -39,46 +56,95 @@ export async function getHomeCarouselSlides(): Promise<HomeCarouselSlide[]> {
   }
 
   if (newsLimit > 0) {
-    const posts = await prisma.post.findMany({
-      where: { published: true, featuredOnHomeCarousel: true },
-      orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
-      take: newsLimit,
-      select: {
-        slug: true,
-        title: true,
-        excerpt: true,
-        coverImage: true,
-      },
-    });
-    for (const p of posts) {
-      slides.push({
-        type: "news",
-        slug: p.slug,
-        title: p.title,
-        excerpt: p.excerpt,
-        coverImage: p.coverImage,
-      });
-    }
+    const now = new Date();
+    const [posts, notices] = await Promise.all([
+      prisma.post.findMany({
+        where: { published: true, featuredOnHomeCarousel: true },
+        orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
+        select: {
+          slug: true,
+          title: true,
+          excerpt: true,
+          coverImage: true,
+          publishedAt: true,
+          updatedAt: true,
+        },
+      }),
+      prisma.notice.findMany({
+        where: visibleNoticeWhere(now),
+        orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
+        select: {
+          id: true,
+          title: true,
+          body: true,
+          coverImage: true,
+          publishedAt: true,
+          updatedAt: true,
+        },
+      }),
+    ]);
+
+    const ranked = [
+      ...posts.map((p) => ({
+        at: p.publishedAt ?? p.updatedAt,
+        slide: {
+          type: "news" as const,
+          slug: p.slug,
+          title: p.title,
+          excerpt: p.excerpt,
+          coverImage: p.coverImage,
+        },
+      })),
+      ...notices.map((n) => ({
+        at: n.publishedAt ?? n.updatedAt,
+        slide: {
+          type: "notice" as const,
+          id: n.id,
+          title: n.title,
+          excerpt: stripHtml(n.body).slice(0, 180),
+          coverImage: n.coverImage,
+        },
+      })),
+    ]
+      .sort((a, b) => b.at.getTime() - a.at.getTime())
+      .slice(0, newsLimit);
+
+    for (const item of ranked) slides.push(item.slide);
   }
 
   return slides.slice(0, HOME_CAROUSEL_MAX);
 }
 
-/** Valida limite ao marcar notícia no carrossel da home (máx. 3 itens com a rifa em destaque). */
-export async function assertHomeCarouselPostSlot(postId?: string) {
+/** Notícias e avisos dividem as vagas do carrossel (máx. 3 com a rifa em destaque). */
+export async function assertHomeCarouselContentSlot(except?: { postId?: string; noticeId?: string }) {
   const raffle = await getFeaturedHomeRaffle();
-  const maxNews = HOME_CAROUSEL_MAX - (raffle ? 1 : 0);
-  const count = await prisma.post.count({
-    where: {
-      featuredOnHomeCarousel: true,
-      ...(postId ? { id: { not: postId } } : {}),
-    },
-  });
-  if (count >= maxNews) {
+  const maxItems = HOME_CAROUSEL_MAX - (raffle ? 1 : 0);
+  const now = new Date();
+  const [posts, notices] = await Promise.all([
+    prisma.post.count({
+      where: {
+        published: true,
+        featuredOnHomeCarousel: true,
+        ...(except?.postId ? { id: { not: except.postId } } : {}),
+      },
+    }),
+    prisma.notice.count({
+      where: {
+        ...visibleNoticeWhere(now),
+        ...(except?.noticeId ? { id: { not: except.noticeId } } : {}),
+      },
+    }),
+  ]);
+  if (posts + notices >= maxItems) {
     throw new Error(
       raffle
-        ? `No máximo ${maxNews} notícia(s) no carrossel da home quando há rifa em destaque (total ${HOME_CAROUSEL_MAX}).`
-        : `No máximo ${HOME_CAROUSEL_MAX} notícias no carrossel da home.`,
+        ? `No máximo ${maxItems} item(ns) de notícia ou aviso no carrossel quando há rifa em destaque (total ${HOME_CAROUSEL_MAX}).`
+        : `No máximo ${HOME_CAROUSEL_MAX} notícias ou avisos no carrossel da home.`,
     );
   }
+}
+
+/** @deprecated use assertHomeCarouselContentSlot */
+export async function assertHomeCarouselPostSlot(postId?: string) {
+  await assertHomeCarouselContentSlot(postId ? { postId } : undefined);
 }

@@ -249,6 +249,8 @@ export async function importSiteBundle(prisma: PrismaClient): Promise<void> {
         published: notice.published,
         publishedAt: notice.publishedAt ? new Date(notice.publishedAt) : null,
         expiresAt: notice.expiresAt ? new Date(notice.expiresAt) : null,
+        featuredOnHomeCarousel:
+          "featuredOnHomeCarousel" in notice ? Boolean(notice.featuredOnHomeCarousel) : false,
       },
       create: {
         id: notice.id,
@@ -258,6 +260,8 @@ export async function importSiteBundle(prisma: PrismaClient): Promise<void> {
         published: notice.published,
         publishedAt: notice.publishedAt ? new Date(notice.publishedAt) : null,
         expiresAt: notice.expiresAt ? new Date(notice.expiresAt) : null,
+        featuredOnHomeCarousel:
+          "featuredOnHomeCarousel" in notice ? Boolean(notice.featuredOnHomeCarousel) : false,
       },
     });
   }

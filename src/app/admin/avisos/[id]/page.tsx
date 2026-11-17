@@ -31,6 +31,7 @@ export default async function AdminEditAvisoPage({ params }: Props) {
               body: notice.body,
               coverImage: notice.coverImage,
               published: notice.published,
+              featuredOnHomeCarousel: notice.featuredOnHomeCarousel,
               expiresAt: notice.expiresAt,
             }}
           />

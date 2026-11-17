@@ -137,6 +137,7 @@ model Notice {
   body        String
   coverImage  String?
   published   Boolean   @default(true)
+  featuredOnHomeCarousel Boolean @default(false)
   publishedAt DateTime?
   expiresAt   DateTime?
   createdAt   DateTime  @default(now())

@@ -163,8 +163,8 @@ export async function upsertPost(formData: FormData) {
   const featuredOnHomeCarousel = formCheckboxOn(formData, "featuredOnHomeCarousel");
 
   if (featuredOnHomeCarousel) {
-    const { assertHomeCarouselPostSlot } = await import("@/lib/home-carousel");
-    await assertHomeCarouselPostSlot(id || undefined);
+    const { assertHomeCarouselContentSlot } = await import("@/lib/home-carousel");
+    await assertHomeCarouselContentSlot(id ? { postId: id } : undefined);
   }
 
   const existing = id
@@ -236,6 +236,11 @@ export async function upsertNotice(formData: FormData) {
   const title = String(formData.get("title") ?? "");
   const body = sanitizeAdminHtml(String(formData.get("body") ?? ""));
   const published = formCheckboxOn(formData, "published");
+  const featuredOnHomeCarousel = formCheckboxOn(formData, "featuredOnHomeCarousel");
+  if (featuredOnHomeCarousel && published) {
+    const { assertHomeCarouselContentSlot } = await import("@/lib/home-carousel");
+    await assertHomeCarouselContentSlot(id ? { noticeId: id } : undefined);
+  }
   const expiresAt = normalizeNoticeExpiresAt(
     parseDatetimeLocalField(String(formData.get("expiresAt") ?? "")),
   );
@@ -259,6 +264,7 @@ export async function upsertNotice(formData: FormData) {
     published,
     publishedAt: published ? (existing?.publishedAt ?? new Date()) : null,
     expiresAt,
+    featuredOnHomeCarousel: published ? featuredOnHomeCarousel : false,
   };
 
   let noticeId = id;
