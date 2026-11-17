@@ -1,6 +1,6 @@
 /**
- * Boot: em produção o arquivo /data/rainhadapaz.db não é criado,
- * não é restaurado e não é substituído. Se ele não existe, o processo para.
+ * Boot: sem volume da Railway, produção não cria banco.
+ * Com volume em /data, o arquivo que já existe não é substituído.
  */
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
@@ -75,6 +75,7 @@ function sqliteFileFromEnv() {
 
 if (isProdRuntime()) {
   const filePath = sqliteFileFromEnv();
+  const volumeMount = (process.env.RAILWAY_VOLUME_MOUNT_PATH ?? "").replace(/\\/g, "/").replace(/\/$/, "");
   if (!filePath.startsWith("/data/")) {
     console.error(
       "[ensure-db] PARADO. Produção só sobe com DATABASE_URL=file:/data/rainhadapaz.db. Não crio banco em outro caminho. Atual:",
@@ -82,15 +83,24 @@ if (isProdRuntime()) {
     );
     process.exit(1);
   }
-  if (!fs.existsSync("/data")) {
-    console.error("[ensure-db] PARADO. /data não está montado. Não crio banco vazio.");
+  if (!volumeMount) {
+    console.error(
+      "[ensure-db] PARADO. Este serviço não tem volume. Não crio banco no disco do container, porque o próximo deploy apaga.",
+    );
+    process.exit(1);
+  }
+  if (volumeMount !== "/data") {
+    console.error(
+      `[ensure-db] PARADO. O volume está em ${volumeMount}. O banco precisa do volume montado em /data.`,
+    );
     process.exit(1);
   }
   if (!fs.existsSync(filePath)) {
-    console.error(
-      `[ensure-db] PARADO. ${filePath} não existe. Não crio arquivo vazio e não copio backup por cima.`,
+    console.log(
+      `[ensure-db] Volume em /data confirmado. ${filePath} ainda não existe: crio só o arquivo neste disco persistente.`,
     );
-    process.exit(1);
+  } else {
+    console.log(`[ensure-db] Volume em /data confirmado. Uso o arquivo existente, sem substituir: ${filePath}`);
   }
 }
 
@@ -124,8 +134,9 @@ async function prodDbHealthCheck() {
     ]);
     console.log(`[ensure-db] Contagens: pages=${pages} posts=${posts} raffles=${raffles}`);
     if (pages === 0 && posts === 0 && raffles === 0) {
-      console.error("[ensure-db] PARADO. O arquivo está vazio. Não sirvo esse banco e não gravo por cima dele.");
-      process.exit(1);
+      console.error(
+        "[ensure-db] Banco sem páginas, notícias e rifas. Não gravo backup por cima. O arquivo existente não foi substituído.",
+      );
     } else if (process.env.AUTO_BACKUP_ON_BOOT !== "false" && backupWouldShrink(filePath, pages, posts, raffles)) {
       console.error("[ensure-db] Backup do dia não foi substituído: o banco atual tem menos conteúdo que a cópia já gravada.");
     } else if (process.env.AUTO_BACKUP_ON_BOOT !== "false") {
