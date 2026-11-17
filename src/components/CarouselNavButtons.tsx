@@ -8,6 +8,8 @@ type Props = {
   prevLabel: string;
   nextLabel: string;
   variant?: Variant;
+  /** No toque não existe hover: as setas ficam visíveis em telas estreitas. */
+  mobileVisible?: boolean;
 };
 
 const variantClass: Record<Variant, string> = {
@@ -26,8 +28,11 @@ export function CarouselNavButtons({
   prevLabel,
   nextLabel,
   variant = "light",
+  mobileVisible = false,
 }: Props) {
-  const c = `${sharedClass} ${variantClass[variant]}`;
+  const c = `${sharedClass} ${variantClass[variant]}${
+    mobileVisible ? " max-sm:bg-black/40 max-sm:opacity-100" : ""
+  }`;
   return (
     <>
       <button type="button" aria-label={prevLabel} onClick={onPrev} className={`left-2 ${c}`}>

@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRef } from "react";
 import { CarouselNavButtons } from "@/components/CarouselNavButtons";
 import { RaffleCartelaIllustration } from "@/components/RaffleCartelaIllustration";
 import { useRotatingCarousel } from "@/components/useRotatingCarousel";
@@ -18,15 +19,46 @@ type Props = {
   slides: HomeCarouselSlide[];
 };
 
+const SWIPE_PX = 48;
+
 export function HomeSpotlightCarousel({ slides }: Props) {
   const count = slides.length;
   const { index, select, next, prev, canNavigate } = useRotatingCarousel(count, ROTATE_MS);
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
+  const swiped = useRef(false);
 
   if (count === 0) return null;
 
   return (
     <div className="relative w-full shrink-0 lg:max-w-md">
-      <div className="group relative grid w-full">
+      <div
+        className="group relative grid w-full touch-pan-y select-none"
+        onTouchStart={(e) => {
+          const t = e.changedTouches[0];
+          if (!t) return;
+          touchStart.current = { x: t.clientX, y: t.clientY };
+          swiped.current = false;
+        }}
+        onTouchEnd={(e) => {
+          const start = touchStart.current;
+          touchStart.current = null;
+          if (!start || !canNavigate) return;
+          const t = e.changedTouches[0];
+          if (!t) return;
+          const dx = t.clientX - start.x;
+          const dy = t.clientY - start.y;
+          if (Math.abs(dx) < SWIPE_PX || Math.abs(dx) < Math.abs(dy)) return;
+          swiped.current = true;
+          if (dx < 0) next();
+          else prev();
+        }}
+        onClickCapture={(e) => {
+          if (!swiped.current) return;
+          e.preventDefault();
+          e.stopPropagation();
+          swiped.current = false;
+        }}
+      >
         {slides.map((slide, i) => (
           <div
             key={
@@ -57,6 +89,7 @@ export function HomeSpotlightCarousel({ slides }: Props) {
             prevLabel="Destaque anterior"
             nextLabel="Próximo destaque"
             variant="light"
+            mobileVisible
           />
         ) : null}
       </div>
@@ -85,6 +118,24 @@ export function HomeSpotlightCarousel({ slides }: Props) {
   );
 }
 
+function SlidePhoto({ src, priority }: { src: string; priority?: boolean }) {
+  return (
+    <div className="pointer-events-none absolute inset-0" aria-hidden>
+      <Image
+        src={src}
+        alt=""
+        fill
+        priority={priority}
+        className="object-cover"
+        sizes="(max-width: 1024px) 100vw, 28rem"
+        unoptimized={src.startsWith("/uploads/") || src.startsWith("/images/")}
+      />
+      <div className="absolute inset-0 bg-parish-900/82" />
+      <div className="absolute inset-0 bg-black/50" />
+    </div>
+  );
+}
+
 function RaffleSlide({
   slide,
   priority,
@@ -95,21 +146,10 @@ function RaffleSlide({
   return (
     <Link
       href={`/rifas/${slide.slug}`}
-      className={`${HOME_SPOTLIGHT_CARD_CLASS} border border-gold-400/50 bg-parish-600/75 hover:border-gold-400/80 hover:bg-parish-600/90`}
+      className={`${HOME_SPOTLIGHT_CARD_CLASS} border border-gold-400/50 bg-parish-900 hover:border-gold-400/80`}
     >
-      {slide.coverImageUrl ? (
-        <div className="absolute inset-0 -z-10 opacity-30">
-          <Image
-            src={slide.coverImageUrl}
-            alt=""
-            fill
-            priority={priority}
-            className="object-cover transition duration-500 group-hover:scale-105"
-            sizes="400px"
-          />
-        </div>
-      ) : null}
-      <div className="flex flex-1 gap-4">
+      {slide.coverImageUrl ? <SlidePhoto src={slide.coverImageUrl} priority={priority} /> : null}
+      <div className="relative z-10 flex flex-1 gap-4">
         <RaffleCartelaIllustration
           size={112}
           priority={priority}
@@ -120,15 +160,15 @@ function RaffleSlide({
           <h2 className="mt-2 font-[family-name:var(--font-display)] text-xl font-semibold text-white md:text-2xl">
             {slide.title}
           </h2>
-          <p className="mt-2 line-clamp-2 text-sm text-white/85">
+          <p className="mt-2 line-clamp-2 text-sm text-white">
             Prêmio: <strong className="text-gold-200">{slide.prizeTitle}</strong>
           </p>
-          <p className="mt-1 text-sm text-white/75">
+          <p className="mt-1 text-sm text-white/90">
             Cotas a partir de {ticketPriceLabel(slide.ticketPriceCents)}
           </p>
         </div>
       </div>
-      <span className="mt-4 inline-flex w-full items-center justify-center rounded-full bg-gold-500 py-3 text-sm font-bold text-parish-950 transition group-hover:bg-gold-400">
+      <span className="relative z-10 mt-4 inline-flex w-full items-center justify-center rounded-full bg-gold-500 py-3 text-sm font-bold text-parish-950 transition group-hover:bg-gold-400">
         Participar da rifa
       </span>
     </Link>
@@ -145,21 +185,10 @@ function NoticeSlide({
   return (
     <Link
       href={`/avisos/${slide.id}`}
-      className={`${HOME_SPOTLIGHT_CARD_CLASS} border border-white/25 bg-parish-600/75 hover:border-white/40 hover:bg-parish-600/90`}
+      className={`${HOME_SPOTLIGHT_CARD_CLASS} border border-white/20 bg-parish-900 hover:border-white/40`}
     >
-      {slide.coverImage ? (
-        <div className="absolute inset-0 -z-10 opacity-35">
-          <Image
-            src={slide.coverImage}
-            alt=""
-            fill
-            priority={priority}
-            className="object-cover transition duration-500 group-hover:scale-105"
-            sizes="400px"
-          />
-        </div>
-      ) : null}
-      <div className="flex flex-1 gap-4">
+      {slide.coverImage ? <SlidePhoto src={slide.coverImage} priority={priority} /> : null}
+      <div className="relative z-10 flex flex-1 gap-4">
         {slide.coverImage ? (
           <div className={HOME_SPOTLIGHT_MEDIA_BOX_CLASS}>
             <Image
@@ -185,11 +214,11 @@ function NoticeSlide({
             {slide.title}
           </h2>
           {slide.excerpt ? (
-            <p className="mt-2 line-clamp-3 flex-1 text-sm text-white/85">{slide.excerpt}</p>
+            <p className="mt-2 line-clamp-3 flex-1 text-sm leading-relaxed text-white">{slide.excerpt}</p>
           ) : null}
         </div>
       </div>
-      <span className="mt-4 inline-flex w-full items-center justify-center rounded-full border-2 border-white/35 bg-white/10 py-3 text-sm font-bold text-white transition group-hover:bg-white/20">
+      <span className="relative z-10 mt-4 inline-flex w-full items-center justify-center rounded-full border-2 border-white/50 bg-white/15 py-3 text-sm font-bold text-white transition group-hover:bg-white/25">
         Ler aviso
       </span>
     </Link>
@@ -206,21 +235,10 @@ function NewsSlide({
   return (
     <Link
       href={`/noticias/${slide.slug}`}
-      className={`${HOME_SPOTLIGHT_CARD_CLASS} border border-white/25 bg-parish-600/75 hover:border-white/40 hover:bg-parish-600/90`}
+      className={`${HOME_SPOTLIGHT_CARD_CLASS} border border-white/20 bg-parish-900 hover:border-white/40`}
     >
-      {slide.coverImage ? (
-        <div className="absolute inset-0 -z-10 opacity-35">
-          <Image
-            src={slide.coverImage}
-            alt=""
-            fill
-            priority={priority}
-            className="object-cover transition duration-500 group-hover:scale-105"
-            sizes="400px"
-          />
-        </div>
-      ) : null}
-      <div className="flex flex-1 gap-4">
+      {slide.coverImage ? <SlidePhoto src={slide.coverImage} priority={priority} /> : null}
+      <div className="relative z-10 flex flex-1 gap-4">
         {slide.coverImage ? (
           <div className={HOME_SPOTLIGHT_MEDIA_BOX_CLASS}>
             <Image
@@ -245,10 +263,10 @@ function NewsSlide({
           <h2 className="mt-2 font-[family-name:var(--font-display)] text-xl font-semibold text-white md:text-2xl">
             {slide.title}
           </h2>
-          <p className="mt-2 line-clamp-3 flex-1 text-sm text-white/85">{slide.excerpt}</p>
+          <p className="mt-2 line-clamp-3 flex-1 text-sm leading-relaxed text-white">{slide.excerpt}</p>
         </div>
       </div>
-      <span className="mt-4 inline-flex w-full items-center justify-center rounded-full border-2 border-white/35 bg-white/10 py-3 text-sm font-bold text-white transition group-hover:bg-white/20">
+      <span className="relative z-10 mt-4 inline-flex w-full items-center justify-center rounded-full border-2 border-white/50 bg-white/15 py-3 text-sm font-bold text-white transition group-hover:bg-white/25">
         Ler notícia
       </span>
     </Link>
