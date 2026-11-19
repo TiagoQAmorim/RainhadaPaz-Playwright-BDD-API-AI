@@ -176,20 +176,25 @@ export function HomeCandleRail({
 
   function onPointerDown(e: React.PointerEvent<HTMLDivElement>) {
     if (fitsRef.current) return;
+    if (e.pointerType === "mouse" && e.button !== 0) return;
     dragging.current = true;
     dragged.current = false;
     paused.current = true;
     dragStart.current = { x: e.clientX, y: e.clientY, offset: xRef.current };
+    e.currentTarget.setPointerCapture(e.pointerId);
   }
 
   function onPointerMove(e: React.PointerEvent<HTMLDivElement>) {
     if (!dragging.current) return;
     const dx = e.clientX - dragStart.current.x;
     const dy = e.clientY - dragStart.current.y;
-    if (!dragged.current && Math.abs(dx) < 8) return;
+    if (!dragged.current && Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
     if (!dragged.current && Math.abs(dy) > Math.abs(dx)) {
       dragging.current = false;
       paused.current = false;
+      if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      }
       return;
     }
     dragged.current = true;
@@ -206,6 +211,13 @@ export function HomeCandleRail({
   function onPointerUp() {
     dragging.current = false;
     paused.current = false;
+  }
+
+  function onClickCapture(e: React.MouseEvent) {
+    if (!dragged.current) return;
+    e.preventDefault();
+    e.stopPropagation();
+    dragged.current = false;
   }
 
   if (candles.length === 0) {
@@ -230,11 +242,16 @@ export function HomeCandleRail({
         )}
         <div
           ref={viewport}
-          className={fits ? "overflow-hidden" : "cursor-grab overflow-hidden active:cursor-grabbing"}
+          className={
+            fits
+              ? "overflow-hidden"
+              : "cursor-grab touch-pan-y overflow-hidden select-none active:cursor-grabbing"
+          }
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
+          onClickCapture={onClickCapture}
         >
           <div
             ref={track}
