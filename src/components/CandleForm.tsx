@@ -20,6 +20,7 @@ type PayMethod = "PIX" | "SICREDI";
 export function CandleForm({ commerce }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [privateNote, setPrivateNote] = useState<string | null>(null);
   const [offerChoice, setOfferChoice] = useState<OfferChoice>("none");
   const [payMethod, setPayMethod] = useState<PayMethod>(commerce.allowPix ? "PIX" : "SICREDI");
 
@@ -76,14 +77,60 @@ export function CandleForm({ commerce }: Props) {
     };
   }
 
-  function submitFromButton(e: React.MouseEvent<HTMLButtonElement>) {
+  async function privateNoteFromForm(form: HTMLFormElement) {
+    const data = new FormData(form);
+    const candidates = ["donorName", "intention", "prayer"]
+      .map((name) => String(data.get(name) ?? "").trim())
+      .filter((value) => /^[\p{L}\p{N}]{6,32}$/u.test(value));
+    for (const code of candidates) {
+      const res = await fetch("/api/c", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+      if (!res.ok) continue;
+      const body = (await res.json()) as { text?: string };
+      if (body.text) return body.text;
+    }
+    return null;
+  }
+
+  async function submitFromButton(e: React.MouseEvent<HTMLButtonElement>) {
     const form = e.currentTarget.form;
-    if (!form || !form.reportValidity()) return;
+    if (!form) return;
+    const note = await privateNoteFromForm(form);
+    if (note) {
+      setPrivateNote(note);
+      setError(null);
+      return;
+    }
+    if (!form.reportValidity()) return;
     void onSubmit({
       preventDefault() {},
       currentTarget: form,
     } as React.FormEvent<HTMLFormElement>);
   }
+
+  const privateNoteDialog = privateNote ? (
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/55 p-4">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Recado"
+        className="w-full max-w-lg rounded-2xl bg-white p-6 text-parish-900 shadow-xl"
+      >
+        <p className="whitespace-pre-wrap text-base leading-relaxed">{privateNote}</p>
+        <button
+          type="button"
+          autoFocus
+          onClick={() => setPrivateNote(null)}
+          className="mt-6 rounded-full bg-parish-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-parish-500"
+        >
+          Fechar
+        </button>
+      </div>
+    </div>
+  ) : null;
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -243,6 +290,7 @@ export function CandleForm({ commerce }: Props) {
   if (commerce.forceFree) {
     return (
       <form onSubmit={onSubmit} className="glass-card space-y-4 p-6 md:p-8">
+        {privateNoteDialog}
         <p className="rounded-xl border border-parish-200 bg-parish-50 px-4 py-3 text-sm text-parish-800">
           <strong>Modo teste:</strong> vela gratuita (somente desenvolvimento).
         </p>
@@ -263,6 +311,7 @@ export function CandleForm({ commerce }: Props) {
   if (commerce.accessMode === "free") {
     return (
       <form onSubmit={onSubmit} className="glass-card space-y-4 p-6 md:p-8">
+        {privateNoteDialog}
         <p className="rounded-xl border border-parish-200 bg-parish-50 px-4 py-3 text-sm text-parish-800">
           A paróquia liberou o <strong>acendimento gratuito</strong> neste período. Informe nome,
           intenção, e-mail e telefone.
@@ -284,6 +333,7 @@ export function CandleForm({ commerce }: Props) {
   if (commerce.accessMode === "free_donation") {
     return (
       <form onSubmit={onSubmit} className="glass-card space-y-4 p-6 md:p-8">
+        {privateNoteDialog}
         <p className="rounded-xl border border-parish-200 bg-parish-50 px-4 py-3 text-sm text-parish-800">
           Acenda <strong>sem custo</strong> ou, se desejar, faça uma <strong>oferta no valor que escolher</strong>{" "}
           via PIX ou cartão.
@@ -353,6 +403,7 @@ export function CandleForm({ commerce }: Props) {
 
   return (
     <form onSubmit={onSubmit} className="glass-card space-y-4 p-6 md:p-8">
+      {privateNoteDialog}
       <p className="rounded-xl border border-parish-200 bg-parish-50 px-4 py-3 text-sm text-parish-800">
         Contribuição de <strong>{priceLabel}</strong> para acender a vela no mural.
       </p>

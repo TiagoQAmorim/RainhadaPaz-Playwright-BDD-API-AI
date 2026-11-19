@@ -31,6 +31,8 @@ export default async function VelasPage({ searchParams }: Props) {
       ? firstPage
       : await listLitCandles({ skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE });
   const candles = mural.candles;
+  const rangeFrom = candles.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const rangeTo = rangeFrom + candles.length - 1;
   const muralDurationText =
     settings.candleDurationUnit === "days"
       ? `${settings.candleDurationAmount} dia(s)`
@@ -95,6 +97,11 @@ export default async function VelasPage({ searchParams }: Props) {
             muralDark
             durationHours={durationHours}
           />
+          {mural.total > 0 && candles.length > 0 ? (
+            <p className="mt-4 text-center text-sm text-amber-100/75">
+              {rangeFrom === rangeTo ? rangeFrom : `${rangeFrom}–${rangeTo}`} de {mural.total}
+            </p>
+          ) : null}
           {totalPages > 1 ? (
             <nav className="mt-6 flex flex-wrap items-center justify-center gap-2" aria-label="Páginas do mural">
               {page > 1 ? (
