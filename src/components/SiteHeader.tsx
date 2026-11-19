@@ -75,7 +75,7 @@ export function SiteHeader({ parishName, showNav = true, hiddenHrefs = [] }: Pro
           title="Página inicial"
           aria-label={`Ir para a página inicial — ${parishName}`}
           prefetch
-          className="group flex min-w-0 max-w-[min(100%,14rem)] shrink-0 items-center rounded-md py-1 sm:max-w-xs md:max-w-sm lg:max-w-md"
+          className="group flex min-w-0 flex-1 items-center rounded-md py-1 sm:max-w-xs md:max-w-sm lg:max-w-md"
           onClick={(e) => {
             if (pathname === "/") {
               e.preventDefault();
@@ -83,7 +83,7 @@ export function SiteHeader({ parishName, showNav = true, hiddenHrefs = [] }: Pro
             }
           }}
         >
-          <span className="line-clamp-2 cursor-pointer text-sm font-semibold leading-tight tracking-tight text-white transition group-hover:text-gold-200 sm:text-base">
+          <span className="line-clamp-2 cursor-pointer text-balance text-sm font-semibold leading-tight tracking-tight text-white transition group-hover:text-gold-200 sm:text-base">
             {parishName}
           </span>
         </Link>

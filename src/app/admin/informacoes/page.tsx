@@ -11,6 +11,11 @@ const sections = [
     desc: "Nome, contato, redes, logo, fotos do banner e texto institucional",
   },
   {
+    href: "/admin/informacoes/busca",
+    title: "Resultado da busca",
+    desc: "Título, texto e foto que o Google e o WhatsApp mostram deste site",
+  },
+  {
     href: "/admin/informacoes/banner",
     title: "Botões do banner",
     desc: "Atalhos dourados ou transparentes no topo da home",

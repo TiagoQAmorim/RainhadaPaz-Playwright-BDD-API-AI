@@ -12,7 +12,7 @@ type Props = {
 const variantClass: Record<NonNullable<Props["variant"]>, string> = {
   header:
     "max-h-11 max-w-[min(100%,220px)] sm:max-h-12 sm:max-w-[260px] md:max-h-14 md:max-w-[300px]",
-  hero: "max-h-28 max-w-[min(100%,260px)] sm:max-h-48 sm:max-w-[400px] md:max-h-56 md:max-w-[480px] lg:max-h-[15rem] lg:max-w-[520px] drop-shadow-[0_8px_32px_rgba(0,0,0,0.45)]",
+  hero: "max-h-20 max-w-[11rem] sm:max-h-48 sm:max-w-[400px] md:max-h-56 md:max-w-[480px] lg:max-h-[15rem] lg:max-w-[520px] drop-shadow-[0_8px_32px_rgba(0,0,0,0.45)]",
   footer:
     "max-h-[4.5rem] max-w-[280px] sm:max-h-[5.25rem] sm:max-w-[320px] md:max-h-[6rem] md:max-w-[360px]",
 };

@@ -1,16 +1,34 @@
 import type { Metadata } from "next";
 import { bodyFont, displayFont } from "@/lib/fonts";
-import { getSiteSettings } from "@/lib/settings";
+import { publicSiteUrl } from "@/lib/site-url";
+import { getSiteSettings, searchAppearance } from "@/lib/settings";
 import "./globals.css";
 
 export async function generateMetadata(): Promise<Metadata> {
   const s = await getSiteSettings();
+  const search = searchAppearance(s);
   return {
+    metadataBase: new URL(publicSiteUrl()),
     title: {
-      default: s.parishName,
+      default: search.title,
       template: `%s | ${s.parishName}`,
     },
-    description: s.heroSubtitle,
+    description: search.description,
+    openGraph: {
+      type: "website",
+      locale: "pt_BR",
+      url: "/",
+      siteName: s.parishName,
+      title: search.title,
+      description: search.description,
+      images: [{ url: search.image, alt: s.parishName }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: search.title,
+      description: search.description,
+      images: [search.image],
+    },
     icons: {
       icon: [
         { url: "/favicon.ico", sizes: "48x48" },

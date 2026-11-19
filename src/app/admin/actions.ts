@@ -79,6 +79,26 @@ export async function updateSiteSettings(formData: FormData) {
   await redirectWithAdminFlash("/admin/informacoes/geral", "updated");
 }
 
+export async function updateSearchAppearance(formData: FormData) {
+  await requireAdmin();
+  await ensureSiteSettings();
+  const current = await prisma.siteSettings.findUnique({ where: { id: 1 } });
+  const searchImageUrl = await resolveImageFromForm(
+    formData,
+    "searchImageUrl",
+    "searchImageUrlFile",
+    current?.searchImageUrl,
+  );
+  const searchTitle = String(formData.get("searchTitle") ?? "").trim() || null;
+  const searchDescription = String(formData.get("searchDescription") ?? "").trim() || null;
+  await prisma.siteSettings.update({
+    where: { id: 1 },
+    data: { searchTitle, searchDescription, searchImageUrl },
+  });
+  revalidatePath("/", "layout");
+  await redirectWithAdminFlash("/admin/informacoes/busca", "updated");
+}
+
 export async function updateMaintenanceSettings(formData: FormData) {
   await requireAdmin();
   const maintenanceEnabled = formCheckboxOn(formData, "maintenanceEnabled");

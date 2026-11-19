@@ -24,6 +24,9 @@ const DEFAULT_SITE_SETTINGS: SiteSettings = {
   heroImageUrl3: null,
   matrizImageUrl: null,
   capelaImageUrl: null,
+  searchTitle: null,
+  searchDescription: null,
+  searchImageUrl: null,
   youtubeChannelUrl: null,
   tercoOnlineSchedule: null,
   tercoOnlineLink: null,
@@ -73,6 +76,18 @@ export async function getSiteSettings() {
     });
   }
   return settings;
+}
+
+/** Título, texto e foto pedidos ao Google e ao WhatsApp. */
+export function searchAppearance(settings: SiteSettings) {
+  const title = settings.searchTitle?.trim() || settings.parishName;
+  const description = settings.searchDescription?.trim() || settings.heroSubtitle;
+  const image =
+    settings.searchImageUrl?.trim() ||
+    settings.heroImageUrl?.trim() ||
+    settings.logoUrl?.trim() ||
+    PARISH_LOGO_PATH;
+  return { title, description, image };
 }
 
 /** @deprecated Use getCandleCommerceConfig().priceCents no servidor. */
