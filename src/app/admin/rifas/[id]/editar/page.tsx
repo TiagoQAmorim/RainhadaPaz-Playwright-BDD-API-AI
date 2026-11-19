@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { updateRaffleAction } from "@/app/admin/raffle-actions";
-import { AdminImageField } from "@/components/admin/AdminImageField";
+import { RafflePrizePhotoFields } from "@/components/admin/RafflePrizePhotoFields";
+import { prizePhotoList } from "@/lib/raffle-prize-photos";
 import {
   adminBtn,
   adminCard,
@@ -73,12 +74,7 @@ export default async function AdminEditarRifaPage({
           rows={2}
           defaultValue={raffle.prizeDescription ?? ""}
         />
-        <AdminImageField
-          label="Foto do prêmio"
-          name="prizeImageUrl"
-          fileFieldName="prizeImageUrlFile"
-          defaultValue={raffle.prizeImageUrl}
-        />
+        <RafflePrizePhotoFields images={prizePhotoList(raffle.prizeImageUrls, raffle.prizeImageUrl)} />
         <p className="text-sm text-parish-600">
           Quantidade de cotas: <strong>{raffle.totalTickets}</strong> (fixo após criação). Valor atual:{" "}
           {ticketPriceLabel(raffle.ticketPriceCents)}.

@@ -1,6 +1,6 @@
 /**
  * Cartão online via Sicredi (cooperativa libera credenciais no gerente de Cash).
- * PIX continua na conta Itaú em `parish-payments.ts`.
+ * PIX da rifa já usa a conta Sicredi em `parish-payments.ts`. Velas e dízimo continuam no Itaú.
  *
  * Quando `isSicrediCardEnabled()`, plugar checkout (link ou API) e webhook em
  * `/api/webhooks/sicredi` — ver `docs/pagamentos-sicredi.md`.

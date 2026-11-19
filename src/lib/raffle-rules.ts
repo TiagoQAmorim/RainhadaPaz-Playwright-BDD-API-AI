@@ -7,6 +7,8 @@ export const RAFFLE_NUMBER_MIN_TICKETS = 1;
 export const RAFFLE_NUMBER_MAX_VALUE = 9999;
 /** Números por talão impresso. 1495 cai no talão 30. */
 export const RAFFLE_BOOKLET_SIZE = 50;
+/** Fotos do prêmio no cadastro da rifa. */
+export const RAFFLE_PRIZE_PHOTO_SLOTS = 6;
 
 /** Opções de cotas no admin (100, 200, … 800). */
 export const RAFFLE_TICKET_QUANTITY_OPTIONS = Array.from(
@@ -21,7 +23,7 @@ export function assertRaffleTicketQuantity(count: number): void {
     );
   }
 }
-export const RAFFLE_DEFAULT_RESERVATION_MINUTES = 15;
+export const RAFFLE_DEFAULT_RESERVATION_MINUTES = 5;
 
 export type RaffleStatus = "DRAFT" | "ACTIVE" | "CLOSED" | "CANCELLED";
 export type RaffleTicketStatus = "AVAILABLE" | "RESERVED" | "SOLD";

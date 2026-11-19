@@ -215,6 +215,8 @@ model Raffle {
   prizeTitle           String
   prizeDescription     String?
   prizeImageUrl        String?
+  // JSON com os caminhos das fotos do premio. A primeira tambem fica em prizeImageUrl.
+  prizeImageUrls       String?
   ticketPriceCents     Int
   totalTickets         Int
   status               String         @default("DRAFT")
@@ -222,7 +224,7 @@ model Raffle {
   startsAt             DateTime?
   endsAt               DateTime?
   drawScheduledAt      DateTime?
-  reservationMinutes   Int            @default(15)
+  reservationMinutes   Int            @default(5)
   drawWinningNumber    Int?
   drawWinnerName       String?
   drawWinnerContact    String?

@@ -4,6 +4,7 @@ import {
   assertTicketCount,
   assignSaintsToTickets,
   formatTicketNumber,
+  RAFFLE_DEFAULT_RESERVATION_MINUTES,
   type RaffleStatus,
 } from "@/lib/raffle-rules";
 import { ensureSaintCatalogInDb, getSaintCatalog } from "@/lib/saints-catalog";
@@ -155,6 +156,7 @@ export type CreateRaffleInput = {
   prizeTitle: string;
   prizeDescription?: string;
   prizeImageUrl?: string;
+  prizeImageUrls?: string | null;
   ticketPriceCents: number;
   totalTickets: number;
   status?: RaffleStatus;
@@ -189,6 +191,7 @@ export async function createRaffleWithTickets(input: CreateRaffleInput) {
           prizeTitle: input.prizeTitle,
           prizeDescription: input.prizeDescription ?? null,
           prizeImageUrl: input.prizeImageUrl ?? null,
+          prizeImageUrls: input.prizeImageUrls ?? null,
           ticketPriceCents: input.ticketPriceCents,
           totalTickets: input.totalTickets,
           status: input.status ?? "DRAFT",
@@ -197,7 +200,7 @@ export async function createRaffleWithTickets(input: CreateRaffleInput) {
           startsAt: input.startsAt ?? null,
           endsAt: input.endsAt ?? null,
           drawScheduledAt: input.drawScheduledAt ?? null,
-          reservationMinutes: input.reservationMinutes ?? 15,
+          reservationMinutes: input.reservationMinutes ?? RAFFLE_DEFAULT_RESERVATION_MINUTES,
         },
       });
       const tickets = Array.from({ length: input.totalTickets }, (_, index) => ({
@@ -244,13 +247,14 @@ export async function createRaffleWithTickets(input: CreateRaffleInput) {
         prizeTitle: input.prizeTitle,
         prizeDescription: input.prizeDescription ?? null,
         prizeImageUrl: input.prizeImageUrl ?? null,
+        prizeImageUrls: input.prizeImageUrls ?? null,
         ticketPriceCents: input.ticketPriceCents,
         totalTickets: input.totalTickets,
         status: input.status ?? "DRAFT",
         startsAt: input.startsAt ?? null,
         endsAt: input.endsAt ?? null,
         drawScheduledAt: input.drawScheduledAt ?? null,
-        reservationMinutes: input.reservationMinutes ?? 15,
+        reservationMinutes: input.reservationMinutes ?? RAFFLE_DEFAULT_RESERVATION_MINUTES,
       },
     });
 

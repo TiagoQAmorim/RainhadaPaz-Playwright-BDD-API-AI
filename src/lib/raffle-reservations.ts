@@ -15,12 +15,29 @@ export async function expireStaleReservations(
   lastExpireAt.set(key, Date.now());
 
   const now = new Date();
-  await prisma.raffleTicket.updateMany({
+  const stale = await prisma.raffleTicket.findMany({
     where: {
       status: "RESERVED",
       reservationExpiresAt: { lt: now },
       ...(raffleId ? { raffleId } : {}),
     },
+    select: { id: true },
+  });
+  if (stale.length === 0) return;
+
+  const staleIds = stale.map((ticket) => ticket.id);
+  const orders = await prisma.raffleOrder.findMany({
+    where: {
+      status: "PENDING",
+      lines: { some: { ticketId: { in: staleIds } } },
+    },
+    select: { id: true },
+  });
+  for (const order of orders) {
+    await cancelPendingOrder(order.id);
+  }
+  await prisma.raffleTicket.updateMany({
+    where: { id: { in: staleIds }, status: "RESERVED" },
     data: {
       status: "AVAILABLE",
       reservationExpiresAt: null,
@@ -70,6 +87,57 @@ export async function reserveTicketsForSession(params: {
   });
 
   return expiresAt;
+}
+
+/** Libera cotas reservadas por esta sessão e cancela o pedido pendente ligado a elas. */
+export async function releaseSessionReservations(params: {
+  raffleId: string;
+  sessionId: string;
+  ticketIds?: string[];
+  orderId?: string;
+}) {
+  const sessionId = params.sessionId.trim();
+  if (!sessionId) return { released: 0 };
+
+  if (params.orderId) {
+    const order = await prisma.raffleOrder.findFirst({
+      where: { id: params.orderId, raffleId: params.raffleId, status: "PENDING" },
+      include: { lines: { include: { ticket: true } } },
+    });
+    if (!order) return { released: 0 };
+    const reserved = order.lines.map((line) => line.ticket).filter((ticket) => ticket.status === "RESERVED");
+    if (reserved.some((ticket) => ticket.reservedSessionId !== sessionId)) {
+      return { released: 0, forbidden: true as const };
+    }
+    await cancelPendingOrder(order.id);
+    return { released: order.lines.length };
+  }
+
+  const tickets = await prisma.raffleTicket.findMany({
+    where: {
+      raffleId: params.raffleId,
+      status: "RESERVED",
+      reservedSessionId: sessionId,
+      ...(params.ticketIds?.length ? { id: { in: params.ticketIds } } : {}),
+    },
+    select: { id: true },
+  });
+  if (tickets.length === 0) return { released: 0 };
+
+  const ids = tickets.map((ticket) => ticket.id);
+  const orders = await prisma.raffleOrder.findMany({
+    where: { status: "PENDING", lines: { some: { ticketId: { in: ids } } } },
+    select: { id: true },
+  });
+  for (const order of orders) {
+    await cancelPendingOrder(order.id);
+  }
+  await releaseTicketsForSession({
+    raffleId: params.raffleId,
+    ticketIds: ids,
+    sessionId,
+  });
+  return { released: ids.length };
 }
 
 export async function releaseTicketsForSession(params: {
@@ -139,6 +207,32 @@ export async function confirmRaffleOrderPaid(orderId: string, externalPaymentId?
   });
 }
 
+/** Cancela o pedido pendente quando o prazo da reserva já passou. */
+export async function expireOrderIfDue(orderId: string) {
+  const order = await prisma.raffleOrder.findUnique({
+    where: { id: orderId },
+    include: {
+      lines: { include: { ticket: { select: { reservationExpiresAt: true } } } },
+    },
+  });
+  if (!order) return { status: null as string | null, expiresAt: null as string | null };
+  const expiresAt = earliestHoldExpiry(order.lines.map((line) => line.ticket.reservationExpiresAt));
+  if (order.status !== "PENDING") {
+    return { status: order.status, expiresAt };
+  }
+  if (!expiresAt || new Date(expiresAt).getTime() > Date.now()) {
+    return { status: order.status, expiresAt };
+  }
+  await cancelPendingOrder(orderId);
+  return { status: "CANCELLED" as const, expiresAt };
+}
+
+function earliestHoldExpiry(dates: Array<Date | null>) {
+  const times = dates.filter((date): date is Date => date instanceof Date).map((date) => date.getTime());
+  if (times.length === 0) return null;
+  return new Date(Math.min(...times)).toISOString();
+}
+
 export async function cancelPendingOrder(orderId: string) {
   await prisma.$transaction(async (tx) => {
     const order = await tx.raffleOrder.findUnique({
@@ -161,6 +255,7 @@ export async function cancelPendingOrder(orderId: string) {
       });
     }
 
+    await tx.raffleOrderTicket.deleteMany({ where: { orderId } });
     await tx.raffleOrder.update({
       where: { id: orderId },
       data: { status: "CANCELLED" },

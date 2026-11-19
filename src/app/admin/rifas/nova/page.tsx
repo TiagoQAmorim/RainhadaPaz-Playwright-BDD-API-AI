@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createRaffleAction } from "@/app/admin/raffle-actions";
-import { AdminImageField } from "@/components/admin/AdminImageField";
+import { RafflePrizePhotoFields } from "@/components/admin/RafflePrizePhotoFields";
 import {
   adminBtn,
   adminCard,
@@ -47,11 +47,7 @@ export default async function AdminNovaRifaPage({
         <TextArea label="Finalidade da arrecadação" name="purpose" rows={2} />
         <Field label="Prêmio (título)" name="prizeTitle" required />
         <TextArea label="Descrição do prêmio" name="prizeDescription" rows={2} />
-        <AdminImageField
-          label="Foto do prêmio"
-          name="prizeImageUrl"
-          fileFieldName="prizeImageUrlFile"
-        />
+        <RafflePrizePhotoFields images={[]} />
         <AdminRaffleQuantityFields />
         <Field label="Valor da cota (R$)" name="ticketPriceBrl" placeholder="10.00" required />
         <Field label="Data prevista do sorteio" name="drawScheduledAt" type="datetime-local" />

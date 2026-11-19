@@ -7,7 +7,7 @@ import { requireAdmin } from "@/lib/auth";
 import { assertNumberSeries, assertRaffleTicketQuantity } from "@/lib/raffle-rules";
 import { createRaffleWithTickets } from "@/lib/raffles";
 import { prisma } from "@/lib/prisma";
-import { resolveImageFromForm } from "@/lib/uploads";
+import { collectPrizePhotosFromForm, serializePrizePhotos } from "@/lib/raffle-prize-photos";
 
 export async function createRaffleAction(formData: FormData) {
   await requireAdmin();
@@ -37,12 +37,8 @@ export async function createRaffleAction(formData: FormData) {
     redirect(`/admin/rifas/nova?erro=${encodeURIComponent(msg)}`);
   }
 
-  const prizeImageUrl = await resolveImageFromForm(
-    formData,
-    "prizeImageUrl",
-    "prizeImageUrlFile",
-    null,
-  );
+  const prizePhotos = await collectPrizePhotosFromForm(formData);
+  const prizeImageUrl = prizePhotos[0] ?? null;
 
   let raffle;
   try {
@@ -53,6 +49,7 @@ export async function createRaffleAction(formData: FormData) {
       prizeTitle,
       prizeDescription: prizeDescription || undefined,
       prizeImageUrl: prizeImageUrl ?? undefined,
+      prizeImageUrls: serializePrizePhotos(prizePhotos),
       ticketPriceCents: Math.round(ticketPriceBrl * 100),
       totalTickets,
       status,
@@ -99,12 +96,8 @@ export async function updateRaffleAction(formData: FormData) {
     );
   }
 
-  const prizeImageUrl = await resolveImageFromForm(
-    formData,
-    "prizeImageUrl",
-    "prizeImageUrlFile",
-    existing.prizeImageUrl,
-  );
+  const prizePhotos = await collectPrizePhotosFromForm(formData);
+  const prizeImageUrl = prizePhotos[0] ?? null;
 
   await prisma.raffle.update({
     where: { id },
@@ -115,6 +108,7 @@ export async function updateRaffleAction(formData: FormData) {
       prizeTitle,
       prizeDescription: prizeDescription || null,
       prizeImageUrl,
+      prizeImageUrls: serializePrizePhotos(prizePhotos),
       ticketPriceCents: Math.round(ticketPriceBrl * 100),
       status: status || existing.status,
       drawScheduledAt: drawScheduledAtRaw ? new Date(drawScheduledAtRaw) : null,

@@ -95,7 +95,7 @@ export function HomeSpotlightCarousel({ slides }: Props) {
       </div>
       {canNavigate ? (
         <div
-          className="mt-3 flex justify-center gap-2"
+          className="mb-1 mt-4 flex justify-center gap-2"
           role="tablist"
           aria-label="Destaques"
         >

@@ -64,6 +64,11 @@ export function SiteHeader({ parishName, showNav = true, hiddenHrefs = [] }: Pro
         className="peer sr-only lg:hidden"
         aria-hidden
       />
+      <label
+        htmlFor={MOBILE_NAV_TOGGLE_ID}
+        aria-hidden
+        className="absolute inset-x-0 top-full z-40 hidden h-[100dvh] bg-black/60 max-lg:peer-checked:block"
+      />
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4 md:h-16">
         <Link
           href="/"

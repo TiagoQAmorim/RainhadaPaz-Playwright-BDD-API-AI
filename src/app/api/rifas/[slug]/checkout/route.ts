@@ -68,37 +68,50 @@ export async function POST(
 
   const totalCents = raffle.ticketPriceCents * uniqueIds.length;
 
-  const order = await prisma.$transaction(async (tx) => {
-    const created = await tx.raffleOrder.create({
-      data: {
-        raffleId: raffle.id,
-        buyerName: buyerName.trim(),
-        buyerEmail: buyerEmail.trim(),
-        buyerPhone: buyerPhone.trim(),
-        buyerCpf: buyerCpf?.trim() || null,
-        totalCents,
-        status: "PENDING",
-        idempotencyKey: idempotencyKey ?? null,
-      },
-    });
+  let order;
+  try {
+    order = await prisma.$transaction(async (tx) => {
+      await tx.raffleOrderTicket.deleteMany({
+        where: { ticketId: { in: uniqueIds }, order: { status: "CANCELLED" } },
+      });
+      const created = await tx.raffleOrder.create({
+        data: {
+          raffleId: raffle.id,
+          buyerName: buyerName.trim(),
+          buyerEmail: buyerEmail.trim(),
+          buyerPhone: buyerPhone.trim(),
+          buyerCpf: buyerCpf?.trim() || null,
+          totalCents,
+          status: "PENDING",
+          idempotencyKey: idempotencyKey ?? null,
+        },
+      });
 
-    await tx.raffleOrderTicket.createMany({
-      data: uniqueIds.map((ticketId) => ({
-        orderId: created.id,
-        ticketId,
-      })),
-    });
+      await tx.raffleOrderTicket.createMany({
+        data: uniqueIds.map((ticketId) => ({
+          orderId: created.id,
+          ticketId,
+        })),
+      });
 
-    await tx.rafflePayment.create({
-      data: {
-        orderId: created.id,
-        provider: PARISH_PAYMENT_PROVIDER,
-        status: "PENDING",
-      },
-    });
+      await tx.rafflePayment.create({
+        data: {
+          orderId: created.id,
+          provider: PARISH_PAYMENT_PROVIDER,
+          status: "PENDING",
+        },
+      });
 
-    return created;
-  });
+      return created;
+    });
+  } catch {
+    const { releaseTicketsForSession } = await import("@/lib/raffle-reservations");
+    await releaseTicketsForSession({ raffleId: raffle.id, ticketIds: uniqueIds, sessionId });
+    return NextResponse.json(
+      { error: "Não foi possível concluir a compra. Escolha a cota de novo." },
+      { status: 409 },
+    );
+  }
 
   const free = raffleFreeMode();
 

@@ -1,5 +1,7 @@
 import { payload as buildPixBrCode } from "pix-payload";
-import { PARISH_PAYMENT } from "@/lib/parish-payments";
+import { PARISH_PAYMENT, RAFFLE_SICREDI_PAYMENT } from "@/lib/parish-payments";
+
+type PixAccount = typeof PARISH_PAYMENT | typeof RAFFLE_SICREDI_PAYMENT;
 
 export type PixPaymentKind = "VELA" | "RIFA" | "DIZIMO";
 
@@ -27,13 +29,15 @@ export function sanitizePixTxid(reference: string): string {
 export function buildParishPixCopiaECola(params: {
   amountCents: number;
   transactionId: string;
+  account?: PixAccount;
 }): string | null {
   if (params.amountCents <= 0) return null;
+  const account = params.account ?? PARISH_PAYMENT;
   try {
     return buildPixBrCode({
-      key: PARISH_PAYMENT.pixKey,
-      name: PARISH_PAYMENT.pixQrMerchantName,
-      city: PARISH_PAYMENT.pixQrCity,
+      key: account.pixKey,
+      name: account.pixQrMerchantName,
+      city: account.pixQrCity,
       amount: params.amountCents / 100,
       transactionId: sanitizePixTxid(params.transactionId),
     });
@@ -50,6 +54,7 @@ export function parishPixPayload(params: {
   payerName?: string;
   extraMessage?: string;
 }) {
+  const account = params.kind === "RIFA" ? RAFFLE_SICREDI_PAYMENT : PARISH_PAYMENT;
   const reference = buildPixReference(params.kind, params.referenceId);
   const amountLabel = formatBrlFromCents(params.amountCents);
   const messageParts = [reference, params.kind, params.payerName?.trim(), params.extraMessage?.trim()]
@@ -58,14 +63,18 @@ export function parishPixPayload(params: {
 
   const pixCopiaECola =
     params.amountCents > 0
-      ? buildParishPixCopiaECola({ amountCents: params.amountCents, transactionId: reference })
+      ? buildParishPixCopiaECola({
+          amountCents: params.amountCents,
+          transactionId: reference,
+          account,
+        })
       : null;
 
   return {
-    legalName: PARISH_PAYMENT.legalName,
-    pixKey: PARISH_PAYMENT.pixKey,
-    pixKeyType: PARISH_PAYMENT.pixKeyType,
-    bank: PARISH_PAYMENT.bank,
+    legalName: account.legalName,
+    pixKey: account.pixKey,
+    pixKeyType: account.pixKeyType,
+    bank: account.bank,
     amountCents: params.amountCents,
     amountLabel,
     reference,
@@ -74,5 +83,5 @@ export function parishPixPayload(params: {
   };
 }
 
-/** PIX manual na conta Itaú. Cartão: Sicredi (`src/lib/sicredi-payments.ts`). */
+/** PIX de velas e dízimo na conta Itaú. PIX da rifa na Sicredi. Cartão ainda não ligado. */
 export const PARISH_PAYMENT_PROVIDER = "pix_parish" as const;

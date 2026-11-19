@@ -30,7 +30,7 @@ export function HeroHome({
 }: Props) {
   const bannerText = [tagline?.trim(), intro?.trim()].filter(Boolean).join(" ");
   return (
-    <section className="relative min-h-[248px] overflow-hidden sm:min-h-[360px] md:min-h-[400px] lg:min-h-[420px]">
+    <section className="relative overflow-hidden">
       <div className="absolute inset-0">
         <Image
           src={heroImage}
@@ -44,7 +44,7 @@ export function HeroHome({
       <div className="absolute inset-0 bg-gradient-to-r from-parish-600/92 via-parish-500/75 to-parish-400/30" />
       <div className="absolute inset-0 bg-gradient-to-t from-parish-600/70 via-transparent to-parish-500/20" />
 
-      <div className="relative mx-auto flex min-w-0 max-w-7xl flex-col gap-5 px-4 py-5 max-sm:gap-4 max-sm:py-4 sm:gap-8 sm:py-8 lg:flex-row lg:items-center lg:justify-between lg:gap-10 lg:py-10">
+      <div className="relative mx-auto flex min-w-0 max-w-7xl flex-col gap-5 px-4 py-6 pb-10 max-sm:gap-4 max-sm:py-5 max-sm:pb-8 sm:gap-8 sm:py-10 sm:pb-14 lg:flex-row lg:items-center lg:justify-between lg:gap-10 lg:py-12 lg:pb-16">
         {logoUrl ? (
           <Link
             href="/"

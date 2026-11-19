@@ -9,6 +9,8 @@ type TicketRow = {
   ticketNumber: number;
   ticketLabel: string;
   status: string;
+  owned?: boolean;
+  paymentPath?: string | null;
   saint: {
     name: string;
     celebration: string;
@@ -87,12 +89,13 @@ export function RaffleExperience({
 
   const cartTotal = cart.length * ticketPriceCents;
 
-  const fetchTickets = useCallback(async () => {
-    setLoading(true);
+  const fetchTickets = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setLoading(true);
     setLoadError(null);
     const params = new URLSearchParams({
       page: String(page),
       sort,
+      session: getSessionId(),
     });
     if (debouncedQ.trim()) params.set("q", debouncedQ.trim());
     if (statusFilter) params.set("status", statusFilter);
@@ -116,7 +119,7 @@ export function RaffleExperience({
       setTickets([]);
       setLoadError("Falha de conexão ao carregar as cotas.");
     } finally {
-      setLoading(false);
+      if (!opts?.silent) setLoading(false);
     }
   }, [slug, page, debouncedQ, statusFilter, sort, month]);
 
@@ -141,18 +144,22 @@ export function RaffleExperience({
 
   useEffect(() => {
     const id = window.setInterval(() => {
-      if (document.visibilityState === "visible") void fetchStats();
+      if (document.visibilityState === "visible") {
+        void fetchStats();
+        void fetchTickets({ silent: true });
+      }
     }, 45_000);
     return () => window.clearInterval(id);
-  }, [fetchStats]);
+  }, [fetchStats, fetchTickets]);
 
   useEffect(() => {
     const onFocus = () => {
       void fetchStats();
+      void fetchTickets({ silent: true });
     };
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
-  }, [fetchStats]);
+  }, [fetchStats, fetchTickets]);
 
   const cartIds = useMemo(() => new Set(cart.map((c) => c.id)), [cart]);
   const numberRaffle = kind === "NUMBERS";
@@ -184,7 +191,12 @@ export function RaffleExperience({
           idempotencyKey: crypto.randomUUID(),
         }),
       });
-      const data = await res.json();
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        paymentPath?: string;
+        free?: boolean;
+        orderId?: string;
+      };
       if (!res.ok) {
         setError(data.error ?? "Não foi possível concluir.");
         await fetchTickets();
@@ -207,13 +219,38 @@ export function RaffleExperience({
     setModalTicket(t);
     setModalDetailLoading(true);
     try {
-      const res = await fetch(`/api/rifas/${slug}/tickets/${t.id}`, { cache: "no-store" });
+      const res = await fetch(`/api/rifas/${slug}/tickets/${t.id}?session=${encodeURIComponent(getSessionId())}`, {
+        cache: "no-store",
+      });
       if (res.ok) {
         const detail = (await res.json()) as TicketRow;
-        setModalTicket(detail);
+        setModalTicket({ ...detail, owned: detail.owned ?? t.owned, paymentPath: detail.paymentPath ?? t.paymentPath });
       }
     } finally {
       setModalDetailLoading(false);
+    }
+  }
+
+  const [releasingId, setReleasingId] = useState<string | null>(null);
+
+  async function releaseOwnReservation(t: TicketRow) {
+    setReleasingId(t.id);
+    setError(null);
+    try {
+      const res = await fetch(`/api/rifas/${slug}/reservas`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: getSessionId(), ticketIds: [t.id] }),
+      });
+      if (!res.ok) {
+        setError("Não foi possível liberar essa cota.");
+        return;
+      }
+      removeFromCart(t.id);
+      if (modalTicket?.id === t.id) setModalTicket(null);
+      await Promise.all([fetchTickets({ silent: true }), fetchStats()]);
+    } finally {
+      setReleasingId(null);
     }
   }
 
@@ -532,6 +569,21 @@ export function RaffleExperience({
                   <p className="mt-2 rounded-md bg-parish-500 px-2 py-1 text-center text-[10px] font-bold uppercase tracking-wider text-white">
                     Vendida
                   </p>
+                ) : t.status === "RESERVED" && t.owned ? (
+                  <div className="mt-2 space-y-1">
+                    <p className="text-xs font-bold text-amber-950">Sua reserva</p>
+                    <button
+                      type="button"
+                      disabled={releasingId === t.id}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void releaseOwnReservation(t);
+                      }}
+                      className="text-xs font-bold text-parish-800 underline disabled:opacity-50"
+                    >
+                      {releasingId === t.id ? "Liberando…" : "Liberar cota"}
+                    </button>
+                  </div>
                 ) : t.status === "RESERVED" ? (
                   <p className="mt-2 text-xs font-bold text-amber-950">Aguardando pagamento</p>
                 ) : (
@@ -679,36 +731,62 @@ export function RaffleExperience({
               <p className="mt-4 rounded-lg bg-parish-100 p-3 text-sm text-parish-700">
                 Esta cota já foi adquirida.
               </p>
+            ) : modalTicket.status === "RESERVED" && modalTicket.owned ? (
+              <p className="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
+                Esta cota está reservada no seu pagamento. Você pode continuar ou liberar para outra pessoa.
+              </p>
             ) : modalTicket.status === "RESERVED" ? (
               <p className="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
                 Cota reservada — aguardando pagamento de outro participante.
               </p>
             ) : null}
             <div className="mt-6 flex flex-wrap gap-3">
-              <button
-                type="button"
-                disabled={modalTicket.status !== "AVAILABLE"}
-                onClick={() => {
-                  addToCart(modalTicket);
-                  setModalTicket(null);
-                  setCheckoutOpen(false);
-                }}
-                className="rounded-full bg-parish-600 px-6 py-2.5 text-sm font-bold text-white hover:bg-parish-500 disabled:cursor-not-allowed disabled:bg-parish-200"
-              >
-                {cartIds.has(modalTicket.id) ? "Já no carrinho" : "Adicionar ao carrinho"}
-              </button>
-              <button
-                type="button"
-                disabled={modalTicket.status !== "AVAILABLE"}
-                onClick={() => {
-                  addToCart(modalTicket);
-                  setModalTicket(null);
-                  setCheckoutOpen(false);
-                }}
-                className="rounded-full bg-gold-500 px-6 py-2.5 text-sm font-bold text-parish-950 hover:bg-gold-400 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Adicionar e escolher mais
-              </button>
+              {modalTicket.status === "RESERVED" && modalTicket.owned ? (
+                <>
+                  {modalTicket.paymentPath ? (
+                    <a
+                      href={modalTicket.paymentPath}
+                      className="rounded-full bg-parish-600 px-6 py-2.5 text-sm font-bold text-white hover:bg-parish-500"
+                    >
+                      Continuar pagamento
+                    </a>
+                  ) : null}
+                  <button
+                    type="button"
+                    disabled={releasingId === modalTicket.id}
+                    onClick={() => void releaseOwnReservation(modalTicket)}
+                    className="rounded-full border border-amber-600 px-6 py-2.5 text-sm font-bold text-amber-950 disabled:opacity-50"
+                  >
+                    {releasingId === modalTicket.id ? "Liberando…" : "Liberar cota"}
+                  </button>
+                </>
+              ) : null}
+              {modalTicket.status === "AVAILABLE" ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      addToCart(modalTicket);
+                      setModalTicket(null);
+                      setCheckoutOpen(false);
+                    }}
+                    className="rounded-full bg-parish-600 px-6 py-2.5 text-sm font-bold text-white hover:bg-parish-500"
+                  >
+                    {cartIds.has(modalTicket.id) ? "Já no carrinho" : "Adicionar ao carrinho"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      addToCart(modalTicket);
+                      setModalTicket(null);
+                      setCheckoutOpen(false);
+                    }}
+                    className="rounded-full bg-gold-500 px-6 py-2.5 text-sm font-bold text-parish-950 hover:bg-gold-400"
+                  >
+                    Adicionar e escolher mais
+                  </button>
+                </>
+              ) : null}
               <button
                 type="button"
                 onClick={() => setModalTicket(null)}

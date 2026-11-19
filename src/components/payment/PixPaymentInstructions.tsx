@@ -8,7 +8,7 @@ type Props = {
   legalName: string;
   pixKey: string;
   pixKeyType: string;
-  bank: { name: string; agency: string; account: string };
+  bank: { name: string; code?: string; branchLabel?: string; agency: string; account: string };
   amountLabel: string;
   reference: string;
   messageSuggestion: string;
@@ -18,6 +18,8 @@ type Props = {
   backLabel: string;
   /** BR Code com valor + txid (gerado em parish-pix.ts). */
   pixCopiaECola?: string | null;
+  depositTitle?: string;
+  cardNote?: string;
 };
 
 export function PixPaymentInstructions(props: Props) {
@@ -106,12 +108,19 @@ export function PixPaymentInstructions(props: Props) {
             </dd>
           </div>
           <div>
-            <dt className="font-semibold text-parish-900">Transferência (alternativa)</dt>
+            <dt className="font-semibold text-parish-900">{props.depositTitle ?? "Transferência (alternativa)"}</dt>
             <dd className="mt-1">
-              Banco <strong>{props.bank.name}</strong> · Ag. {props.bank.agency} · C/C {props.bank.account}
+              Banco <strong>{props.bank.name}</strong>
+              {props.bank.code ? ` (${props.bank.code})` : ""} · {props.bank.branchLabel ?? "Ag."}{" "}
+              {props.bank.agency} · Conta {props.bank.account}
             </dd>
           </div>
         </dl>
+        {props.cardNote ? (
+          <p className="mt-6 rounded-xl border border-parish-200 bg-parish-50 px-4 py-3 text-sm text-parish-800">
+            {props.cardNote}
+          </p>
+        ) : null}
 
         <p className="mt-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
           {props.afterPayNote}

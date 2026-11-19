@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
 import { RaffleExperience } from "@/components/raffle/RaffleExperience";
-import { ContentCoverImage } from "@/components/ContentCoverImage";
+import { RafflePrizeGallery } from "@/components/raffle/RafflePrizeGallery";
 import { PageContainer } from "@/components/PageContainer";
 import { RaffleCartelaIllustration } from "@/components/RaffleCartelaIllustration";
-import { isLocalSiteImageUrl } from "@/lib/local-image-url";
+import { prizePhotoList } from "@/lib/raffle-prize-photos";
 import { getRaffleBySlug, getRaffleStats } from "@/lib/raffles";
 import { formatDrawDateTime, formatTicketNumber, numberedRaffleSeries, raffleDrawScopeLabel, ticketPriceLabel } from "@/lib/raffle-rules";
 import { prisma } from "@/lib/prisma";
@@ -27,6 +27,7 @@ export default async function RifaPublicPage({ params }: { params: Promise<{ slu
     }),
   ]);
   const series = raffle.kind === "NUMBERS" ? numberedRaffleSeries(raffle.numberStart, raffle.totalTickets) : null;
+  const prizePhotos = prizePhotoList(raffle.prizeImageUrls, raffle.prizeImageUrl);
 
   return (
     <PageContainer wide className="bg-parish-50 pb-24 pt-10 md:pt-14">
@@ -87,43 +88,64 @@ export default async function RifaPublicPage({ params }: { params: Promise<{ slu
         </div>
       ) : null}
 
-      <section className="mt-8 min-w-0 overflow-hidden rounded-2xl border border-parish-200 bg-white p-6 shadow-sm md:p-8">
-        <div className="grid min-w-0 gap-6 md:grid-cols-2">
-        <div className="min-w-0">
-          <h2 className="text-lg font-semibold text-parish-900">Prêmio</h2>
-          {raffle.prizeImageUrl && isLocalSiteImageUrl(raffle.prizeImageUrl) ? (
-            <ContentCoverImage
-              src={raffle.prizeImageUrl}
-              alt={raffle.prizeTitle}
-              className="mb-4 max-w-md"
-            />
+      <section className="mt-8 overflow-hidden rounded-2xl border border-parish-200 bg-white p-6 shadow-sm md:p-8">
+        <div className="mb-5 md:float-left md:mb-4 md:mr-8 md:w-[min(46%,26rem)]">
+          {prizePhotos.length > 0 ? (
+            <RafflePrizeGallery photos={prizePhotos} title={raffle.prizeTitle} />
           ) : (
-            <div className="mb-4 flex justify-center sm:justify-start">
-              <RaffleCartelaIllustration size={140} className="opacity-95" />
+            <div className="flex justify-center rounded-2xl bg-parish-50 py-8">
+              <RaffleCartelaIllustration size={160} className="opacity-95" />
             </div>
           )}
-          <p className="mt-2 break-words font-medium">{raffle.prizeTitle}</p>
         </div>
-        <div className="min-w-0 text-sm text-parish-800">
-          <p>
-            <strong>Cota:</strong> {ticketPriceLabel(raffle.ticketPriceCents)}
-          </p>
-          {raffle.drawScheduledAt ? (
-            <p className="mt-2">
-              <strong>Sorteio previsto:</strong>{" "}
-              {raffle.drawScheduledAt.toLocaleString("pt-BR", {
-                dateStyle: "long",
-                timeStyle: "short",
-              })}
-            </p>
+        <p className="text-xs font-bold uppercase tracking-[0.16em] text-gold-600">Prêmio</p>
+        <h2 className="mt-1 break-words font-[family-name:var(--font-display)] text-2xl font-semibold text-parish-900">
+          {raffle.prizeTitle}
+        </h2>
+        <p className="mt-2 text-3xl font-bold tabular-nums text-parish-900">
+          {ticketPriceLabel(raffle.ticketPriceCents)}
+          <span className="ml-2 text-base font-medium text-parish-600">por cota</span>
+        </p>
+        <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
+          <div className="rounded-xl bg-parish-50 px-3 py-2">
+            <dt className="text-xs font-semibold uppercase tracking-wide text-parish-500">Cotas no site</dt>
+            <dd className="mt-0.5 font-semibold text-parish-900">{stats.total}</dd>
+          </div>
+          {series ? (
+            <div className="rounded-xl bg-parish-50 px-3 py-2">
+              <dt className="text-xs font-semibold uppercase tracking-wide text-parish-500">Números</dt>
+              <dd className="mt-0.5 font-semibold text-parish-900">
+                {formatTicketNumber(series.siteStart)} a {formatTicketNumber(series.last)}
+              </dd>
+            </div>
           ) : null}
-          <p className="mt-2">
-            <strong>{stats.total}</strong> cotas no total
-          </p>
-        </div>
-        </div>
+          {raffle.drawScheduledAt ? (
+            <div className="col-span-2 rounded-xl bg-parish-50 px-3 py-2">
+              <dt className="text-xs font-semibold uppercase tracking-wide text-parish-500">Sorteio previsto</dt>
+              <dd className="mt-0.5 font-semibold text-parish-900">
+                {raffle.drawScheduledAt.toLocaleString("pt-BR", {
+                  dateStyle: "long",
+                  timeStyle: "short",
+                })}
+              </dd>
+            </div>
+          ) : null}
+        </dl>
+        {raffle.description ? (
+          <div className="mt-5">
+            <h3 className="text-sm font-semibold text-parish-900">Sobre a rifa</h3>
+            <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-relaxed text-parish-700">
+              {raffle.description}
+            </p>
+          </div>
+        ) : null}
         {raffle.prizeDescription ? (
-          <p className="mt-4 break-words text-sm leading-relaxed text-parish-700">{raffle.prizeDescription}</p>
+          <div className="mt-5">
+            <h3 className="text-sm font-semibold text-parish-900">Descrição do prêmio</h3>
+            <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-relaxed text-parish-700">
+              {raffle.prizeDescription}
+            </p>
+          </div>
         ) : null}
       </section>
 
