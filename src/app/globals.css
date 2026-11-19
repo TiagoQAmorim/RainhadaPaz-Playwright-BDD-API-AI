@@ -25,6 +25,21 @@ html {
   scroll-behavior: smooth;
 }
 
+/* No computador, o portal fica na mesma densidade de um zoom de 80%. O celular permanece em 100%. */
+.portal-scale {
+  display: flex;
+  min-height: 100vh;
+  flex: 1 1 auto;
+  flex-direction: column;
+}
+
+@media (min-width: 1024px) {
+  .portal-scale {
+    zoom: 0.8;
+    min-height: 125vh;
+  }
+}
+
 body {
   @apply bg-parish-50 font-[family-name:var(--font-body)] text-parish-900 antialiased;
 }

@@ -4,13 +4,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRef } from "react";
 import { CarouselNavButtons } from "@/components/CarouselNavButtons";
-import { RaffleCartelaIllustration } from "@/components/RaffleCartelaIllustration";
 import { useRotatingCarousel } from "@/components/useRotatingCarousel";
 import type { HomeCarouselSlide } from "@/lib/home-carousel";
 import {
   HOME_SPOTLIGHT_CARD_CLASS,
   HOME_SPOTLIGHT_MEDIA_BOX_CLASS,
 } from "@/lib/home-spotlight-layout";
+import { RAFFLE_CARTELA_ICON_PATH } from "@/lib/parish-brand";
 import { ticketPriceLabel } from "@/lib/raffle-rules";
 
 const ROTATE_MS = 7000;
@@ -146,42 +146,34 @@ function RaffleSlide({
   return (
     <Link
       href={`/rifas/${slide.slug}`}
-      className={`${HOME_SPOTLIGHT_CARD_CLASS} border border-gold-400/50 bg-parish-900 hover:border-gold-400/80`}
+      className={`${HOME_SPOTLIGHT_CARD_CLASS} border border-white/20 bg-parish-900 hover:border-white/40`}
     >
+      <SlidePhoto src={RAFFLE_CARTELA_ICON_PATH} priority={priority} />
       <div className="relative z-10 flex w-full min-w-0 flex-1 gap-3 sm:gap-4">
-        {slide.coverImageUrl ? (
-          <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-xl border border-white/25 bg-white sm:h-32 sm:w-32">
-            <Image
-              src={slide.coverImageUrl}
-              alt=""
-              fill
-              priority={priority}
-              className="object-cover"
-              sizes="128px"
-              unoptimized={slide.coverImageUrl.startsWith("/uploads/") || slide.coverImageUrl.startsWith("/images/")}
-            />
-          </div>
-        ) : (
-          <RaffleCartelaIllustration
-            size={112}
+        <div className={HOME_SPOTLIGHT_MEDIA_BOX_CLASS}>
+          <Image
+            src={RAFFLE_CARTELA_ICON_PATH}
+            alt=""
+            width={120}
+            height={120}
             priority={priority}
-            className="shrink-0 transition duration-300 group-hover:scale-[1.03]"
+            className="h-full w-full object-contain p-1 transition duration-500 group-hover:scale-105"
+            sizes="120px"
           />
-        )}
+        </div>
         <div className="flex min-w-0 flex-1 flex-col">
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gold-400">Rifa em destaque</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gold-300">Rifa em destaque</p>
           <h2 className="mt-2 break-words font-[family-name:var(--font-display)] text-lg font-semibold leading-snug text-white sm:text-xl md:text-2xl">
             {slide.title}
           </h2>
-          <p className="mt-2 line-clamp-2 text-sm text-white">
+          <p className="mt-2 line-clamp-3 flex-1 text-sm leading-relaxed text-white">
             Prêmio: <strong className="text-gold-200">{slide.prizeTitle}</strong>
-          </p>
-          <p className="mt-1 text-sm text-white/90">
+            {" · "}
             Cotas a partir de {ticketPriceLabel(slide.ticketPriceCents)}
           </p>
         </div>
       </div>
-      <span className="relative z-10 mt-4 inline-flex w-full items-center justify-center rounded-full bg-gold-500 py-3 text-sm font-bold text-parish-950 transition group-hover:bg-gold-400">
+      <span className="relative z-10 mt-4 inline-flex w-full items-center justify-center rounded-full border-2 border-white/50 bg-white/15 py-3 text-sm font-bold text-white transition group-hover:bg-white/25">
         Participar da rifa
       </span>
     </Link>

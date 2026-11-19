@@ -37,7 +37,7 @@ export default async function SiteLayout({
   ]);
 
   return (
-    <>
+    <div className="portal-scale">
       <TopBar address={settings.address} phone={settings.phone} />
       <SiteHeader
         parishName={settings.parishName}
@@ -57,6 +57,6 @@ export default async function SiteLayout({
         hiddenHrefs={hiddenHrefs}
       />
       <WhatsAppButton phone={settings.phone} />
-    </>
+    </div>
   );
 }

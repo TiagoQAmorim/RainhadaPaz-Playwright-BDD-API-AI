@@ -29,8 +29,6 @@ export function HeroHome({
   heroCtas,
 }: Props) {
   const bannerText = [tagline?.trim(), intro?.trim()].filter(Boolean).join(" ");
-  const raffleSlides = carouselSlides.filter((slide) => slide.type === "raffle");
-  const bannerSlides = raffleSlides.length > 0 ? raffleSlides : carouselSlides;
   return (
     <section className="relative min-h-[248px] overflow-hidden sm:min-h-[360px] md:min-h-[400px] lg:min-h-[420px]">
       <div className="absolute inset-0">
@@ -88,9 +86,9 @@ export function HeroHome({
           ) : null}
         </div>
 
-        {bannerSlides.length > 0 ? (
+        {carouselSlides.length > 0 ? (
           <div className="mx-auto w-full max-w-md shrink-0 lg:mx-0 lg:w-[28rem]">
-            <HomeSpotlightCarousel slides={bannerSlides} />
+            <HomeSpotlightCarousel slides={carouselSlides} />
           </div>
         ) : null}
       </div>
