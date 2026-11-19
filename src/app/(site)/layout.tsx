@@ -10,6 +10,7 @@ import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { hasValidAdminSession } from "@/lib/auth";
 import { resolveMaintenance } from "@/lib/maintenance";
 import { unpublishedPublicHrefs } from "@/lib/public-pages";
+import { ParishJsonLd } from "@/components/ParishJsonLd";
 import { getSiteSettings } from "@/lib/settings";
 
 export default async function SiteLayout({
@@ -38,6 +39,7 @@ export default async function SiteLayout({
 
   return (
     <div className="portal-scale">
+      <ParishJsonLd settings={settings} />
       <TopBar address={settings.address} phone={settings.phone} />
       <SiteHeader
         parishName={settings.parishName}

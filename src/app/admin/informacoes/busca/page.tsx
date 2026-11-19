@@ -6,7 +6,7 @@ import { adminBtn, adminCard, adminFormEncType, adminLink } from "@/components/a
 import { SearchResultFields } from "@/components/admin/SearchResultFields";
 import { getSessionAdmin } from "@/lib/auth";
 import { publicSiteUrl } from "@/lib/site-url";
-import { getSiteSettings, searchAppearance } from "@/lib/settings";
+import { defaultSearchDescription, getSiteSettings, searchAppearance } from "@/lib/settings";
 
 export default async function AdminBuscaPage() {
   if (!(await getSessionAdmin())) redirect("/admin/login");
@@ -31,7 +31,7 @@ export default async function AdminBuscaPage() {
             defaultTitle={settings.searchTitle ?? ""}
             defaultDescription={settings.searchDescription ?? ""}
             fallbackTitle={settings.parishName}
-            fallbackDescription={settings.heroSubtitle}
+            fallbackDescription={defaultSearchDescription(settings)}
             imageUrl={search.image}
             siteHost={host}
           />

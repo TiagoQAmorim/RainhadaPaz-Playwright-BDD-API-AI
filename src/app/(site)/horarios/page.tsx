@@ -6,7 +6,11 @@ import { resolveImageSrc } from "@/lib/local-image-url";
 import { SITE_IMAGES } from "@/lib/wordpress-assets";
 import { cn } from "@/lib/cn";
 
-export const metadata = { title: "Horários" };
+export const metadata = {
+  title: "Horários de missa",
+  description:
+    "Horários de missa na Matriz da Vila Sofia, na Rua Sócrates, e na Capela do Colégio Santa Maria.",
+};
 
 export default async function HorariosPage() {
   const [s, locations] = await Promise.all([
@@ -19,10 +23,10 @@ export default async function HorariosPage() {
   return (
     <>
       <div className="relative h-48 bg-parish-600 md:h-56">
-        <Image src={matriz} alt="" fill className="object-cover opacity-40" sizes="100vw" />
+        <Image src={matriz} alt="Matriz da paróquia na Vila Sofia" fill className="object-cover opacity-40" sizes="100vw" />
         <PageContainer className="relative flex h-full items-end pb-8">
           <h1 className="font-[family-name:var(--font-display)] text-4xl font-semibold text-white">
-            Horários
+            Horários de missa
           </h1>
         </PageContainer>
       </div>

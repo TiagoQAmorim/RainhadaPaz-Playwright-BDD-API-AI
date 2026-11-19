@@ -78,10 +78,18 @@ export async function getSiteSettings() {
   return settings;
 }
 
+/** Texto da home no Google quando o admin ainda não escreveu um próprio. */
+export function defaultSearchDescription(settings: Pick<SiteSettings, "heroSubtitle">) {
+  const phrase = settings.heroSubtitle?.trim();
+  const place =
+    "Missas na Vila Sofia, na Rua Sócrates, e na Capela do Colégio Santa Maria. Velas virtuais.";
+  return phrase ? `${phrase} ${place}` : place;
+}
+
 /** Título, texto e foto pedidos ao Google e ao WhatsApp. */
 export function searchAppearance(settings: SiteSettings) {
   const title = settings.searchTitle?.trim() || settings.parishName;
-  const description = settings.searchDescription?.trim() || settings.heroSubtitle;
+  const description = settings.searchDescription?.trim() || defaultSearchDescription(settings);
   const image =
     settings.searchImageUrl?.trim() ||
     settings.heroImageUrl?.trim() ||

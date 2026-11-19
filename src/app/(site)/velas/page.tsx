@@ -9,7 +9,11 @@ import { CANDLES_BANNER_PATH } from "@/lib/parish-brand";
 import { formatCandlePrice, getCandleCommerceConfig } from "@/lib/candle-commerce";
 import { getCandleDurationHours, getSiteSettings } from "@/lib/settings";
 
-export const metadata = { title: "Vela virtual" };
+export const metadata = {
+  title: "Velas virtuais",
+  description:
+    "Acenda uma vela virtual na Paróquia Rainha da Paz, na Vila Sofia. A intenção fica no mural da comunidade.",
+};
 
 const PAGE_SIZE = 12;
 
@@ -59,7 +63,7 @@ export default async function VelasPage({ searchParams }: Props) {
           inverse
           className="mb-0 max-w-3xl [&_h2]:text-2xl md:[&_h2]:text-3xl"
           eyebrow="Oração"
-          title="Vela virtual"
+          title="Velas virtuais"
           description={bannerDescription}
         />
       </PhotoHeroBanner>
