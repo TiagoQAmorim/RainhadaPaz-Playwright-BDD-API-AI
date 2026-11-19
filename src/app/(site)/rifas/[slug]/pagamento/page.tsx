@@ -46,6 +46,16 @@ export default async function RifaPagamentoPage({ params, searchParams }: Props)
   return (
     <PageContainer className="py-10 md:py-14">
       <div className="mx-auto w-full max-w-lg">
+      {raffle.kind === "NUMBERS" ? (
+        <p className="mb-4 text-center text-sm text-parish-800">
+          <a
+            href={`/api/rifas/pedidos/${order.id}/pdf`}
+            className="inline-flex rounded-full bg-parish-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-parish-500"
+          >
+            Baixar PDF dos bilhetes
+          </a>
+        </p>
+      ) : null}
       <PixPaymentInstructions
         title="Pague suas cotas com PIX"
         legalName={pix.legalName}

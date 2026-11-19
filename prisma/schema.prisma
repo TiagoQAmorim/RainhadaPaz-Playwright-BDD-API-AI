@@ -228,18 +228,38 @@ model Raffle {
   drawWinnerContact    String?
   drawNotes            String?
   drawRecordedAt       DateTime?
+  // SAINTS = cota por santo. NUMBERS = serie numerica, fisica e virtual.
+  kind                 String         @default("SAINTS")
+  // Primeiro numero da serie virtual. Nulo nas rifas de santos.
+  numberStart          Int?
   createdAt            DateTime       @default(now())
   updatedAt            DateTime       @updatedAt
   tickets              RaffleTicket[]
   orders               RaffleOrder[]
+  draws                RaffleDraw[]
+}
+
+model RaffleDraw {
+  id            String   @id @default(cuid())
+  raffleId      String
+  raffle        Raffle   @relation(fields: [raffleId], references: [id], onDelete: Cascade)
+  winningNumber Int
+  winnerName    String?
+  winnerContact String?
+  // ALL = serie inteira (fisico + virtual). SOLD = so numeros vendidos no site.
+  scope         String
+  notes         String?
+  drawnAt       DateTime @default(now())
+
+  @@index([raffleId, drawnAt])
 }
 
 model RaffleTicket {
   id                   String       @id @default(cuid())
   raffleId             String
   raffle               Raffle       @relation(fields: [raffleId], references: [id], onDelete: Cascade)
-  saintId              Int
-  saint                Saint        @relation(fields: [saintId], references: [id])
+  saintId              Int?
+  saint                Saint?       @relation(fields: [saintId], references: [id])
   ticketNumber         Int
   status               String       @default("AVAILABLE")
   reservationExpiresAt DateTime?

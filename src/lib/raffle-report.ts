@@ -46,7 +46,7 @@ export async function buildRaffleReportCsv(
       const cotas = o.lines
         .map(
           (l) =>
-            `#${formatTicketNumber(l.ticket.ticketNumber)} (${l.ticket.saint.name})`,
+            `#${formatTicketNumber(l.ticket.ticketNumber)}${l.ticket.saint ? ` (${l.ticket.saint.name})` : ""}`,
         )
         .join(", ");
       return csvRow([
@@ -92,8 +92,8 @@ export async function buildRaffleReportCsv(
       return csvRow([
         formatTicketNumber(t.ticketNumber),
         t.status,
-        t.saint.name,
-        t.saint.celebration,
+        t.saint?.name ?? "",
+        t.saint?.celebration ?? "",
         o?.buyerName ?? "",
         o?.buyerEmail ?? "",
         o?.buyerPhone ?? "",
@@ -129,8 +129,8 @@ export async function buildRaffleReportCsv(
     const availRows = available.map((t) =>
       csvRow([
         formatTicketNumber(t.ticketNumber),
-        t.saint.name,
-        t.saint.celebration,
+        t.saint?.name ?? "",
+        t.saint?.celebration ?? "",
       ]),
     );
 
@@ -156,8 +156,8 @@ export async function buildRaffleReportCsv(
       return csvRow([
         formatTicketNumber(t.ticketNumber),
         t.status,
-        t.saint.name,
-        t.saint.celebration,
+        t.saint?.name ?? "",
+        t.saint?.celebration ?? "",
         o?.buyerName ?? "",
         o?.buyerEmail ?? "",
         o?.buyerPhone ?? "",

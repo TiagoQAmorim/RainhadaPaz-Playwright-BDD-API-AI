@@ -14,7 +14,7 @@ const MESSAGES: Record<AdminFlashKind, string> = {
   created: "Cadastro realizado com sucesso.",
   updated: "Alterações salvas com sucesso.",
   deleted: "Exclusão realizada com sucesso.",
-  drawn: "Sorteio realizado com sucesso. O nome do ganhador foi preenchido automaticamente.",
+  drawn: "Sorteio gravado no histórico, com data e horário.",
   restored:
     "Banco restaurado a partir do último backup de produção (/data/backups) — o que estava cadastrado no servidor.",
   backed: "Backup de hoje gravado em /data/backups. O site em uso não foi alterado.",

@@ -51,7 +51,7 @@ export async function getHomeCarouselSlides(): Promise<HomeCarouselSlide[]> {
       title: raffle.title,
       prizeTitle: raffle.prizeTitle,
       ticketPriceCents: raffle.ticketPriceCents,
-      coverImageUrl: raffle.coverImageUrl,
+      coverImageUrl: raffle.prizeImageUrl || raffle.coverImageUrl,
     });
   }
 

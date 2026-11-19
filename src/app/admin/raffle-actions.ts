@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { redirectWithAdminFlash } from "@/lib/admin-flash";
 import { requireAdmin } from "@/lib/auth";
-import { assertRaffleTicketQuantity } from "@/lib/raffle-rules";
+import { assertNumberSeries, assertRaffleTicketQuantity } from "@/lib/raffle-rules";
 import { createRaffleWithTickets } from "@/lib/raffles";
 import { prisma } from "@/lib/prisma";
 import { resolveImageFromForm } from "@/lib/uploads";
@@ -18,6 +18,8 @@ export async function createRaffleAction(formData: FormData) {
   const prizeDescription = String(formData.get("prizeDescription") ?? "").trim();
   const ticketPriceBrl = Number(String(formData.get("ticketPriceBrl") ?? "").replace(",", "."));
   const totalTickets = Number(formData.get("totalTickets") ?? "");
+  const numberStart = Number(formData.get("numberStart") ?? "1") || 1;
+  const kind = String(formData.get("kind") ?? "SAINTS") === "NUMBERS" ? "NUMBERS" : "SAINTS";
   const status = String(formData.get("status") ?? "DRAFT") as "DRAFT" | "ACTIVE";
   const drawScheduledAtRaw = String(formData.get("drawScheduledAt") ?? "").trim();
 
@@ -28,7 +30,8 @@ export async function createRaffleAction(formData: FormData) {
     throw new Error("Valor da cota inválido.");
   }
   try {
-    assertRaffleTicketQuantity(totalTickets);
+    if (kind === "NUMBERS") assertNumberSeries(numberStart, totalTickets);
+    else assertRaffleTicketQuantity(totalTickets);
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Quantidade de cotas inválida.";
     redirect(`/admin/rifas/nova?erro=${encodeURIComponent(msg)}`);
@@ -54,6 +57,8 @@ export async function createRaffleAction(formData: FormData) {
       totalTickets,
       status,
       drawScheduledAt: drawScheduledAtRaw ? new Date(drawScheduledAtRaw) : null,
+      kind,
+      numberStart: kind === "NUMBERS" ? numberStart : undefined,
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Não foi possível criar a rifa.";
@@ -130,9 +135,12 @@ export async function autoDrawRaffleWinnerAction(formData: FormData) {
   if (!raffleId) return;
 
   const raffle = await prisma.raffle.findUnique({ where: { id: raffleId } });
+  const scopeField = String(formData.get("scope") ?? "");
+  const scope = scopeField === "ALL" ? "ALL" : scopeField === "VIRTUAL" ? "VIRTUAL" : "SOLD";
+  const soldOnly = String(formData.get("soldOnly") ?? "") === "1";
   try {
     const { drawRaffleWinnerAutomatically } = await import("@/lib/raffle-draw");
-    await drawRaffleWinnerAutomatically(raffleId);
+    await drawRaffleWinnerAutomatically(raffleId, scope, soldOnly);
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Não foi possível sortear.";
     redirect(`/admin/rifas/${raffleId}?erro=${encodeURIComponent(msg)}`);
@@ -190,31 +198,104 @@ export async function recordRaffleDrawAction(formData: FormData) {
     throw new Error("Informe o número da cota sorteada.");
   }
 
+  const raffle = await prisma.raffle.findUnique({ where: { id: raffleId } });
+  if (!raffle) throw new Error("Rifa não encontrada.");
+
   const ticket = await prisma.raffleTicket.findFirst({
-    where: { raffleId, ticketNumber: winningNumber, status: "SOLD" },
+    where: { raffleId, ticketNumber: winningNumber },
     include: { orderLine: { include: { order: true } } },
   });
-  if (!ticket) {
+
+  let notes = drawNotes || null;
+  if (raffle.kind === "NUMBERS") {
+    const { numberedDrawNote, numberedRaffleSeries } = await import("@/lib/raffle-rules");
+    const series = numberedRaffleSeries(raffle.numberStart, raffle.totalTickets);
+    if (winningNumber < series.first || winningNumber > series.last) {
+      throw new Error("Esse número não faz parte da série desta rifa.");
+    }
+    const soldOnSite = ticket?.status === "SOLD";
+    notes = drawNotes || numberedDrawNote(series, winningNumber, soldOnSite);
+  } else if (!ticket || ticket.status !== "SOLD") {
     throw new Error("Não há cota vendida com este número nesta rifa.");
   }
 
-  const order = ticket.orderLine?.order;
+  const order = ticket?.status === "SOLD" ? ticket.orderLine?.order : null;
+  const drawnAt = new Date();
+  const savedName = winnerName || order?.buyerName || null;
+  const savedContact = winnerContact || order?.buyerPhone || order?.buyerEmail || null;
 
-  await prisma.raffle.update({
-    where: { id: raffleId },
-    data: {
-      status: "CLOSED",
-      drawWinningNumber: winningNumber,
-      drawWinnerName: winnerName || order?.buyerName || null,
-      drawWinnerContact: winnerContact || order?.buyerEmail || null,
-      drawNotes: drawNotes || null,
-      drawRecordedAt: new Date(),
-    },
-  });
+  await prisma.$transaction([
+    prisma.raffleDraw.create({
+      data: {
+        raffleId,
+        winningNumber,
+        winnerName: savedName,
+        winnerContact: savedContact,
+        scope: "ALL",
+        notes,
+        drawnAt,
+      },
+    }),
+    prisma.raffle.update({
+      where: { id: raffleId },
+      data: {
+        drawWinningNumber: winningNumber,
+        drawWinnerName: savedName,
+        drawWinnerContact: savedContact,
+        drawNotes: notes,
+        drawRecordedAt: drawnAt,
+      },
+    }),
+  ]);
 
   revalidatePath("/admin/rifas");
   revalidatePath(`/admin/rifas/${raffleId}`);
   revalidatePath("/rifas");
+  await redirectWithAdminFlash(`/admin/rifas/${raffleId}`, "updated");
+}
+
+export async function setRaffleDrawWinnerAction(formData: FormData) {
+  await requireAdmin();
+  const raffleId = String(formData.get("raffleId") ?? "");
+  const drawId = String(formData.get("drawId") ?? "");
+  const winnerName = String(formData.get("winnerName") ?? "").trim();
+  const winnerContact = String(formData.get("winnerContact") ?? "").trim();
+  if (!raffleId || !drawId || !winnerName) return;
+
+  const raffle = await prisma.raffle.findUnique({ where: { id: raffleId } });
+  const draw = await prisma.raffleDraw.findFirst({ where: { id: drawId, raffleId } });
+  if (!raffle || !draw) {
+    redirect(
+      `/admin/rifas/${raffleId}?erro=${encodeURIComponent("Sorteio não encontrado.")}`,
+    );
+  }
+
+  await prisma.raffleDraw.update({
+    where: { id: draw.id },
+    data: {
+      winnerName,
+      winnerContact: winnerContact || null,
+    },
+  });
+
+  const latest = await prisma.raffleDraw.findFirst({
+    where: { raffleId },
+    orderBy: { drawnAt: "desc" },
+  });
+  if (latest?.id === draw.id) {
+    await prisma.raffle.update({
+      where: { id: raffleId },
+      data: {
+        drawWinnerName: winnerName,
+        drawWinnerContact: winnerContact || null,
+      },
+    });
+  }
+
+  revalidatePath("/admin/rifas");
+  revalidatePath(`/admin/rifas/${raffleId}`);
+  revalidatePath("/rifas");
+  revalidatePath(`/rifas/${raffle.slug}`);
   await redirectWithAdminFlash(`/admin/rifas/${raffleId}`, "updated");
 }
 

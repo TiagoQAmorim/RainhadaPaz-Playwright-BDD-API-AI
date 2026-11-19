@@ -39,10 +39,21 @@ export default async function RifaSucessoPage({
           <ul className="list-inside list-disc text-sm">
             {order.lines.map((l) => (
               <li key={l.id}>
-                #{String(l.ticket.ticketNumber).padStart(4, "0")} — {l.ticket.saint.name}
+                #{String(l.ticket.ticketNumber).padStart(4, "0")}
+                {l.ticket.saint ? ` — ${l.ticket.saint.name}` : ""}
               </li>
             ))}
           </ul>
+          {order.raffle.kind === "NUMBERS" ? (
+            <p>
+              <a
+                href={`/api/rifas/pedidos/${order.id}/pdf`}
+                className="inline-flex rounded-full bg-parish-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-parish-500"
+              >
+                Baixar PDF dos bilhetes
+              </a>
+            </p>
+          ) : null}
           {pending ? (
             <p className="text-sm text-parish-600">
               Assim que o pagamento for confirmado, suas cotas aparecerão como vendidas na grade.

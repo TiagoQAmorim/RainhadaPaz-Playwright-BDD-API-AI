@@ -5,13 +5,20 @@ import {
   cancelRaffleOrderManualAction,
   confirmRaffleOrderManualAction,
   deleteRaffleAction,
+  setRaffleDrawWinnerAction,
   setRaffleFeaturedAction,
 } from "@/app/admin/raffle-actions";
 import { AdminConfirmDeleteForm } from "@/components/admin/AdminConfirmDeleteForm";
-import { adminBtn, adminCard } from "@/components/admin/AdminFormStyles";
+import { adminBtn, adminCard, adminInput } from "@/components/admin/AdminFormStyles";
 import { getSessionAdmin } from "@/lib/auth";
 import { getRaffleStats } from "@/lib/raffles";
-import { formatTicketNumber, ticketPriceLabel } from "@/lib/raffle-rules";
+import {
+  formatDrawDateTime,
+  formatTicketNumber,
+  numberedRaffleSeries,
+  raffleDrawScopeLabel,
+  ticketPriceLabel,
+} from "@/lib/raffle-rules";
 import { prisma } from "@/lib/prisma";
 
 export default async function AdminRifaDetailPage({
@@ -24,7 +31,7 @@ export default async function AdminRifaDetailPage({
   if (!(await getSessionAdmin())) redirect("/admin/login");
   const { id } = await params;
   const { erro } = await searchParams;
-  const [raffle, stats, sampleTickets, pendingOrders] = await Promise.all([
+  const [raffle, stats, sampleTickets, pendingOrders, draws] = await Promise.all([
     prisma.raffle.findUnique({ where: { id } }),
     getRaffleStats(id),
     prisma.raffleTicket.findMany({
@@ -43,8 +50,13 @@ export default async function AdminRifaDetailPage({
       orderBy: { createdAt: "desc" },
       take: 10,
     }),
+    prisma.raffleDraw.findMany({
+      where: { raffleId: id },
+      orderBy: { drawnAt: "asc" },
+    }),
   ]);
   if (!raffle) notFound();
+  const series = raffle.kind === "NUMBERS" ? numberedRaffleSeries(raffle.numberStart, raffle.totalTickets) : null;
 
   return (
     <div className="space-y-8">
@@ -56,7 +68,15 @@ export default async function AdminRifaDetailPage({
       ) : null}
 
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <h1 className="text-xl font-semibold text-parish-900">{raffle.title}</h1>
+        <div>
+          <h1 className="text-xl font-semibold text-parish-900">{raffle.title}</h1>
+          {series ? (
+            <p className="text-sm text-parish-600">
+              Site: {formatTicketNumber(series.siteStart)} a {formatTicketNumber(series.last)}. Sorteio:{" "}
+              {formatTicketNumber(series.first)} a {formatTicketNumber(series.last)}
+            </p>
+          ) : null}
+        </div>
         <div className="flex flex-wrap gap-2">
           {!raffle.drawRecordedAt ? (
             <Link href={`/admin/rifas/${id}/editar`} className={adminBtn}>
@@ -148,36 +168,63 @@ export default async function AdminRifaDetailPage({
 
       <section className={adminCard}>
         <h2 className="font-semibold">Sorteio do prêmio</h2>
-        {raffle.drawRecordedAt ? (
-          <div className="mt-3 space-y-1 text-sm text-parish-700">
-            <p>
-              <strong>Ganhador(a):</strong> {raffle.drawWinnerName ?? "—"}
+        {series ? (
+          <div className="mt-3 max-w-xl">
+            <p className="text-sm text-parish-600">
+              Série inteira: <strong>{formatTicketNumber(series.first)}</strong> a{" "}
+              <strong>{formatTicketNumber(series.last)}</strong>. Virtual:{" "}
+              <strong>{formatTicketNumber(series.siteStart)}</strong> a{" "}
+              <strong>{formatTicketNumber(series.last)}</strong>. Vendidos no site:{" "}
+              <strong>{stats.sold}</strong>. Cada clique grava um novo sorteio embaixo.
             </p>
-            <p>
-              <strong>Contato:</strong> {raffle.drawWinnerContact ?? "—"}
-            </p>
-            <p>
-              <strong>Cota sorteada:</strong> #{formatTicketNumber(raffle.drawWinningNumber ?? 0)}
-            </p>
-            {raffle.drawNotes ? <p className="text-parish-600">{raffle.drawNotes}</p> : null}
+            <form action={autoDrawRaffleWinnerAction} className="mt-4 space-y-3">
+              <input type="hidden" name="raffleId" value={id} />
+              <label className="flex items-center gap-2 text-sm font-medium text-parish-800">
+                <input type="checkbox" name="soldOnly" value="1" className="h-4 w-4" />
+                Sortear apenas os vendidos
+              </label>
+              <p className="text-xs text-parish-600">
+                Com a opção marcada, entram só as compras confirmadas no site. O talão impresso só entra na série inteira, com a opção desmarcada.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="submit"
+                  name="scope"
+                  value="ALL"
+                  className="rounded-full bg-gold-500 px-6 py-3 text-sm font-bold text-parish-950 hover:bg-gold-400"
+                >
+                  Sortear série inteira ({formatTicketNumber(series.first)} a {formatTicketNumber(series.last)})
+                </button>
+                <button
+                  type="submit"
+                  name="scope"
+                  value="VIRTUAL"
+                  className={adminBtn}
+                >
+                  Sortear apenas virtual ({formatTicketNumber(series.siteStart)} a {formatTicketNumber(series.last)})
+                </button>
+              </div>
+            </form>
           </div>
         ) : (
-          <div className="mt-4 max-w-lg">
+          <div className="mt-3 max-w-xl">
             <p className="text-sm text-parish-600">
-              Cotas vendidas elegíveis: <strong>{stats.sold}</strong>. O sistema escolhe uma cota
-              vendida ao acaso e preenche o nome e contato do comprador.
+              Cotas vendidas: <strong>{stats.sold}</strong>. Cada clique grava um novo sorteio no
+              histórico.
             </p>
             <form action={autoDrawRaffleWinnerAction} className="mt-4">
               <input type="hidden" name="raffleId" value={id} />
+              <input type="hidden" name="scope" value="SOLD" />
               <button
                 type="submit"
                 className="rounded-full bg-gold-500 px-6 py-3 text-sm font-bold text-parish-950 hover:bg-gold-400"
               >
-                Sortear ganhador automaticamente
+                Sortear entre as cotas vendidas
               </button>
             </form>
           </div>
         )}
+        <DrawHistory raffleId={id} draws={draws} />
       </section>
 
       <section className={`${adminCard} border-red-100`}>
@@ -219,7 +266,8 @@ export default async function AdminRifaDetailPage({
           {sampleTickets.map((t) => (
             <li key={t.id} className="flex flex-wrap justify-between gap-2 py-2">
               <span>
-                #{formatTicketNumber(t.ticketNumber)} — {t.saint.name}
+                #{formatTicketNumber(t.ticketNumber)}
+                {t.saint ? ` — ${t.saint.name}` : ""}
               </span>
               <span className="text-parish-600">{t.status}</span>
             </li>
@@ -227,6 +275,49 @@ export default async function AdminRifaDetailPage({
         </ul>
       </section>
     </div>
+  );
+}
+
+function DrawHistory({
+  raffleId,
+  draws,
+}: {
+  raffleId: string;
+  draws: Awaited<ReturnType<typeof prisma.raffleDraw.findMany>>;
+}) {
+  if (draws.length === 0) return null;
+  return (
+    <ol className="mt-6 space-y-4 border-t border-parish-100 pt-4">
+      {draws.map((draw, index) => (
+        <li key={draw.id} className="text-sm text-parish-800">
+          <p className="font-semibold text-parish-900">
+            {index + 1}º sorteio · {formatDrawDateTime(draw.drawnAt)}
+          </p>
+          <p className="mt-1">
+            Número <strong>#{formatTicketNumber(draw.winningNumber)}</strong>
+            {" · "}
+            {raffleDrawScopeLabel(draw.scope)}
+          </p>
+          <p>
+            Ganhador(a): <strong>{draw.winnerName ?? "—"}</strong>
+            {draw.winnerContact ? ` · ${draw.winnerContact}` : ""}
+          </p>
+          {draw.notes ? <p className="text-parish-600">{draw.notes}</p> : null}
+          {!draw.winnerName ? (
+            <form action={setRaffleDrawWinnerAction} className="mt-2 max-w-lg space-y-2">
+              <p className="text-parish-700">Esse número não tem compra no site. Informe quem ficou com o canhoto.</p>
+              <input type="hidden" name="raffleId" value={raffleId} />
+              <input type="hidden" name="drawId" value={draw.id} />
+              <input name="winnerName" required placeholder="Nome do ganhador" className={adminInput} />
+              <input name="winnerContact" placeholder="Telefone" className={adminInput} />
+              <button type="submit" className={adminBtn}>
+                Salvar ganhador
+              </button>
+            </form>
+          ) : null}
+        </li>
+      ))}
+    </ol>
   );
 }
 

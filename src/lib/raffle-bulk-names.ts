@@ -52,7 +52,7 @@ export async function resolveAvailableTicketsByNames(
       orderBy: { ticketNumber: "asc" },
     });
 
-    if (!row) {
+    if (!row?.saint) {
       notFound.push(name);
       continue;
     }

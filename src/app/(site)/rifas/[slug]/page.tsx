@@ -5,7 +5,8 @@ import { PageContainer } from "@/components/PageContainer";
 import { RaffleCartelaIllustration } from "@/components/RaffleCartelaIllustration";
 import { isLocalSiteImageUrl } from "@/lib/local-image-url";
 import { getRaffleBySlug, getRaffleStats } from "@/lib/raffles";
-import { formatTicketNumber, ticketPriceLabel } from "@/lib/raffle-rules";
+import { formatDrawDateTime, formatTicketNumber, numberedRaffleSeries, raffleDrawScopeLabel, ticketPriceLabel } from "@/lib/raffle-rules";
+import { prisma } from "@/lib/prisma";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -16,9 +17,16 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 export default async function RifaPublicPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const raffle = await getRaffleBySlug(slug);
-  if (!raffle || raffle.status !== "ACTIVE") notFound();
+  if (!raffle || (raffle.status !== "ACTIVE" && raffle.status !== "CLOSED")) notFound();
 
-  const stats = await getRaffleStats(raffle.id);
+  const [stats, draws] = await Promise.all([
+    getRaffleStats(raffle.id),
+    prisma.raffleDraw.findMany({
+      where: { raffleId: raffle.id },
+      orderBy: { drawnAt: "asc" },
+    }),
+  ]);
+  const series = raffle.kind === "NUMBERS" ? numberedRaffleSeries(raffle.numberStart, raffle.totalTickets) : null;
 
   return (
     <PageContainer wide className="bg-parish-50 pb-24 pt-10 md:pt-14">
@@ -26,15 +34,17 @@ export default async function RifaPublicPage({ params }: { params: Promise<{ slu
         <RaffleCartelaIllustration size={168} priority className="mx-auto sm:mx-0 sm:shrink-0" />
         <div className="min-w-0">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-gold-600">
-            Rifa dos Santos — Ajude Nossa Paróquia!
+            {raffle.kind === "NUMBERS"
+              ? "Rifa beneficente — física e virtual"
+              : "Rifa dos Santos — Ajude Nossa Paróquia!"}
           </p>
           <h1 className="mt-3 font-[family-name:var(--font-display)] text-3xl font-semibold text-parish-900 md:text-4xl">
             {raffle.title}
           </h1>
           <p className="mt-4 text-parish-800">
-            Participe da nossa Rifa dos Santos! Escolha um santo de sua devoção, conheça um pouco de sua
-            história e contribua com nossa paróquia. Cada cota representa uma oportunidade de ajudar nossa
-            comunidade.
+            {series
+              ? `O site vende de ${formatTicketNumber(series.siteStart)} a ${formatTicketNumber(series.last)}. O sorteio vale de ${formatTicketNumber(series.first)} a ${formatTicketNumber(series.last)}, talão impresso e site. Ao comprar, baixe o PDF do canhoto de cada cota.`
+              : "Participe da nossa Rifa dos Santos! Escolha um santo de sua devoção, conheça um pouco de sua história e contribua com nossa paróquia. Cada cota representa uma oportunidade de ajudar nossa comunidade."}
           </p>
           {raffle.purpose ? (
             <p className="mt-2 text-sm text-parish-600">
@@ -44,7 +54,25 @@ export default async function RifaPublicPage({ params }: { params: Promise<{ slu
         </div>
       </header>
 
-      {raffle.drawWinningNumber != null ? (
+      {draws.length > 0 ? (
+        <div className="mt-8 rounded-2xl border border-gold-300 bg-gold-50 px-6 py-5 text-parish-900">
+          <p className="text-xs font-bold uppercase tracking-widest text-gold-700">Sorteios</p>
+          <ol className="mt-3 space-y-3">
+            {draws.map((draw, index) => (
+              <li key={draw.id}>
+                <p className="font-semibold">
+                  {index + 1}º · #{formatTicketNumber(draw.winningNumber)} · {formatDrawDateTime(draw.drawnAt)}
+                </p>
+                <p className="text-sm text-parish-800">
+                  {raffleDrawScopeLabel(draw.scope)}
+                  {draw.winnerName ? ` · ${draw.winnerName}` : ""}
+                  {draw.winnerContact ? ` · ${draw.winnerContact}` : ""}
+                </p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      ) : raffle.drawWinningNumber != null ? (
         <div className="mt-8 rounded-2xl border border-gold-300 bg-gold-50 px-6 py-5 text-parish-900">
           <p className="text-xs font-bold uppercase tracking-widest text-gold-700">Sorteio realizado</p>
           <p className="mt-2 text-lg font-semibold">
@@ -97,11 +125,14 @@ export default async function RifaPublicPage({ params }: { params: Promise<{ slu
         </div>
       </section>
 
-      <RaffleExperience
-        slug={slug}
-        ticketPriceCents={raffle.ticketPriceCents}
-        initialStats={stats}
-      />
+      {raffle.status === "ACTIVE" ? (
+        <RaffleExperience
+          slug={slug}
+          ticketPriceCents={raffle.ticketPriceCents}
+          kind={raffle.kind === "NUMBERS" ? "NUMBERS" : "SAINTS"}
+          initialStats={stats}
+        />
+      ) : null}
     </PageContainer>
   );
 }

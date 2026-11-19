@@ -5,7 +5,6 @@ import { AdminImageField } from "@/components/admin/AdminImageField";
 import {
   adminBtn,
   adminCard,
-  adminFormEncType,
   adminInput,
   adminTextarea,
 } from "@/components/admin/AdminFormStyles";
@@ -57,7 +56,7 @@ export default async function AdminEditarRifaPage({
         ) : null}
       </div>
 
-      <form action={updateRaffleAction} encType={adminFormEncType} className={`${adminCard} space-y-3`}>
+      <form action={updateRaffleAction} className={`${adminCard} space-y-3`}>
         <input type="hidden" name="id" value={id} />
         <Field label="Nome da rifa" name="title" defaultValue={raffle.title} required />
         <TextArea label="Descrição" name="description" rows={3} defaultValue={raffle.description} required />

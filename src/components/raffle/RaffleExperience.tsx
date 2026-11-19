@@ -13,7 +13,7 @@ type TicketRow = {
     name: string;
     celebration: string;
     description?: string;
-  };
+  } | null;
 };
 
 type CartItem = TicketRow;
@@ -47,10 +47,12 @@ const MONTHS = [
 export function RaffleExperience({
   slug,
   ticketPriceCents,
+  kind = "SAINTS",
   initialStats,
 }: {
   slug: string;
   ticketPriceCents: number;
+  kind?: "SAINTS" | "NUMBERS";
   initialStats: {
     sold: number;
     total: number;
@@ -153,6 +155,7 @@ export function RaffleExperience({
   }, [fetchStats]);
 
   const cartIds = useMemo(() => new Set(cart.map((c) => c.id)), [cart]);
+  const numberRaffle = kind === "NUMBERS";
 
   function addToCart(t: TicketRow) {
     if (t.status !== "AVAILABLE") return;
@@ -332,6 +335,17 @@ export function RaffleExperience({
         </span>
       </div>
 
+      {numberRaffle ? (
+        <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-parish-800">
+          <input
+            type="checkbox"
+            checked={selectMode}
+            onChange={(e) => setSelectMode(e.target.checked)}
+            className="h-4 w-4 rounded border-parish-400"
+          />
+          Modo seleção: clique nos números para marcar vários
+        </label>
+      ) : (
       <div className="rounded-xl border-2 border-gold-300/60 bg-gold-50/40 p-4">
         <h3 className="text-sm font-bold text-parish-900">Comprar vários nomes de uma vez</h3>
         <p className="mt-1 text-xs text-parish-700">
@@ -366,14 +380,17 @@ export function RaffleExperience({
         </div>
         {bulkMessage ? <p className="mt-2 text-xs text-parish-700">{bulkMessage}</p> : null}
       </div>
+      )}
 
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div className="flex-1">
-          <label className="text-sm font-semibold text-parish-900">Procure seu santo de devoção…</label>
+          <label className="text-sm font-semibold text-parish-900">
+            {numberRaffle ? "Procure pelo número…" : "Procure seu santo de devoção…"}
+          </label>
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Nome, número da cota ou mês"
+            placeholder={numberRaffle ? "Número da cota, ex.: 1495" : "Nome, número da cota ou mês"}
             className={`mt-1 w-full ${filterInputClass}`}
           />
         </div>
@@ -391,6 +408,8 @@ export function RaffleExperience({
             <option value="RESERVED">Reservados</option>
             <option value="SOLD">Vendidos</option>
           </select>
+          {numberRaffle ? null : (
+            <>
           <select
             value={month}
             onChange={(e) => {
@@ -414,6 +433,8 @@ export function RaffleExperience({
             <option value="name">Nome do santo</option>
             <option value="feast">Data de celebração</option>
           </select>
+            </>
+          )}
         </div>
       </div>
 
@@ -488,7 +509,10 @@ export function RaffleExperience({
                 >
                   Cota #{t.ticketLabel}
                 </p>
-                <h3 className={saintNameClass(t.status)}>{t.saint.name}</h3>
+                <h3 className={numberRaffle ? `${saintNameClass(t.status)} text-2xl tracking-wide` : saintNameClass(t.status)}>
+                  {numberRaffle ? t.ticketLabel : t.saint?.name}
+                </h3>
+                {numberRaffle || !t.saint ? null : (
                 <p
                   className={`mt-1 text-xs font-medium ${
                     t.status === "SOLD" ? "text-parish-600" : "text-parish-800"
@@ -496,6 +520,7 @@ export function RaffleExperience({
                 >
                   📅 {t.saint.celebration}
                 </p>
+                )}
                 <p
                   className={`mt-2 text-sm font-bold ${
                     t.status === "SOLD" ? "text-parish-600" : "text-parish-900"
@@ -546,7 +571,7 @@ export function RaffleExperience({
       {cart.length > 0 ? (
         <aside className="sticky bottom-4 z-20 rounded-2xl border border-gold-400/40 bg-white p-5 shadow-xl">
           <h2 className="font-semibold text-parish-900">
-            Meus santos escolhidos ({cart.length})
+            {numberRaffle ? `Meus números (${cart.length})` : `Meus santos escolhidos (${cart.length})`}
           </h2>
           <p className="mt-1 text-xs text-parish-600">
             Um único pagamento para todas as cotas abaixo (até 50 por compra).
@@ -555,7 +580,7 @@ export function RaffleExperience({
             {cart.map((c) => (
               <li key={c.id} className="flex justify-between gap-2">
                 <span className="line-clamp-1">
-                  {c.saint.name} — {ticketPriceLabel(ticketPriceCents)}
+                  {numberRaffle ? `#${c.ticketLabel}` : c.saint?.name} — {ticketPriceLabel(ticketPriceCents)}
                 </span>
                 <button
                   type="button"
@@ -621,18 +646,30 @@ export function RaffleExperience({
         >
           <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl">
             <h2 className="font-[family-name:var(--font-display)] text-2xl font-semibold text-parish-900">
-              {modalTicket.saint.name}
+              {numberRaffle || !modalTicket.saint ? `Número ${modalTicket.ticketLabel}` : modalTicket.saint.name}
             </h2>
+            {numberRaffle || !modalTicket.saint ? (
+              <p className="mt-2 text-sm text-parish-700">
+                Este número vale no talão impresso e na rifa do site.
+              </p>
+            ) : (
             <p className="mt-2 text-sm font-medium text-gold-700">
               📅 Dia de celebração: {modalTicket.saint.celebration}
             </p>
-            <h3 className="mt-4 text-sm font-semibold">Quem foi {modalTicket.saint.name.split(" ")[0]}?</h3>
-            {modalDetailLoading ? (
-              <p className="mt-2 text-sm text-parish-600">Carregando história do santo…</p>
-            ) : (
-              <p className="mt-2 text-sm leading-relaxed text-parish-700">
-                {modalTicket.saint.description ?? "Texto indisponível no momento."}
-              </p>
+            )}
+            {numberRaffle || !modalTicket.saint ? null : (
+              <>
+                <h3 className="mt-4 text-sm font-semibold">
+                  Quem foi {modalTicket.saint.name.split(" ")[0]}?
+                </h3>
+                {modalDetailLoading ? (
+                  <p className="mt-2 text-sm text-parish-600">Carregando história do santo…</p>
+                ) : (
+                  <p className="mt-2 text-sm leading-relaxed text-parish-700">
+                    {modalTicket.saint.description ?? "Texto indisponível no momento."}
+                  </p>
+                )}
+              </>
             )}
             <p className="mt-4 text-sm">
               <strong>Cota:</strong> #{modalTicket.ticketLabel} ·{" "}

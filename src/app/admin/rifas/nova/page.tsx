@@ -5,13 +5,13 @@ import { AdminImageField } from "@/components/admin/AdminImageField";
 import {
   adminBtn,
   adminCard,
-  adminFormEncType,
   adminInput,
   adminTextarea,
 } from "@/components/admin/AdminFormStyles";
 import { getSessionAdmin } from "@/lib/auth";
 import { ensureSaintCatalogInDb } from "@/lib/saints-catalog";
-import { RAFFLE_MAX_TICKETS, RAFFLE_TICKET_QUANTITY_OPTIONS } from "@/lib/raffle-rules";
+import { AdminRaffleQuantityFields } from "@/components/admin/AdminRaffleQuantityFields";
+import { RAFFLE_MAX_TICKETS, RAFFLE_NUMBER_MAX_TICKETS, RAFFLE_TICKET_QUANTITY_OPTIONS } from "@/lib/raffle-rules";
 
 export default async function AdminNovaRifaPage({
   searchParams,
@@ -30,9 +30,9 @@ export default async function AdminNovaRifaPage({
         </Link>
         <h1 className="mt-2 text-xl font-semibold text-parish-900">Nova rifa</h1>
         <p className="text-sm text-parish-600">
-          Escolha de {RAFFLE_TICKET_QUANTITY_OPTIONS[0]} a {RAFFLE_MAX_TICKETS} cotas (de 100 em 100).
-          Catálogo ampliado: {dbSaintCount} santos/personagens — até {RAFFLE_MAX_TICKETS} cotas distintas
-          (de 100 em 100).
+          Santos: de {RAFFLE_TICKET_QUANTITY_OPTIONS[0]} a {RAFFLE_MAX_TICKETS} cotas (de 100 em 100),
+          com {dbSaintCount} santos no catálogo. Números: até {RAFFLE_NUMBER_MAX_TICKETS} no site,
+          começando no número que você escolher (por exemplo 1501, se 0001 a 1500 ficaram no talão).
         </p>
         {erro ? (
           <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
@@ -41,7 +41,7 @@ export default async function AdminNovaRifaPage({
         ) : null}
       </div>
 
-      <form action={createRaffleAction} encType={adminFormEncType} className={`${adminCard} space-y-3`}>
+      <form action={createRaffleAction} className={`${adminCard} space-y-3`}>
         <Field label="Nome da rifa" name="title" required />
         <TextArea label="Descrição" name="description" rows={3} required />
         <TextArea label="Finalidade da arrecadação" name="purpose" rows={2} />
@@ -52,16 +52,7 @@ export default async function AdminNovaRifaPage({
           name="prizeImageUrl"
           fileFieldName="prizeImageUrlFile"
         />
-        <div>
-          <label className="mb-1 block text-sm font-medium">Quantidade de cotas</label>
-          <select name="totalTickets" className={adminInput} defaultValue="100" required>
-            {RAFFLE_TICKET_QUANTITY_OPTIONS.map((n) => (
-              <option key={n} value={n}>
-                {n} cotas
-              </option>
-            ))}
-          </select>
-        </div>
+        <AdminRaffleQuantityFields />
         <Field label="Valor da cota (R$)" name="ticketPriceBrl" placeholder="10.00" required />
         <Field label="Data prevista do sorteio" name="drawScheduledAt" type="datetime-local" />
         <div>

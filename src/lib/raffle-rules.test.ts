@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  assertNumberSeries,
+  assertNumberTicketCount,
+  numberedDrawNote,
+  numberedRaffleSeries,
   assertTicketCount,
   assignSaintsToTickets,
   formatTicketNumber,
+  raffleBookletNumber,
   RAFFLE_MAX_TICKETS,
 } from "./raffle-rules";
 
@@ -25,6 +30,58 @@ describe("assertTicketCount", () => {
 
   it("rejeita zero", () => {
     expect(() => assertTicketCount(0)).toThrow();
+  });
+});
+
+describe("assertNumberTicketCount", () => {
+  it("aceita até 2000 números", () => {
+    expect(() => assertNumberTicketCount(2000)).not.toThrow();
+    expect(() => assertNumberTicketCount(1)).not.toThrow();
+  });
+
+  it("rejeita acima de 2000", () => {
+    expect(() => assertNumberTicketCount(2001)).toThrow(/2000/);
+  });
+});
+
+describe("assertNumberSeries", () => {
+  it("aceita 1500 números a partir de 1501", () => {
+    expect(() => assertNumberSeries(1501, 1500)).not.toThrow();
+  });
+
+  it("rejeita série que passa de 9999", () => {
+    expect(() => assertNumberSeries(9000, 2000)).toThrow(/9999/);
+  });
+});
+
+describe("numberedRaffleSeries", () => {
+  it("inclui o talão impresso e os números do site", () => {
+    expect(numberedRaffleSeries(1501, 1500)).toEqual({ first: 1, siteStart: 1501, last: 3000 });
+  });
+
+  it("começa em 0001 quando o site também começa em 0001", () => {
+    expect(numberedRaffleSeries(1, 2000).last).toBe(2000);
+  });
+});
+
+describe("numberedDrawNote", () => {
+  const series = { first: 1, siteStart: 1501, last: 3000 };
+
+  it("marca número do talão", () => {
+    expect(numberedDrawNote(series, 42, false)).toMatch(/talão impresso/);
+  });
+
+  it("marca compra do site", () => {
+    expect(numberedDrawNote(series, 1600, true)).toMatch(/vendido no site/);
+  });
+});
+
+describe("raffleBookletNumber", () => {
+  it("coloca 1495 no talão 30", () => {
+    expect(raffleBookletNumber(1495)).toBe(30);
+    expect(raffleBookletNumber(1)).toBe(1);
+    expect(raffleBookletNumber(50)).toBe(1);
+    expect(raffleBookletNumber(51)).toBe(2);
   });
 });
 

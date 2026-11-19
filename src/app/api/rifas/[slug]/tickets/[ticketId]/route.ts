@@ -28,10 +28,12 @@ export async function GET(
     ticketNumber: t.ticketNumber,
     ticketLabel: formatTicketNumber(t.ticketNumber),
     status: t.status,
-    saint: {
-      name: t.saint.name,
-      celebration: t.saint.celebration,
-      description: t.saint.description,
-    },
+    saint: t.saint
+      ? {
+          name: t.saint.name,
+          celebration: t.saint.celebration,
+          description: t.saint.description,
+        }
+      : null,
   });
 }

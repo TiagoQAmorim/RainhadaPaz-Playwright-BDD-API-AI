@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import {
+  assertNumberSeries,
   assertTicketCount,
   assignSaintsToTickets,
   formatTicketNumber,
@@ -161,6 +162,8 @@ export type CreateRaffleInput = {
   endsAt?: Date | null;
   drawScheduledAt?: Date | null;
   reservationMinutes?: number;
+  kind?: "SAINTS" | "NUMBERS";
+  numberStart?: number;
 };
 
 /**
@@ -168,7 +171,47 @@ export type CreateRaffleInput = {
  * acima disso, repete santos do PDF (cada cota continua com número único).
  */
 export async function createRaffleWithTickets(input: CreateRaffleInput) {
-  assertTicketCount(input.totalTickets);
+  const kind = input.kind === "NUMBERS" ? "NUMBERS" : "SAINTS";
+  const numberStart = input.numberStart ?? 1;
+  if (kind === "NUMBERS") assertNumberSeries(numberStart, input.totalTickets);
+  else assertTicketCount(input.totalTickets);
+
+  if (kind === "NUMBERS") {
+    return prisma.$transaction(async (tx) => {
+      const slug = await allocateUniqueRaffleSlug(input.slug?.trim() || input.title, tx);
+      const raffle = await tx.raffle.create({
+        data: {
+          slug,
+          title: input.title,
+          description: input.description,
+          purpose: input.purpose ?? null,
+          coverImageUrl: input.coverImageUrl ?? null,
+          prizeTitle: input.prizeTitle,
+          prizeDescription: input.prizeDescription ?? null,
+          prizeImageUrl: input.prizeImageUrl ?? null,
+          ticketPriceCents: input.ticketPriceCents,
+          totalTickets: input.totalTickets,
+          status: input.status ?? "DRAFT",
+          kind: "NUMBERS",
+          numberStart,
+          startsAt: input.startsAt ?? null,
+          endsAt: input.endsAt ?? null,
+          drawScheduledAt: input.drawScheduledAt ?? null,
+          reservationMinutes: input.reservationMinutes ?? 15,
+        },
+      });
+      const tickets = Array.from({ length: input.totalTickets }, (_, index) => ({
+        raffleId: raffle.id,
+        ticketNumber: numberStart + index,
+        status: "AVAILABLE" as const,
+      }));
+      const batch = 400;
+      for (let i = 0; i < tickets.length; i += batch) {
+        await tx.raffleTicket.createMany({ data: tickets.slice(i, i + batch) });
+      }
+      return raffle;
+    });
+  }
 
   await ensureSaintCatalogInDb();
 

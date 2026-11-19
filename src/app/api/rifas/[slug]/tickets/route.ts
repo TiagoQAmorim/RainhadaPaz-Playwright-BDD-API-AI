@@ -89,12 +89,14 @@ export async function GET(
       ticketLabel: formatTicketNumber(t.ticketNumber),
       status: t.status,
       reservationExpiresAt: t.reservationExpiresAt?.toISOString() ?? null,
-      saint: {
-        name: t.saint.name,
-        celebration: t.saint.celebration,
-        feastDay: t.saint.feastDay,
-        feastMonth: t.saint.feastMonth,
-      },
+      saint: t.saint
+        ? {
+            name: t.saint.name,
+            celebration: t.saint.celebration,
+            feastDay: t.saint.feastDay,
+            feastMonth: t.saint.feastMonth,
+          }
+        : null,
     })),
   });
 }
