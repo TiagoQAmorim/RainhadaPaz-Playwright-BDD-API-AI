@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { bodyFont, displayFont } from "@/lib/fonts";
-import { PARISH_LOGO_PATH } from "@/lib/parish-brand";
 import { getSiteSettings } from "@/lib/settings";
 import "./globals.css";
 
@@ -13,8 +12,11 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     description: s.heroSubtitle,
     icons: {
-      icon: [{ url: PARISH_LOGO_PATH, type: "image/png" }],
-      apple: [{ url: PARISH_LOGO_PATH, type: "image/png" }],
+      icon: [
+        { url: "/favicon.ico", sizes: "48x48" },
+        { url: "/favicon-192.png", sizes: "192x192", type: "image/png" },
+      ],
+      apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
     },
   };
 }
