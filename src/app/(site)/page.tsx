@@ -21,7 +21,6 @@ import { getSiteSettings } from "@/lib/settings";
 import { listVaticanNews, VATICAN_NEWS_HOME_URL } from "@/lib/vatican-news";
 import { TercoOnlineSlots } from "@/components/TercoOnlineSlots";
 import { getTercoOnlineSlots, summarizeTercoSchedules } from "@/lib/terco-online";
-import { collectHeroBannerImages } from "@/lib/hero-banners";
 import { resolveImageSrc } from "@/lib/local-image-url";
 import { SITE_IMAGES } from "@/lib/wordpress-assets";
 
@@ -49,11 +48,7 @@ export default async function HomePage() {
     getHomeHeroCtas(),
   ]);
 
-  const heroImages = collectHeroBannerImages(
-    [settings.heroImageUrl, settings.heroImageUrl2, settings.heroImageUrl3],
-    SITE_IMAGES.heroChurchWide,
-  );
-  const heroImage = resolveImageSrc(heroImages[0], SITE_IMAGES.heroChurchWide);
+  const heroImage = "/images/parish/banner-principal.jpg";
   const matriz = resolveImageSrc(settings.matrizImageUrl, SITE_IMAGES.matriz);
   const capela = resolveImageSrc(settings.capelaImageUrl, SITE_IMAGES.capela);
   const tercoImage = resolveImageSrc(tercoPage?.featuredImage, SITE_IMAGES.tercoOnline);
