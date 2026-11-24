@@ -10,10 +10,10 @@ import {
 } from "@/lib/candle-email-template";
 import {
   candleNeedsExpiryReminder,
+  expiryNoticeLabel,
+  expiryNoticeMinutes,
   weeklyReportWindow,
 } from "@/lib/candle-mail";
-
-const HOUR_MS = 60 * 60 * 1000;
 let running = false;
 
 export async function runCandleMailCycle() {
@@ -39,7 +39,7 @@ export function startCandleMailLoop() {
     });
   };
   setTimeout(tick, 20_000);
-  setInterval(tick, 5 * 60 * 1000);
+  setInterval(tick, 60 * 1000);
 }
 
 async function sendWeeklyReport() {
@@ -120,21 +120,23 @@ async function sendWeeklyReport() {
 
 async function sendExpiryReminders() {
   const now = new Date();
+  const settings = await getSiteSettings();
+  const noticeMinutes = expiryNoticeMinutes(settings.candleExpiryNoticeMinutes);
+  const leadMs = noticeMinutes * 60 * 1000;
   const rows = await prisma.virtualCandle.findMany({
     where: {
       status: "PAID",
       expiryReminderSentAt: null,
       email: { not: null },
       litAt: { not: null },
-      expiresAt: { gt: now, lte: new Date(now.getTime() + HOUR_MS) },
+      expiresAt: { gt: now, lte: new Date(now.getTime() + leadMs) },
     },
   });
   const velasUrl = `${publicSiteUrl()}/velas`;
-  const settings = await getSiteSettings();
   let sentCount = 0;
 
   for (const candle of rows) {
-    if (!candleNeedsExpiryReminder(candle, now)) continue;
+    if (!candleNeedsExpiryReminder(candle, now, leadMs)) continue;
     const claimed = await prisma.virtualCandle.updateMany({
       where: { id: candle.id, expiryReminderSentAt: null },
       data: { expiryReminderSentAt: new Date() },
@@ -152,6 +154,7 @@ async function sendExpiryReminders() {
       expiresAt: candle.expiresAt,
       amountCents: candle.amountCents,
       link: velasUrl,
+      notice: expiryNoticeLabel(noticeMinutes),
     };
     try {
       const sent = await sendViaSmtp({

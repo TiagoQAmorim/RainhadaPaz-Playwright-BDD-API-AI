@@ -38,7 +38,7 @@ export default function AdminLoginPage() {
         Use o e-mail e a senha cadastrados no painel. O primeiro usuário é criado no{" "}
         <code className="text-xs">db:seed</code> ou pelas variáveis de ambiente do servidor.
       </p>
-      <form onSubmit={onSubmit} className="mt-6 space-y-4">
+      <form method="post" onSubmit={onSubmit} className="mt-6 space-y-4">
         <div>
           <label className="mb-1 block text-sm font-medium">E-mail</label>
           <input

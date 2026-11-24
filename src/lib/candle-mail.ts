@@ -32,6 +32,21 @@ export type WeekCandle = {
 };
 
 const HOUR_MS = 60 * 60 * 1000;
+export const DEFAULT_EXPIRY_NOTICE_MINUTES = 60;
+
+export function expiryNoticeMinutes(value: number | null | undefined) {
+  const minutes = Math.round(Number(value));
+  if (!Number.isFinite(minutes) || minutes < 1) return DEFAULT_EXPIRY_NOTICE_MINUTES;
+  return Math.min(24 * 60, minutes);
+}
+
+export function expiryNoticeLabel(minutes: number) {
+  if (minutes % 60 === 0) {
+    const hours = minutes / 60;
+    return hours === 1 ? "1 hora" : `${hours} horas`;
+  }
+  return minutes === 1 ? "1 minuto" : `${minutes} minutos`;
+}
 
 export function parishClock(date = new Date()): ParishClock {
   const parts = new Intl.DateTimeFormat("en-US", {
@@ -129,15 +144,16 @@ export function candleNeedsExpiryReminder(
     expiryReminderSentAt: Date | null;
   },
   now = new Date(),
+  leadMs = HOUR_MS,
 ) {
   if (candle.expiryReminderSentAt) return false;
   if (candle.status !== "PAID") return false;
   if (!candle.email || !candle.email.includes("@")) return false;
   if (!candle.litAt || !candle.expiresAt) return false;
   const total = candle.expiresAt.getTime() - candle.litAt.getTime();
-  if (total <= 65 * 60 * 1000) return false;
+  if (total <= leadMs) return false;
   const remaining = candle.expiresAt.getTime() - now.getTime();
-  return remaining > 0 && remaining <= HOUR_MS;
+  return remaining > 0 && remaining <= leadMs;
 }
 
 function formatWhen(date: Date) {
@@ -197,5 +213,6 @@ export function expiryReminderText(params: {
     donorName: params.donorName,
     intention: params.intention,
     link: params.velasUrl,
+    notice: "1 hora",
   });
 }

@@ -51,6 +51,7 @@ const DEFAULT_SITE_SETTINGS: SiteSettings = {
   candleWeekEmailSubject: null,
   candleWeekEmailIntro: null,
   candleWeekEmailItem: null,
+  candleExpiryNoticeMinutes: 60,
 };
 
 /** Cria a linha id=1 se o banco estiver vazio. Sem isso, o admin não consegue gravar manutenção. */

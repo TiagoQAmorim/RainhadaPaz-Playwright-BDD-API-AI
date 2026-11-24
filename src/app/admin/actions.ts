@@ -575,6 +575,14 @@ function normalizeOptionalEmail(raw: FormDataEntryValue | null): string | null {
   return v;
 }
 
+function readExpiryNoticeMinutes(formData: FormData) {
+  const minutes = Number(String(formData.get("candleExpiryNoticeMinutes") ?? "").trim());
+  if (!Number.isInteger(minutes) || minutes < 1 || minutes > 1440) {
+    redirectCandleSettingsError("Informe de 1 a 1440 minutos para o aviso da vela.");
+  }
+  return minutes;
+}
+
 function readCandleEmailTemplate(formData: FormData, name: string, max: number) {
   const value = String(formData.get(name) ?? "")
     .replace(/\r\n/g, "\n")
@@ -655,6 +663,7 @@ export async function updateCandleSettings(formData: FormData) {
       candleWeekEmailSubject: readCandleEmailTemplate(formData, "candleWeekEmailSubject", 180),
       candleWeekEmailIntro: readCandleEmailTemplate(formData, "candleWeekEmailIntro", 8000),
       candleWeekEmailItem: readCandleEmailTemplate(formData, "candleWeekEmailItem", 8000),
+      candleExpiryNoticeMinutes: readExpiryNoticeMinutes(formData),
     };
 
     await prisma.siteSettings.upsert({

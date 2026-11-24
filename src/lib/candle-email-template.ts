@@ -8,6 +8,7 @@ export const CANDLE_EMAIL_TAGS = [
   ["<acesa>", "Quando acendeu"],
   ["<apaga>", "Quando apaga"],
   ["<link>", "Página para acender outra vela"],
+  ["<antecedencia>", "Tempo do aviso, como 5 minutos ou 1 hora"],
   ["<mural-intencao>", "Se a intenção aparece no mural"],
   ["<mural-oracao>", "Se a oração aparece no mural"],
 ] as const;
@@ -38,11 +39,11 @@ export const DEFAULT_CANDLE_LIT_EMAIL_BODY = [
   "— Sistema de velas virtuais, Paróquia Rainha da Paz",
 ].join("\n");
 
-export const DEFAULT_CANDLE_EXPIRY_EMAIL_SUBJECT = "Sua vela apaga em cerca de 1 hora";
+export const DEFAULT_CANDLE_EXPIRY_EMAIL_SUBJECT = "Sua vela apaga em cerca de <antecedencia>";
 export const DEFAULT_CANDLE_EXPIRY_EMAIL_BODY = [
   "Olá, <nome>.",
   "",
-  "Sua vela virtual na Paróquia Nossa Senhora Rainha da Paz apaga em cerca de 1 hora.",
+  "Sua vela virtual na Paróquia Nossa Senhora Rainha da Paz apaga em cerca de <antecedencia>.",
   "",
   "Intenção: <intencao>",
   "",
@@ -91,6 +92,7 @@ export type CandleEmailSource = {
   expiresAt?: Date | null;
   amountCents?: number | null;
   link?: string | null;
+  notice?: string | null;
 };
 
 export function applyCandleEmailTemplate(template: string, values: Record<string, string>) {
@@ -138,6 +140,7 @@ export function candleEmailValues(source: CandleEmailSource, extra: Record<strin
     acesa: source.litAt ? formatWhen(source.litAt) : "(sem horário)",
     apaga: source.expiresAt ? formatWhen(source.expiresAt) : "(sem horário)",
     link: source.link?.trim() || "",
+    antecedencia: source.notice?.trim() || "",
     "mural-intencao": mural(source.intentionPublic),
     "mural-oracao": mural(source.prayerPublic),
     ...extra,

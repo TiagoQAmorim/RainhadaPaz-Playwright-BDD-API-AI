@@ -137,8 +137,8 @@ export function CandleEmailFields({
         rows={12}
       />
       <EmailTemplate
-        title="Uma hora antes de apagar, para quem acendeu"
-        hint="Só é enviado se a pessoa deixou e-mail e a vela dura mais de uma hora."
+        title="Antes de apagar, para quem acendeu"
+        hint="O tempo está no campo de minutos acima. Use <antecedencia> no texto para citar esse prazo."
         subjectName="candleExpiryEmailSubject"
         bodyName="candleExpiryEmailBody"
         subject={expirySubject}

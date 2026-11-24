@@ -155,6 +155,24 @@ export default async function AdminVelasPage({
               e as credenciais estiverem no servidor. Até lá, marque Cartão aqui para preparar e use PIX na prática.
             </p>
           </div>
+          <div className="max-w-xs">
+            <label className="mb-1 block text-sm font-medium">Avisar antes de apagar (minutos)</label>
+            <input
+              type="number"
+              name="candleExpiryNoticeMinutes"
+              min={1}
+              max={1440}
+              step={1}
+              defaultValue={settings.candleExpiryNoticeMinutes ?? 60}
+              className={adminInput}
+              required
+            />
+            <p className="mt-1.5 text-xs text-parish-500">
+              O e-mail sai quando falta esse tempo. Para testar, use 5. A vela precisa durar mais
+              do que esse prazo, senão o aviso sairia no instante em que ela acende. No site
+              publicado, a conferência roda cerca de uma vez por minuto.
+            </p>
+          </div>
           <div className="max-w-md">
             <label className="mb-1 block text-sm font-medium">
               E-mail para receber velas e orações

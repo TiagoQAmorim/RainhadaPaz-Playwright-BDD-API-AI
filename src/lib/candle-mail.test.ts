@@ -125,4 +125,17 @@ describe("candleNeedsExpiryReminder", () => {
       ),
     ).toBe(false);
   });
+
+  it("aceita um aviso de poucos minutos", () => {
+    const fiveMinutes = 5 * 60 * 1000;
+    const candle = {
+      email: "ana@exemplo.com",
+      status: "PAID",
+      litAt: new Date("2026-11-24T17:00:00Z"),
+      expiresAt: new Date("2026-11-24T17:30:00Z"),
+      expiryReminderSentAt: null,
+    };
+    expect(candleNeedsExpiryReminder(candle, new Date("2026-11-24T17:20:00Z"), fiveMinutes)).toBe(false);
+    expect(candleNeedsExpiryReminder(candle, new Date("2026-11-24T17:26:00Z"), fiveMinutes)).toBe(true);
+  });
 });

@@ -69,6 +69,8 @@ model SiteSettings {
   candleWeekEmailSubject   String?
   candleWeekEmailIntro     String?
   candleWeekEmailItem      String?
+  // Minutos antes de apagar para avisar quem acendeu. Padrão: 60.
+  candleExpiryNoticeMinutes Int @default(60)
 }
 
 model Post {
