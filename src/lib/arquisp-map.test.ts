@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildArquispMapDocument } from "./arquisp-map";
+import { attachParishSearchBridge, buildArquispMapDocument } from "./arquisp-map";
 
 const source = `<!DOCTYPE html><html><head>
 <link rel='stylesheet' id='map-leaflet-css' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css?ver=1.9.4' />
@@ -33,9 +33,44 @@ describe("buildArquispMapDocument", () => {
     expect(html).not.toContain("<nav>Liturgia");
     expect(html).not.toContain("<footer>Arquidiocese");
     expect(html).toContain("https://unpkg.com/leaflet@1.9.4/dist/leaflet.js");
+    expect(html).toContain("leaflet-popup-close-button");
+    expect(html).not.toContain('id="rainhada-voltar"');
   });
 
   it("recusa html sem o mapa", () => {
     expect(() => buildArquispMapDocument("<html></html>")).toThrow(/bloco esperado/);
+  });
+
+  it("avisa a página quais paróquias a busca encontrou", () => {
+    const withSearch = source.replace(
+      "parishData.forEach(function() {});",
+      `parishData.forEach(function() {});
+      var searchInput = document.getElementById('parish-map-1-search');
+      var clearBtn = document.getElementById('clear');
+      var matchedParishes = [];
+      var currentMatchIndex = 0;
+      function filterMarkersOnly() {}
+      function showCurrentMatch() {}
+      var titleNormalized = removeAccents(item.data.title.toLowerCase());
+      if (titleNormalized.indexOf(queryNormalized) !== -1) {
+        matchedParishes.push(item);
+      }
+      popupContent += '<h3><a href="' + parish.url + '">' + parish.title + '</a></h3>';
+      input.style.width = '200px';
+      searchInput.addEventListener('input', function(e) {
+        filterMarkersOnly(); // Just filter, don't zoom
+      });
+      clearBtn.addEventListener('click', function() {
+        searchInput.value = '';
+        filterMarkersOnly();
+      });`,
+    );
+    const html = buildArquispMapDocument(withSearch);
+    expect(html).toContain("function publishParishResults");
+    expect(html).toContain('source: "rainhada-mapa"');
+    expect(html).toContain("event.stopPropagation()");
+    expect(html).toContain("www.waze.com/ul");
+    expect(html).not.toContain("input.style.width = '200px'");
+    expect(attachParishSearchBridge(html)).toBe(html);
   });
 });

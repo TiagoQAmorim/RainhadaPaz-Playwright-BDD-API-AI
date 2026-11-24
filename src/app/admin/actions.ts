@@ -95,16 +95,35 @@ export async function updateSiteSettings(formData: FormData) {
   await redirectWithAdminFlash("/admin/informacoes/geral", "updated");
 }
 
+function rethrowNextNavigation(error: unknown): void {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "digest" in error &&
+    typeof (error as { digest?: unknown }).digest === "string" &&
+    String((error as { digest: string }).digest).startsWith("NEXT_REDIRECT")
+  ) {
+    throw error;
+  }
+}
+
 export async function updateSearchAppearance(formData: FormData) {
   await requireAdmin();
   await ensureSiteSettings();
   const current = await prisma.siteSettings.findUnique({ where: { id: 1 } });
-  const searchImageUrl = await resolveImageFromForm(
-    formData,
-    "searchImageUrl",
-    "searchImageUrlFile",
-    current?.searchImageUrl,
-  );
+  let searchImageUrl: string | null;
+  try {
+    searchImageUrl = await resolveImageFromForm(
+      formData,
+      "searchImageUrl",
+      "searchImageUrlFile",
+      current?.searchImageUrl,
+    );
+  } catch (error) {
+    rethrowNextNavigation(error);
+    searchImageUrl = null;
+    await redirectWithAdminFlash("/admin/informacoes/busca", "image");
+  }
   const searchTitle = String(formData.get("searchTitle") ?? "").trim() || null;
   const searchDescription = String(formData.get("searchDescription") ?? "").trim() || null;
   await prisma.siteSettings.update({
@@ -556,6 +575,21 @@ function normalizeOptionalEmail(raw: FormDataEntryValue | null): string | null {
   return v;
 }
 
+function readCandleEmailTemplate(formData: FormData, name: string, max: number) {
+  const value = String(formData.get(name) ?? "")
+    .replace(/\r\n/g, "\n")
+    .trim();
+  if (!value) return null;
+  if (value.length > max) {
+    redirectCandleSettingsError(
+      max <= 180
+        ? "O assunto do e-mail está longo demais."
+        : "O texto do e-mail está longo demais.",
+    );
+  }
+  return value;
+}
+
 function redirectCandleSettingsError(message: string): never {
   redirect(`/admin/velas?erro=${encodeURIComponent(message)}`);
 }
@@ -614,6 +648,13 @@ export async function updateCandleSettings(formData: FormData) {
       candlePriceCents,
       candlePaymentPix,
       candlePaymentSicredi,
+      candleLitEmailSubject: readCandleEmailTemplate(formData, "candleLitEmailSubject", 180),
+      candleLitEmailBody: readCandleEmailTemplate(formData, "candleLitEmailBody", 8000),
+      candleExpiryEmailSubject: readCandleEmailTemplate(formData, "candleExpiryEmailSubject", 180),
+      candleExpiryEmailBody: readCandleEmailTemplate(formData, "candleExpiryEmailBody", 8000),
+      candleWeekEmailSubject: readCandleEmailTemplate(formData, "candleWeekEmailSubject", 180),
+      candleWeekEmailIntro: readCandleEmailTemplate(formData, "candleWeekEmailIntro", 8000),
+      candleWeekEmailItem: readCandleEmailTemplate(formData, "candleWeekEmailItem", 8000),
     };
 
     await prisma.siteSettings.upsert({

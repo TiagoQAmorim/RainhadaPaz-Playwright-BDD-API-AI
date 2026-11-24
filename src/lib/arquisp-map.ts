@@ -3,8 +3,9 @@ const TTL_MS = 60 * 60 * 1000;
 
 const LEAFLET_CSS = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
 const LEAFLET_JS = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+const MAP_DOCUMENT_VERSION = 5;
 
-let cache: { html: string; at: number } | null = null;
+let cache: { html: string; at: number; version: number } | null = null;
 let cartoKey = "";
 
 export function rememberCartoKey(key: string) {
@@ -49,6 +50,13 @@ export function buildArquispMapDocument(sourceHtml: string): string {
     "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
     "/mapa-arquisp/tiles/{z}/{x}/{y}",
   );
+  script = script.replace("input.style.width = '200px';", "input.style.width = '100%';");
+  script = script.replace(
+    "popupContent += '<h3><a href=\"' + parish.url + '\">' + parish.title + '</a></h3>';",
+    `popupContent += '<h3><a href="' + parish.url + '">' + parish.title + '</a></h3>';
+popupContent += '<p class="parish-routes"><a href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(parish.lat + ',' + parish.lon) + '" target="_blank" rel="noopener">Google Maps</a> · <a href="https://www.waze.com/ul?ll=' + encodeURIComponent(parish.lat + ',' + parish.lon) + '&navigate=yes" target="_blank" rel="noopener">Waze</a></p>';`,
+  );
+  script = attachParishSearchBridge(script);
 
   const leafletCss =
     sourceHtml.match(/https:\/\/unpkg\.com\/leaflet@[\d.]+\/dist\/leaflet\.css/)?.[0] ?? LEAFLET_CSS;
@@ -71,10 +79,8 @@ ${css}
     border-radius: 0 !important;
     box-shadow: none !important;
   }
+  #parish-map-1-search { width: min(40rem, calc(100% - 1rem)) !important; }
   .leaflet-bottom.leaflet-right { margin-bottom: 4.75rem; }
-  @media (max-width: 700px) {
-    #parish-map-1-search { width: 9.5rem !important; }
-  }
 </style>
 </head>
 <body>
@@ -86,6 +92,9 @@ document.addEventListener("click", function (event) {
   if (!node || !node.closest) return;
   var link = node.closest("a[href]");
   if (!link || link.target === "_blank") return;
+  if (link.classList.contains("leaflet-popup-close-button")) return;
+  var href = link.getAttribute("href") || "";
+  if (href.charAt(0) === "#") return;
   if (link.protocol === "tel:") return;
   event.preventDefault();
   window.open(link.href, "_blank", "noopener,noreferrer");
@@ -94,6 +103,105 @@ document.addEventListener("click", function (event) {
 <script defer src="${leafletJs}"></script>
 </body>
 </html>`;
+}
+
+const INPUT_LISTENER =
+  /searchInput\.addEventListener\(\s*'input'\s*,\s*function\s*\(\s*e\s*\)\s*\{\s*filterMarkersOnly\(\);\s*(?:\/\/[^\n]*)?\s*\}\s*\)\s*;/;
+
+const CLEAR_LISTENER =
+  /clearBtn\.addEventListener\(\s*'click'\s*,\s*function\s*\(\s*\)\s*\{\s*searchInput\.value\s*=\s*''\s*;\s*filterMarkersOnly\(\);\s*\}\s*\)\s*;/;
+
+const TITLE_CHECK =
+  /var titleNormalized = removeAccents\(item\.data\.title\.toLowerCase\(\)\);\s*if \(titleNormalized\.indexOf\(queryNormalized\) !== -1\) \{/;
+
+const PARISH_SEARCH_BRIDGE = `
+function decodeParishText(value) {
+  return String(value || "")
+    .replace(/&#(\\d+);/g, function (_, n) { return String.fromCharCode(parseInt(n, 10)); })
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;|&apos;/g, "'")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\\u00a0/g, " ");
+}
+function parishMatchesQuery(data, queryNormalized) {
+  var text = removeAccents(decodeParishText(data.title).toLowerCase());
+  var words = String(queryNormalized || "").split(/\\s+/).filter(Boolean);
+  if (!words.length) return false;
+  for (var i = 0; i < words.length; i++) {
+    if (text.indexOf(words[i]) === -1) return false;
+  }
+  return true;
+}
+function publishParishResults() {
+  var items = [];
+  for (var i = 0; i < matchedParishes.length; i++) {
+    var data = matchedParishes[i].data;
+    items.push({
+      id: data.id,
+      title: decodeParishText(data.title || ""),
+      address: decodeParishText(data.address || ""),
+      phone: data.phone || "",
+      lat: data.lat,
+      lon: data.lon
+    });
+  }
+  window.parent.postMessage({
+    source: "rainhada-mapa",
+    type: "results",
+    query: searchInput.value.trim(),
+    total: matchedParishes.length,
+    items: items
+  }, "*");
+}
+function showParishById(id) {
+  for (var i = 0; i < matchedParishes.length; i++) {
+    if (String(matchedParishes[i].data.id) === String(id)) {
+      currentMatchIndex = i;
+      showCurrentMatch();
+      return;
+    }
+  }
+}
+window.addEventListener("message", function (event) {
+  var data = event.data;
+  if (!data || data.source !== "rainhada-mapa") return;
+  if (data.type === "show") showParishById(data.id);
+  if (data.type === "resize" && map && map.invalidateSize) map.invalidateSize();
+  if (data.type === "query") {
+    searchInput.value = String(data.query || "");
+    filterMarkersOnly();
+    publishParishResults();
+  }
+});
+["keydown", "keypress", "keyup"].forEach(function (type) {
+  searchInput.addEventListener(type, function (event) {
+    event.stopPropagation();
+  });
+});
+`;
+
+/** Avisa a página do site quais paróquias bateram com a busca, e centraliza a escolhida. */
+export function attachParishSearchBridge(script: string): string {
+  if (!INPUT_LISTENER.test(script) || script.includes("function publishParishResults")) return script;
+  let next = script.replace(TITLE_CHECK, "if (parishMatchesQuery(item.data, queryNormalized)) {");
+  next = next.replace(
+    INPUT_LISTENER,
+    `${PARISH_SEARCH_BRIDGE}
+searchInput.addEventListener('input', function(e) {
+  filterMarkersOnly();
+  publishParishResults();
+});`,
+  );
+  next = next.replace(
+    CLEAR_LISTENER,
+    `clearBtn.addEventListener('click', function() {
+  searchInput.value = '';
+  filterMarkersOnly();
+  publishParishResults();
+});`,
+  );
+  return next;
 }
 
 export function arquispMapFallbackDocument(): string {
@@ -111,7 +219,7 @@ export function arquispMapFallbackDocument(): string {
 }
 
 export async function getArquispMapDocument(): Promise<string> {
-  if (cache && Date.now() - cache.at < TTL_MS) return cache.html;
+  if (cache && cache.version === MAP_DOCUMENT_VERSION && Date.now() - cache.at < TTL_MS) return cache.html;
 
   const res = await fetch(SOURCE_URL, {
     cache: "no-store",
@@ -122,6 +230,6 @@ export async function getArquispMapDocument(): Promise<string> {
   });
   if (!res.ok) throw new Error(`Mapa da Arquidiocese respondeu ${res.status}`);
   const html = buildArquispMapDocument(await res.text());
-  cache = { html, at: Date.now() };
+  cache = { html, at: Date.now(), version: MAP_DOCUMENT_VERSION };
   return html;
 }

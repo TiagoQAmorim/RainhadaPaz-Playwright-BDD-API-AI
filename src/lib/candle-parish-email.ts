@@ -1,4 +1,10 @@
-import { getCandlesNotifyEmail } from "@/lib/settings";
+import { getCandlesNotifyEmail, getSiteSettings } from "@/lib/settings";
+import { publicSiteUrl } from "@/lib/site-url";
+import {
+  DEFAULT_CANDLE_LIT_EMAIL_BODY,
+  DEFAULT_CANDLE_LIT_EMAIL_SUBJECT,
+  renderCandleEmail,
+} from "@/lib/candle-email-template";
 
 type CandleEmailPayload = {
   donorName: string;
@@ -8,9 +14,12 @@ type CandleEmailPayload = {
   prayerPublic: boolean;
   email: string | null;
   phone: string | null;
+  amountCents?: number | null;
+  litAt?: Date | null;
+  expiresAt?: Date | null;
 };
 
-async function sendViaSmtp(params: { to: string; subject: string; text: string }) {
+export async function sendViaSmtp(params: { to: string; subject: string; text: string }) {
   const host = process.env.SMTP_HOST?.trim();
   const port = Number(process.env.SMTP_PORT ?? "587");
   const user = process.env.SMTP_USER?.trim();
@@ -45,22 +54,17 @@ export async function sendCandlePrayerToParish(candle: CandleEmailPayload) {
     return;
   }
 
-  const subject = `Vela de Oração — ${candle.donorName}`;
-  const lines = [
-    "Nova vela virtual acesa",
-    "",
-    `Nome: ${candle.donorName}`,
-    `Intenção: ${candle.intention}`,
-    candle.prayer ? `Oração:\n${candle.prayer}` : "Oração: (não informada)",
-    "",
-    `Exibir no mural: intenção ${candle.intentionPublic ? "sim" : "não (sigilo)"}, oração ${candle.prayerPublic ? "sim" : "não (sigilo)"}.`,
-    candle.email ? `E-mail do(a) devoto(a): ${candle.email}` : "E-mail do(a) devoto(a): não informado",
-    candle.phone ? `Telefone do(a) devoto(a): ${candle.phone}` : "Telefone do(a) devoto(a): não informado",
-    "",
-    "— Sistema de velas virtuais, Paróquia Rainha da Paz",
-  ];
-
-  const text = lines.join("\n");
+  const settings = await getSiteSettings();
+  const source = {
+    ...candle,
+    link: `${publicSiteUrl()}/velas`,
+  };
+  const subject = renderCandleEmail(
+    settings.candleLitEmailSubject,
+    DEFAULT_CANDLE_LIT_EMAIL_SUBJECT,
+    source,
+  );
+  const text = renderCandleEmail(settings.candleLitEmailBody, DEFAULT_CANDLE_LIT_EMAIL_BODY, source);
   const sent = await sendViaSmtp({ to, subject, text });
   if (!sent) {
     console.info("[vela-email] SMTP não configurado. Conteúdo que seria enviado:\n", text);

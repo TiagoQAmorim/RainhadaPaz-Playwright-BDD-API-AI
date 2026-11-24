@@ -7,11 +7,24 @@ import {
 } from "@/app/admin/actions";
 import { AdminConfirmDeleteForm } from "@/components/admin/AdminConfirmDeleteForm";
 import { adminBtn, adminCard, adminInput } from "@/components/admin/AdminFormStyles";
+import { CandleEmailFields } from "@/components/admin/CandleEmailFields";
 import { getSessionAdmin } from "@/lib/auth";
 import { isCandleActiveOnMural } from "@/lib/candle-report";
 import { prisma } from "@/lib/prisma";
 import { candleAccessModeLabel, formatCandlePrice } from "@/lib/candle-commerce";
 import { getCandleDurationHours, getSiteSettings } from "@/lib/settings";
+import {
+  CANDLE_EMAIL_TAGS,
+  CANDLE_WEEK_INTRO_TAGS,
+  CANDLE_WEEK_ITEM_TAGS,
+  DEFAULT_CANDLE_EXPIRY_EMAIL_BODY,
+  DEFAULT_CANDLE_EXPIRY_EMAIL_SUBJECT,
+  DEFAULT_CANDLE_LIT_EMAIL_BODY,
+  DEFAULT_CANDLE_LIT_EMAIL_SUBJECT,
+  DEFAULT_CANDLE_WEEK_EMAIL_INTRO,
+  DEFAULT_CANDLE_WEEK_EMAIL_ITEM,
+  DEFAULT_CANDLE_WEEK_EMAIL_SUBJECT,
+} from "@/lib/candle-email-template";
 
 export default async function AdminVelasPage({
   searchParams,
@@ -154,11 +167,22 @@ export default async function AdminVelasPage({
               className={`${adminInput} w-full`}
             />
             <p className="mt-1.5 text-xs text-parish-500">
-              Ao acender uma vela, intenção e oração são enviadas para este endereço. Se vazio, usa
-              o e-mail geral de Informações
+              Destino dos avisos da paróquia. Se ficar vazio, usa o e-mail geral de Informações
               {settings.email ? ` (${settings.email})` : " (ainda não configurado)"}.
             </p>
           </div>
+          <CandleEmailFields
+            litSubject={settings.candleLitEmailSubject ?? DEFAULT_CANDLE_LIT_EMAIL_SUBJECT}
+            litBody={settings.candleLitEmailBody ?? DEFAULT_CANDLE_LIT_EMAIL_BODY}
+            expirySubject={settings.candleExpiryEmailSubject ?? DEFAULT_CANDLE_EXPIRY_EMAIL_SUBJECT}
+            expiryBody={settings.candleExpiryEmailBody ?? DEFAULT_CANDLE_EXPIRY_EMAIL_BODY}
+            weekSubject={settings.candleWeekEmailSubject ?? DEFAULT_CANDLE_WEEK_EMAIL_SUBJECT}
+            weekIntro={settings.candleWeekEmailIntro ?? DEFAULT_CANDLE_WEEK_EMAIL_INTRO}
+            weekItem={settings.candleWeekEmailItem ?? DEFAULT_CANDLE_WEEK_EMAIL_ITEM}
+            personTags={CANDLE_EMAIL_TAGS}
+            weekIntroTags={CANDLE_WEEK_INTRO_TAGS}
+            weekItemTags={CANDLE_WEEK_ITEM_TAGS}
+          />
           <button type="submit" className={adminBtn}>
             Salvar configurações
           </button>

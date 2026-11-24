@@ -59,6 +59,16 @@ model SiteSettings {
   maintenanceEnabled   Boolean  @default(false)
   maintenanceMessage   String?
   maintenanceEndsAt    DateTime?
+  // Semana (domingo) cujo relatório de velas já foi enviado na sexta.
+  candleWeekReportKey  String?
+  // Textos dos e-mails. Vazio usa o modelo padrão. Tags: <nome>, <intencao>, <oracao>.
+  candleLitEmailSubject    String?
+  candleLitEmailBody       String?
+  candleExpiryEmailSubject String?
+  candleExpiryEmailBody    String?
+  candleWeekEmailSubject   String?
+  candleWeekEmailIntro     String?
+  candleWeekEmailItem      String?
 }
 
 model Post {
@@ -193,6 +203,7 @@ model VirtualCandle {
   preferenceId    String?
   litAt           DateTime?
   expiresAt       DateTime?
+  expiryReminderSentAt DateTime?
   createdAt       DateTime       @default(now())
 }
 

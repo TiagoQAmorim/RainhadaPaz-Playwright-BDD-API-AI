@@ -5,8 +5,10 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1", "*.trycloudflare.com", "*.loca.lt"],
   experimental: {
     serverActions: {
-      bodySizeLimit: "5mb",
+      bodySizeLimit: "12mb",
     },
+    // O middleware lê o corpo do pedido. Sem este limite, uma foto grande é cortada e o salvamento falha.
+    proxyClientMaxBodySize: "12mb",
   },
   images: {
     // Conteúdo paroquial local; Vatican News RSS usa domínio vaticannews.va.

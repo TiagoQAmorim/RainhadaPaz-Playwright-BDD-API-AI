@@ -8,7 +8,8 @@ export type AdminFlashKind =
   | "restored"
   | "backed"
   | "hidden"
-  | "shown";
+  | "shown"
+  | "image";
 
 const MESSAGES: Record<AdminFlashKind, string> = {
   created: "Cadastro realizado com sucesso.",
@@ -20,6 +21,7 @@ const MESSAGES: Record<AdminFlashKind, string> = {
   backed: "Backup de hoje gravado em /data/backups. O site em uso não foi alterado.",
   hidden: "Página oculta. Ela saiu do site e continua nesta lista.",
   shown: "Página visível de novo no site.",
+  image: "A foto não foi salva. Envie JPEG, PNG ou WebP. Fotos HEIC do celular precisam ser convertidas para JPEG.",
 };
 
 export function adminFlashMessage(kind: AdminFlashKind): string {

@@ -41,6 +41,9 @@ export async function activateCandle(candleId: string) {
         prayerPublic: candle.prayerPublic,
         email: candle.email,
         phone: candle.phone,
+        amountCents: candle.amountCents,
+        litAt: candle.litAt,
+        expiresAt: candle.expiresAt,
       });
       await prisma.virtualCandle.update({
         where: { id: candleId },

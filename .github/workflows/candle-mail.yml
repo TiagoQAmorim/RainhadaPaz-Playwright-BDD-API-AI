@@ -1,0 +1,25 @@
+# Relatório de sexta e aviso de 1 hora antes da vela apagar.
+# Usa os mesmos secrets do backup diário: BACKUP_SITE_URL e AUTH_SECRET.
+name: E-mails das velas
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+jobs:
+  mail:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Disparar envio no site
+        env:
+          SITE_URL: ${{ secrets.BACKUP_SITE_URL }}
+          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+        run: |
+          if [ -z "$SITE_URL" ] || [ -z "$AUTH_SECRET" ]; then
+            echo "Defina secrets BACKUP_SITE_URL e AUTH_SECRET no repositório GitHub."
+            exit 1
+          fi
+          curl -sfS -X POST "${SITE_URL%/}/api/candles/mail" \
+            -H "Authorization: Bearer ${AUTH_SECRET}" \
+            -H "Content-Type: application/json"

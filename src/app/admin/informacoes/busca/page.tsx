@@ -42,8 +42,9 @@ export default async function AdminBuscaPage() {
             defaultValue={settings.searchImageUrl}
           />
           <p className="text-xs text-parish-500">
-            Uma foto larga, de preferência da igreja. Se ficar vazia, usamos a primeira foto do
-            banner. O Google ainda pode escolher outra imagem da página por alguns dias.
+            Uma foto larga, de preferência da igreja. Fotos muito grandes são reduzidas ao salvar.
+            Se ficar vazia, usamos a primeira foto do banner. O Google ainda pode escolher outra
+            imagem da página por alguns dias.
           </p>
           <button type="submit" className={adminBtn}>
             Salvar resultado da busca

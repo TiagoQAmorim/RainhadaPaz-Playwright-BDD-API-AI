@@ -30,7 +30,7 @@ function headers(cacheControl: string) {
 export async function GET() {
   try {
     const html = await getArquispMapDocument();
-    return new NextResponse(html, { headers: headers("public, max-age=600") });
+    return new NextResponse(html, { headers: headers("no-store") });
   } catch {
     return new NextResponse(arquispMapFallbackDocument(), {
       headers: headers("no-store"),
