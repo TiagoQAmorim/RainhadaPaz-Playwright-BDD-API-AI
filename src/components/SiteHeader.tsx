@@ -13,6 +13,7 @@ function closeMobileNav() {
 
 const links = [
   { href: "/institucional", label: "Institucional" },
+  { href: "/mapa-de-paroquias", label: "Mapa" },
   { href: "/horarios", label: "Horários" },
   { href: "/sacramentos", label: "Sacramentos" },
   { href: "/noticias", label: "Notícias" },

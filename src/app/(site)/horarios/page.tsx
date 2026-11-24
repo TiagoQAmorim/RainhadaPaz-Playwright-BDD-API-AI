@@ -7,9 +7,9 @@ import { SITE_IMAGES } from "@/lib/wordpress-assets";
 import { cn } from "@/lib/cn";
 
 export const metadata = {
-  title: "Horários de missa",
+  title: "Horários das missas",
   description:
-    "Horários de missa na Matriz da Vila Sofia, na Rua Sócrates, e na Capela do Colégio Santa Maria.",
+    "Horários das missas na Matriz da Vila Sofia, na Rua Sócrates, e na Capela Colégio Santa Maria.",
 };
 
 export default async function HorariosPage() {
@@ -26,7 +26,7 @@ export default async function HorariosPage() {
         <Image src={matriz} alt="Matriz da paróquia na Vila Sofia" fill className="object-cover opacity-40" sizes="100vw" />
         <PageContainer className="relative flex h-full items-end pb-8">
           <h1 className="font-[family-name:var(--font-display)] text-4xl font-semibold text-white">
-            Horários de missa
+            Horários das missas
           </h1>
         </PageContainer>
       </div>

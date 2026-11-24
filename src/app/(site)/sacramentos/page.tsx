@@ -4,7 +4,11 @@ import { SectionHeading } from "@/components/SectionHeading";
 import { SACRAMENT_INDEX_SLUGS } from "@/lib/wp-content";
 import { prisma } from "@/lib/prisma";
 
-export const metadata = { title: "Sacramentos" };
+export const metadata = {
+  title: "Sacramentos e pastorais",
+  description:
+    "Sacramentos e pastorais da Paróquia Nossa Senhora Rainha da Paz: batismo, crisma, catequese e dízimo.",
+};
 
 export default async function SacramentosPage() {
   const pages = await prisma.page.findMany({
@@ -15,8 +19,8 @@ export default async function SacramentosPage() {
     <PageContainer wide className="py-12 md:py-16">
       <SectionHeading
         eyebrow="Igreja"
-        title="Sacramentos & serviços"
-        description="Conteúdo migrado do site paroquial — batismo, casamento, crisma, catequese, dízimo e mais."
+        title="Sacramentos e pastorais"
+        description="Batismo, casamento, crisma, catequese, dízimo e a vida pastoral da paróquia."
       />
       <ul className="grid gap-5 sm:grid-cols-2">
         {pages.map((p) => (

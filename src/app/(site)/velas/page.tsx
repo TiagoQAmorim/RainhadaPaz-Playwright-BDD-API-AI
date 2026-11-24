@@ -12,7 +12,7 @@ import { getCandleDurationHours, getSiteSettings } from "@/lib/settings";
 export const metadata = {
   title: "Velas virtuais",
   description:
-    "Acenda uma vela virtual na Paróquia Rainha da Paz, na Vila Sofia. A intenção fica no mural da comunidade.",
+    "Acenda uma vela virtual católica online: uma vela de oração no mural da Paróquia Rainha da Paz.",
 };
 
 const PAGE_SIZE = 12;

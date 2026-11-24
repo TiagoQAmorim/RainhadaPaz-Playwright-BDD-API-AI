@@ -10,8 +10,8 @@ import {
 } from "@/lib/parish-brand";
 
 export const metadata = {
-  title: "Dízimo",
-  description: "Dízimo: PIX na conta oficial da paróquia. Valores mensais sugeridos.",
+  title: "Dízimo e doações online",
+  description: "Dízimo e doações online para a Paróquia Rainha da Paz, com PIX na conta da paróquia.",
 };
 
 export default function DizimoPage() {
@@ -27,7 +27,7 @@ export default function DizimoPage() {
 
       <SectionHeading
         eyebrow="Stewardship"
-        title="Dízimo"
+        title="Dízimo e doações online"
         description="Oferta regular que sustenta a vida da paróquia. Escolha um valor mensal e contribua com segurança online."
         className="max-w-3xl"
       />

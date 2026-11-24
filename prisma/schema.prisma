@@ -26,6 +26,10 @@ model SiteSettings {
   heroTitle       String
   heroSubtitle    String
   aboutHtml       String
+  // Banner da página institucional. Vazio mantém só o texto.
+  aboutBannerUrl  String?
+  showMatrizMap   Boolean @default(false)
+  showCapelaMap   Boolean @default(false)
   massScheduleHtml String
   pixKey          String?
   instagramUrl    String?

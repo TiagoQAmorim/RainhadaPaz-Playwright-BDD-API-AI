@@ -13,6 +13,9 @@ const DEFAULT_SITE_SETTINGS: SiteSettings = {
   heroTitle: "Unidos pela fé, guiados por Maria.",
   heroSubtitle: "Uma comunidade que acolhe, celebra e vive o amor de Cristo.",
   aboutHtml: "",
+  aboutBannerUrl: null,
+  showMatrizMap: false,
+  showCapelaMap: false,
   massScheduleHtml: "",
   pixKey: null,
   instagramUrl: null,
@@ -82,7 +85,7 @@ export async function getSiteSettings() {
 export function defaultSearchDescription(settings: Pick<SiteSettings, "heroSubtitle">) {
   const phrase = settings.heroSubtitle?.trim();
   const place =
-    "Missas na Vila Sofia, na Rua Sócrates, e na Capela do Colégio Santa Maria. Velas virtuais.";
+    "Igreja católica na Zona Sul de São Paulo, com a Capela Colégio Santa Maria. Versículo do dia, terço online e velas virtuais.";
   return phrase ? `${phrase} ${place}` : place;
 }
 

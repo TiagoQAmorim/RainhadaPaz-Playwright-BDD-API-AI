@@ -39,7 +39,7 @@ function parseOptionalDate(value: string): Date | null {
 export async function updateSiteSettings(formData: FormData) {
   await requireAdmin();
   const current = await prisma.siteSettings.findUnique({ where: { id: 1 } });
-  const [logoUrl, heroImageUrl, heroImageUrl2, heroImageUrl3, matrizImageUrl, capelaImageUrl] =
+  const [logoUrl, heroImageUrl, heroImageUrl2, heroImageUrl3, matrizImageUrl, capelaImageUrl, aboutBannerUrl] =
     await Promise.all([
     resolveImageFromForm(formData, "logoUrl", "logoUrlFile", current?.logoUrl),
     resolveImageFromForm(formData, "heroImageUrl", "heroImageUrlFile", current?.heroImageUrl),
@@ -47,6 +47,7 @@ export async function updateSiteSettings(formData: FormData) {
     resolveImageFromForm(formData, "heroImageUrl3", "heroImageUrl3File", current?.heroImageUrl3),
     resolveImageFromForm(formData, "matrizImageUrl", "matrizImageUrlFile", current?.matrizImageUrl),
     resolveImageFromForm(formData, "capelaImageUrl", "capelaImageUrlFile", current?.capelaImageUrl),
+    resolveImageFromForm(formData, "aboutBannerUrl", "aboutBannerUrlFile", current?.aboutBannerUrl),
   ]);
   await prisma.siteSettings.update({
     where: { id: 1 },
@@ -59,6 +60,9 @@ export async function updateSiteSettings(formData: FormData) {
       heroTitle: String(formData.get("heroTitle") ?? ""),
       heroSubtitle: String(formData.get("heroSubtitle") ?? ""),
       aboutHtml: sanitizeAdminHtml(String(formData.get("aboutHtml") ?? "")),
+      aboutBannerUrl,
+      showMatrizMap: formCheckboxOn(formData, "showMatrizMap"),
+      showCapelaMap: formCheckboxOn(formData, "showCapelaMap"),
       massScheduleHtml: String(formData.get("massScheduleHtml") ?? ""),
       instagramUrl: String(formData.get("instagramUrl") ?? "") || null,
       youtubeUrl: String(formData.get("youtubeUrl") ?? "") || null,
@@ -75,6 +79,7 @@ export async function updateSiteSettings(formData: FormData) {
     },
   });
   revalidatePath("/", "layout");
+  revalidatePath("/institucional");
   revalidatePath("/terco-online");
   await redirectWithAdminFlash("/admin/informacoes/geral", "updated");
 }

@@ -34,6 +34,47 @@ export default async function AdminInformacoesGeralPage() {
           <Field label="Frase do banner" name="heroTitle" defaultValue={s.heroTitle} />
           <TextArea label="Texto complementar do banner" name="heroSubtitle" defaultValue={s.heroSubtitle} rows={2} />
           <AdminRichTextField label="Sobre a paróquia" name="aboutHtml" defaultValue={s.aboutHtml} />
+          <AdminImageField
+            label="Banner da página institucional"
+            name="aboutBannerUrl"
+            fileFieldName="aboutBannerUrlFile"
+            defaultValue={s.aboutBannerUrl}
+          />
+          <p className="-mt-1 text-xs text-parish-500">
+            Fica acima do texto, na largura da coluna, na proporção 960×350 e com cantos arredondados.
+          </p>
+          <input type="hidden" name="showMatrizMap" value="off" />
+          <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-parish-200 bg-parish-50/60 px-4 py-3 text-sm">
+            <input
+              type="checkbox"
+              name="showMatrizMap"
+              value="on"
+              defaultChecked={s.showMatrizMap}
+              className="mt-1"
+            />
+            <span>
+              <strong className="text-parish-900">Mostrar mapa da Matriz</strong>
+              <span className="mt-1 block text-parish-600">
+                R. Sócrates, 813 — Vila Sofia, São Paulo — SP, CEP 04671-072
+              </span>
+            </span>
+          </label>
+          <input type="hidden" name="showCapelaMap" value="off" />
+          <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-parish-200 bg-parish-50/60 px-4 py-3 text-sm">
+            <input
+              type="checkbox"
+              name="showCapelaMap"
+              value="on"
+              defaultChecked={s.showCapelaMap}
+              className="mt-1"
+            />
+            <span>
+              <strong className="text-parish-900">Mostrar mapa da Capela do Colégio Santa Maria</strong>
+              <span className="mt-1 block text-parish-600">
+                Av. Sargento Geraldo Sant&apos;Ana, 901 – Jardim Marajoara, São Paulo – SP, CEP 04674-225
+              </span>
+            </span>
+          </label>
           <Field label="Instagram" name="instagramUrl" defaultValue={s.instagramUrl ?? ""} />
           <Field label="Facebook" name="facebookUrl" defaultValue={s.facebookUrl ?? ""} />
           <Field label="YouTube" name="youtubeUrl" defaultValue={s.youtubeUrl ?? ""} />

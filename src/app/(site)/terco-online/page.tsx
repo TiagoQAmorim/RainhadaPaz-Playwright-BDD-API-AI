@@ -8,7 +8,10 @@ import { getTercoOnlineSlots } from "@/lib/terco-online";
 import { resolveImageSrc } from "@/lib/local-image-url";
 import { SITE_IMAGES } from "@/lib/wordpress-assets";
 
-export const metadata = { title: "Terço online" };
+export const metadata = {
+  title: "Rezar o terço online",
+  description: "Reze o Santo Terço do dia online com a Paróquia Nossa Senhora Rainha da Paz.",
+};
 
 export default async function TercoOnlinePage() {
   const [page, slots] = await Promise.all([
@@ -27,7 +30,7 @@ export default async function TercoOnlinePage() {
       <div className="relative h-56 md:h-72">
         <Image
           src={hero}
-          alt="Terço online"
+          alt="Rezar o terço online"
           fill
           className="object-cover"
           priority
@@ -38,7 +41,7 @@ export default async function TercoOnlinePage() {
         <div className="absolute inset-0 flex items-end">
           <PageContainer className="pb-8">
             <h1 className="font-[family-name:var(--font-display)] text-4xl font-semibold text-white md:text-5xl">
-              Terço online
+              Rezar o terço online
             </h1>
           </PageContainer>
         </div>

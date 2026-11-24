@@ -5,7 +5,10 @@ import { SectionHeading } from "@/components/SectionHeading";
 import { getRaffleStats, listPublicRaffles } from "@/lib/raffles";
 import { ticketPriceLabel } from "@/lib/raffle-rules";
 
-export const metadata = { title: "Rifa dos Santos" };
+export const metadata = {
+  title: "Rifa da paróquia",
+  description: "Rifa da paróquia: escolha um santo e contribua com a Paróquia Nossa Senhora Rainha da Paz.",
+};
 
 export default async function RifasIndexPage() {
   const raffles = await listPublicRaffles();

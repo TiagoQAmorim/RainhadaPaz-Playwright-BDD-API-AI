@@ -8,7 +8,7 @@ const sections = [
   {
     href: "/admin/informacoes/geral",
     title: "Dados gerais e imagens",
-    desc: "Nome, contato, redes, logo, fotos do banner e texto institucional",
+    desc: "Nome, contato, redes, logo, banner institucional e mapas da Matriz e da capela",
   },
   {
     href: "/admin/informacoes/busca",
