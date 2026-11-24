@@ -1,14 +1,22 @@
 import Image from "next/image";
 import { PageContainer } from "@/components/PageContainer";
 import { ParishPlaceMap } from "@/components/ParishPlaceMap";
+import { resolveImageSrc } from "@/lib/local-image-url";
 import { INSTITUTIONAL_PLACES } from "@/lib/parish-places";
 import { sanitizeWpHtml } from "@/lib/sanitize-wp-html";
 import { getSiteSettings } from "@/lib/settings";
+import { SITE_IMAGES } from "@/lib/wordpress-assets";
 
 export const metadata = { title: "Institucional" };
 
 function withoutFirstFigure(html: string) {
   return html.replace(/<figure\b[\s\S]*?<\/figure>/i, "");
+}
+
+function firstImageSrc(html: string) {
+  const match = html.match(/<img[^>]+src=["']([^"']+)["']/i);
+  const src = match?.[1]?.trim() ?? "";
+  return src.startsWith("/") ? src : null;
 }
 
 function withoutLegacyMap(html: string) {
@@ -19,9 +27,13 @@ function withoutLegacyMap(html: string) {
 
 export default async function InstitucionalPage() {
   const s = await getSiteSettings();
-  const banner = s.aboutBannerUrl?.trim() || "";
+  const embedded = firstImageSrc(s.aboutHtml);
+  const banner = resolveImageSrc(
+    s.aboutBannerUrl?.trim() || embedded || s.matrizImageUrl,
+    SITE_IMAGES.matriz,
+  );
   let aboutHtml = s.aboutHtml;
-  if (banner) aboutHtml = withoutFirstFigure(aboutHtml);
+  if (s.aboutBannerUrl?.trim() || embedded) aboutHtml = withoutFirstFigure(aboutHtml);
   if (s.showMatrizMap) aboutHtml = withoutLegacyMap(aboutHtml);
   aboutHtml = sanitizeWpHtml(aboutHtml);
   const places = INSTITUTIONAL_PLACES.filter((place) =>
