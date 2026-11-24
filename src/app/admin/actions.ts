@@ -36,10 +36,16 @@ function parseOptionalDate(value: string): Date | null {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
+function firstLocalImageSrc(html: string | null | undefined): string | null {
+  const match = String(html ?? "").match(/<img[^>]+src=["']([^"']+)["']/i);
+  const src = match?.[1]?.trim() ?? "";
+  return src.startsWith("/") ? src : null;
+}
+
 export async function updateSiteSettings(formData: FormData) {
   await requireAdmin();
   const current = await prisma.siteSettings.findUnique({ where: { id: 1 } });
-  const [logoUrl, heroImageUrl, heroImageUrl2, heroImageUrl3, matrizImageUrl, capelaImageUrl, aboutBannerUrl] =
+  const [logoUrl, heroImageUrl, heroImageUrl2, heroImageUrl3, matrizImageUrl, capelaImageUrl, uploadedBanner] =
     await Promise.all([
     resolveImageFromForm(formData, "logoUrl", "logoUrlFile", current?.logoUrl),
     resolveImageFromForm(formData, "heroImageUrl", "heroImageUrlFile", current?.heroImageUrl),
@@ -49,6 +55,11 @@ export async function updateSiteSettings(formData: FormData) {
     resolveImageFromForm(formData, "capelaImageUrl", "capelaImageUrlFile", current?.capelaImageUrl),
     resolveImageFromForm(formData, "aboutBannerUrl", "aboutBannerUrlFile", current?.aboutBannerUrl),
   ]);
+  const aboutHtml = sanitizeAdminHtml(String(formData.get("aboutHtml") ?? ""));
+  const previousImage = firstLocalImageSrc(current?.aboutHtml);
+  const aboutBannerUrl =
+    uploadedBanner ||
+    (previousImage && !firstLocalImageSrc(aboutHtml) ? previousImage : null);
   await prisma.siteSettings.update({
     where: { id: 1 },
     data: {
@@ -59,7 +70,7 @@ export async function updateSiteSettings(formData: FormData) {
       email: String(formData.get("email") ?? "") || null,
       heroTitle: String(formData.get("heroTitle") ?? ""),
       heroSubtitle: String(formData.get("heroSubtitle") ?? ""),
-      aboutHtml: sanitizeAdminHtml(String(formData.get("aboutHtml") ?? "")),
+      aboutHtml,
       aboutBannerUrl,
       showMatrizMap: formCheckboxOn(formData, "showMatrizMap"),
       showCapelaMap: formCheckboxOn(formData, "showCapelaMap"),
