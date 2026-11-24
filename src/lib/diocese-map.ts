@@ -1,31 +1,19 @@
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import { getDioceseDirectory, matchParish, parseParishAddress } from "./diocese-directory";
+import { DIOCESE_MAP_ID, type DiocesePlace } from "./diocese-map-embed";
 
-export type DiocesePlace = {
-  id: string;
-  title: string;
-  sector: string;
-  lat: number;
-  lon: number;
-  siteUrl: string;
-  phone: string;
-  address: string;
-};
-
-export const DIOCESE_MAP_ID = "1CidcSigKhAAvxRTygHTYJNn_v3O9-2o";
-export const DIOCESE_MAP_VIEW = {
-  lat: -23.718374434732585,
-  lon: -46.7083962026999,
-  zoom: 15,
-};
+export { DIOCESE_MAP_ID, DIOCESE_MAP_VIEW, dioceseMapEmbedSrc, type DiocesePlace } from "./diocese-map-embed";
 
 const KML_URL = `https://www.google.com/maps/d/kml?mid=${DIOCESE_MAP_ID}&forcekml=1`;
 const TTL_MS = 60 * 60 * 1000;
 
-let cache: { at: number; places: DiocesePlace[] } | null = null;
+type PlaceCache = { at: number; places: DiocesePlace[]; complete: boolean };
 
-export function dioceseMapEmbedSrc(lat = DIOCESE_MAP_VIEW.lat, lon = DIOCESE_MAP_VIEW.lon, zoom = DIOCESE_MAP_VIEW.zoom) {
-  return `https://www.google.com/maps/d/embed?mid=${DIOCESE_MAP_ID}&ll=${lat},${lon}&z=${zoom}`;
-}
+let cache: PlaceCache | null = null;
+let quickTask: Promise<DiocesePlace[]> | null = null;
+let addressTask: Promise<void> | null = null;
 
 function decodeXml(value: string) {
   return value
@@ -78,16 +66,44 @@ export function parseDioceseKml(xml: string): DiocesePlace[] {
   return places;
 }
 
-export async function getDiocesePlaces(): Promise<DiocesePlace[]> {
-  if (cache && Date.now() - cache.at < TTL_MS) return cache.places;
-  const response = await fetch(KML_URL, {
-    cache: "no-store",
-    headers: { Accept: "application/xml,text/xml" },
-  });
+function cachePath() {
+  const databaseUrl = process.env.DATABASE_URL ?? "";
+  if (databaseUrl.startsWith("file:/data/")) return "/data/diocese-places.json";
+  return path.join(os.tmpdir(), "rainhadapaz-diocese-places.json");
+}
+
+async function readDisk() {
+  try {
+    const parsed = JSON.parse(await readFile(cachePath(), "utf8")) as PlaceCache;
+    if (!parsed || !Array.isArray(parsed.places) || parsed.places.length === 0) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+async function writeDisk(value: PlaceCache) {
+  try {
+    const file = cachePath();
+    await mkdir(path.dirname(file), { recursive: true });
+    await writeFile(file, JSON.stringify(value));
+  } catch {
+    // A lista continua na memória mesmo se o disco não aceitar o cache.
+  }
+}
+
+async function fetchQuick(publish = true) {
+  const [response, directory] = await Promise.all([
+    fetch(KML_URL, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(20000),
+      headers: { Accept: "application/xml,text/xml" },
+    }),
+    getDioceseDirectory().catch(() => []),
+  ]);
   if (!response.ok) throw new Error(`Mapa da diocese respondeu ${response.status}`);
   const places = parseDioceseKml(await response.text());
   if (places.length === 0) throw new Error("Mapa da diocese sem paróquias");
-  const directory = await getDioceseDirectory().catch(() => []);
   for (const place of places) {
     const entry = matchParish(place, directory);
     if (entry) {
@@ -95,12 +111,81 @@ export async function getDiocesePlaces(): Promise<DiocesePlace[]> {
       if (!place.siteUrl && entry.url) place.siteUrl = entry.url;
     }
   }
-  const addresses = await addressesByUrl([...new Set(places.map((place) => place.siteUrl).filter(Boolean))]);
-  for (const place of places) {
-    if (place.siteUrl) place.address = addresses.get(place.siteUrl) ?? "";
+  const next = { at: Date.now(), places, complete: false };
+  if (publish) {
+    cache = next;
+    await writeDisk(next);
   }
-  cache = { at: Date.now(), places };
   return places;
+}
+
+function remember(value: PlaceCache) {
+  cache = value;
+  return value;
+}
+
+function fillAddresses() {
+  if (addressTask || !cache || cache.complete) return;
+  const places = cache.places;
+  addressTask = addressesByUrl([...new Set(places.map((place) => place.siteUrl).filter(Boolean))])
+    .then(async (addresses) => {
+      const next = {
+        at: Date.now(),
+        complete: true,
+        places: places.map((place) => ({
+          ...place,
+          address: place.siteUrl ? addresses.get(place.siteUrl) ?? "" : "",
+        })),
+      };
+      remember(next);
+      await writeDisk(next);
+    })
+    .finally(() => {
+      addressTask = null;
+    });
+}
+
+/** Nomes e telefones na hora; endereços entram em seguida e ficam em cache. */
+export async function getDiocesePlaces(): Promise<{ places: DiocesePlace[]; complete: boolean }> {
+  const stored = cache ?? (await readDisk());
+  if (stored?.places.length) {
+    remember(stored);
+    const fresh = stored.complete && Date.now() - stored.at < TTL_MS;
+    if (!stored.complete) fillAddresses();
+    else if (!fresh && !quickTask && !addressTask) {
+      quickTask = fetchQuick(false)
+        .then(async (places) => {
+          const addresses = await addressesByUrl([
+            ...new Set(places.map((place) => place.siteUrl).filter(Boolean)),
+          ]);
+          const next = {
+            at: Date.now(),
+            complete: true,
+            places: places.map((place) => ({
+              ...place,
+              address: place.siteUrl ? addresses.get(place.siteUrl) ?? "" : "",
+            })),
+          };
+          remember(next);
+          await writeDisk(next);
+          return next.places;
+        })
+        .catch(() => stored.places)
+        .finally(() => {
+          quickTask = null;
+        });
+    }
+    return { places: stored.places, complete: stored.complete };
+  }
+
+  if (!quickTask) {
+    quickTask = fetchQuick().finally(() => {
+      quickTask = null;
+    });
+  }
+  const places = await quickTask;
+  fillAddresses();
+  return { places, complete: false };
 }
 
 async function addressesByUrl(urls: string[]) {
@@ -114,7 +199,7 @@ async function addressesByUrl(urls: string[]) {
       addresses.set(urls[index], await addressAt(urls[index]));
     }
   }
-  await Promise.all(Array.from({ length: Math.min(8, urls.length) }, () => worker()));
+  await Promise.all(Array.from({ length: Math.min(12, urls.length) }, () => worker()));
   return addresses;
 }
 

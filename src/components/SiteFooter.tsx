@@ -50,7 +50,7 @@ export function SiteFooter({
           <ul className="mt-4 space-y-2 text-sm">
             <li><Link href="/horarios" className="hover:text-gold-300">Horários</Link></li>
             {hidden.has("/mapa-de-paroquias") ? null : (
-              <li><Link href="/mapa-de-paroquias" className="hover:text-gold-300">Mapa de Paróquias</Link></li>
+              <li><a href="/mapa-de-paroquias" className="hover:text-gold-300">Mapa de Paróquias</a></li>
             )}
             {hidden.has("/terco-online") ? null : (
               <li><Link href="/terco-online" className="hover:text-gold-300">Terço online</Link></li>

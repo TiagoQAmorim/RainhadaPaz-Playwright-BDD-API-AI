@@ -1,6 +1,6 @@
 import { PageContainer } from "@/components/PageContainer";
 import { ParishMapExplorer } from "@/components/ParishMapExplorer";
-import { DIOCESE_MAP_ID, getDiocesePlaces } from "@/lib/diocese-map";
+import { DIOCESE_MAP_ID } from "@/lib/diocese-map-embed";
 
 export const metadata = {
   title: "Mapa de Paróquias da Diocese de Sto. Amaro",
@@ -8,8 +8,7 @@ export const metadata = {
     "Mapa territorial da Diocese de Santo Amaro, com busca pelo nome da paróquia ou comunidade.",
 };
 
-export default async function MapaDeParoquiasPage() {
-  const places = await getDiocesePlaces().catch(() => []);
+export default function MapaDeParoquiasPage() {
   const source = `https://www.google.com/maps/d/viewer?mid=${DIOCESE_MAP_ID}`;
 
   return (
@@ -21,7 +20,7 @@ export default async function MapaDeParoquiasPage() {
         Procure pelo nome da paróquia ou da comunidade. Os resultados aparecem na lista abaixo do
         mapa; toque em um nome para abrir o lugar no mapa.
       </p>
-      <ParishMapExplorer places={places} />
+      <ParishMapExplorer />
       <p className="mt-3 text-sm text-parish-600">
         Mapa territorial da{" "}
         <a
