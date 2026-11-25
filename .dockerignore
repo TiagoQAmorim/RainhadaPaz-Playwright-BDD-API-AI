@@ -4,7 +4,10 @@ node_modules
 .env
 .env.*
 *.db
-public/uploads
+# Uploads novos do admin ficam no volume. As fotos versionadas em migrated/ precisam ir na imagem.
+public/uploads/*
+!public/uploads/migrated/
+!public/uploads/migrated/**
 scripts/tmp-*
 coverage
 test-results

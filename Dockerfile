@@ -14,6 +14,8 @@ COPY package.json package-lock.json ./
 COPY prisma ./prisma
 RUN DATABASE_URL=file:./.railway-build.db npm ci
 
+# Fotos das páginas. Sem esta pasta, os banners somem em produção.
+COPY public/uploads/migrated ./public/uploads/migrated
 COPY . .
 # SQLite só desta etapa. Em produção a Railway injeta file:/data/rainhadapaz.db.
 RUN DATABASE_URL=file:./.railway-build.db RAILWAY_PROJECT_ID=docker-build node scripts/next-build.mjs \
