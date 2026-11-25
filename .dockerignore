@@ -1,0 +1,12 @@
+node_modules
+.next
+.git
+.env
+.env.*
+*.db
+public/uploads
+scripts/tmp-*
+coverage
+test-results
+playwright-report
+agent-transcripts

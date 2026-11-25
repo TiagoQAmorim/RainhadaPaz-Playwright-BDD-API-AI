@@ -1,7 +1,9 @@
 # https://docs.railway.com/reference/config-as-code
-# O volume /data só existe em runtime — no build usamos SQLite temporário para o Next pré-renderizar.
+# Dockerfile em vez do Railpack: a Railway tem cancelado a instalação do Node via mise.
+# O volume /data só existe em runtime. O build usa SQLite temporário dentro da imagem.
 [build]
-buildCommand = "npm run build"
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
 
 [deploy]
 # Schema/seed no boot (scripts/ensure-db.mjs) — pre-deploy não usa o volume /data em alguns projetos.
