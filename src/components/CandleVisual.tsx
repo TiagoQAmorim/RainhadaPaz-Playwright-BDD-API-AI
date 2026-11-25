@@ -41,24 +41,22 @@ function parseDate(v: Date | string | null | undefined): Date | null {
 function readBurn(litMs: number, expMs: number) {
   const lit = litMs ? new Date(litMs) : null;
   const exp = expMs ? new Date(expMs) : null;
-  const ratio = candleRemainingRatio(lit, exp);
-  const remainingMs = lit && exp ? Math.max(0, exp.getTime() - Date.now()) : 0;
-  return { ratio, remainingMs };
+  return candleRemainingRatio(lit, exp);
 }
 
 function useWaxRemaining(litAt: Date | null, expiresAt: Date | null) {
   const litMs = litAt?.getTime() ?? 0;
   const expMs = expiresAt?.getTime() ?? 0;
-  const [burn, setBurn] = useState(() => readBurn(litMs, expMs));
+  const [ratio, setRatio] = useState(() => readBurn(litMs, expMs));
 
   useEffect(() => {
-    setBurn(readBurn(litMs, expMs));
+    setRatio(readBurn(litMs, expMs));
     if (!litMs || !expMs) return;
-    const id = window.setInterval(() => setBurn(readBurn(litMs, expMs)), 8_000);
+    const id = window.setInterval(() => setRatio(readBurn(litMs, expMs)), 8_000);
     return () => window.clearInterval(id);
   }, [litMs, expMs]);
 
-  return burn;
+  return ratio;
 }
 
 export function CandleVisual({
@@ -75,10 +73,9 @@ export function CandleVisual({
   const burnWindow = resolveCandleBurnWindow(litAtProp, expiresAtProp, durationHours);
   const litAt = burnWindow ? burnWindow.litAt : parseDate(litAtProp);
   const expiresAt = burnWindow ? burnWindow.expiresAt : parseDate(expiresAtProp);
-  const wax = useWaxRemaining(litAt, expiresAt);
-  const waxRemaining = wax.ratio;
+  const waxRemaining = useWaxRemaining(litAt, expiresAt);
   const isLit = waxRemaining > 0 && !!litAt && !!expiresAt;
-  const step = isLit ? candleBurnStep(waxRemaining, wax.remainingMs) : waxRemaining > 0 ? 100 : null;
+  const step = isLit ? candleBurnStep(waxRemaining) : waxRemaining > 0 ? 100 : null;
 
   if (step === null) {
     const puddle = candleSpentLayout(w);
