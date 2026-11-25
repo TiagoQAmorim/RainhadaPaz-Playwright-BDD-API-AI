@@ -71,6 +71,9 @@ model SiteSettings {
   candleWeekEmailItem      String?
   // Minutos antes de apagar para avisar quem acendeu. Padrão: 60.
   candleExpiryNoticeMinutes Int @default(60)
+  // Depois de apagar, a vela com fumaça continua no mural. Padrão: 2 dias. Zero some na hora.
+  candleAfterglowAmount Int    @default(2)
+  candleAfterglowUnit   String @default("days")
 }
 
 model Post {

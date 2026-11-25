@@ -138,6 +138,7 @@ export default async function HomePage() {
             initial={candleMural.candles.map(toPublicCandle)}
             total={candleMural.total}
             durationHours={candleMural.durationHours}
+            afterglowMs={candleMural.afterglowMs}
           />
         </div>
         <div className="mt-4 text-center">

@@ -575,6 +575,24 @@ function normalizeOptionalEmail(raw: FormDataEntryValue | null): string | null {
   return v;
 }
 
+function readAfterglow(formData: FormData) {
+  const amount = Number(String(formData.get("candleAfterglowAmount") ?? "").trim());
+  const unit = String(formData.get("candleAfterglowUnit") ?? "days");
+  if (unit !== "hours" && unit !== "days") {
+    redirectCandleSettingsError("Unidade da vela apagada inválida.");
+  }
+  if (!Number.isInteger(amount) || amount < 0) {
+    redirectCandleSettingsError("Informe um prazo válido para a vela apagada.");
+  }
+  if (unit === "days" && amount > 365) {
+    redirectCandleSettingsError("A vela apagada pode ficar visível por no máximo 365 dias.");
+  }
+  if (unit === "hours" && amount > 365 * 24) {
+    redirectCandleSettingsError("A vela apagada pode ficar visível por no máximo 8760 horas.");
+  }
+  return { candleAfterglowAmount: amount, candleAfterglowUnit: unit };
+}
+
 function readExpiryNoticeMinutes(formData: FormData) {
   const minutes = Number(String(formData.get("candleExpiryNoticeMinutes") ?? "").trim());
   if (!Number.isInteger(minutes) || minutes < 1 || minutes > 1440) {
@@ -664,6 +682,7 @@ export async function updateCandleSettings(formData: FormData) {
       candleWeekEmailIntro: readCandleEmailTemplate(formData, "candleWeekEmailIntro", 8000),
       candleWeekEmailItem: readCandleEmailTemplate(formData, "candleWeekEmailItem", 8000),
       candleExpiryNoticeMinutes: readExpiryNoticeMinutes(formData),
+      ...readAfterglow(formData),
     };
 
     await prisma.siteSettings.upsert({

@@ -86,6 +86,36 @@ export default async function AdminVelasPage({
               </select>
             </div>
           </div>
+          <div className="flex flex-wrap items-end gap-3">
+            <div>
+              <label className="mb-1 block text-sm font-medium">Vela apagada continua visível</label>
+              <input
+                type="number"
+                name="candleAfterglowAmount"
+                min={0}
+                max={8760}
+                step={1}
+                defaultValue={settings.candleAfterglowAmount ?? 2}
+                className={adminInput}
+                required
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium">Unidade</label>
+              <select
+                name="candleAfterglowUnit"
+                className={adminInput}
+                defaultValue={settings.candleAfterglowUnit ?? "days"}
+              >
+                <option value="hours">Horas</option>
+                <option value="days">Dias</option>
+              </select>
+            </div>
+            <p className="w-full text-xs text-parish-500">
+              Depois que o tempo acaba, a vela fica com fumaça no mural e na esteira por esse prazo.
+              Zero some na hora.
+            </p>
+          </div>
           <div className="max-w-lg space-y-3 border-t border-parish-100 pt-4">
             <h2 className="text-sm font-semibold text-parish-900">Pagamento e valor</h2>
             <div className="space-y-2">

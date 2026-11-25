@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { isCandleOnMural } from "@/lib/candle-burn";
 import { prisma } from "@/lib/prisma";
-import { getCandleDurationHours } from "@/lib/settings";
+import { getCandleAfterglowMs, getCandleDurationHours } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -40,8 +40,8 @@ export async function POST(_req: Request, context: { params: Promise<{ id: strin
     where: { id },
     select: { litAt: true, expiresAt: true, status: true },
   });
-  const hours = await getCandleDurationHours();
-  if (!candle || !isCandleOnMural(candle, hours)) {
+  const [hours, afterglowMs] = await Promise.all([getCandleDurationHours(), getCandleAfterglowMs()]);
+  if (!candle || !isCandleOnMural(candle, hours, Date.now(), afterglowMs)) {
     return NextResponse.json({ error: "Esta vela não está no mural" }, { status: 404 });
   }
 

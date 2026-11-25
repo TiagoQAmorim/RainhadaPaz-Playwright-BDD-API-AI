@@ -2,7 +2,7 @@ import Link from "next/link";
 import { CandlePrayerButton } from "@/components/CandlePrayerButton";
 import { CandleVisual } from "@/components/CandleVisual";
 import { candleVisualSlotHeight, type CandleVisualSize } from "@/lib/candle-visual-size";
-import { formatCandleTimeLeft, resolveCandleBurnWindow } from "@/lib/candle-burn";
+import { CANDLE_AFTERGLOW_MS, formatCandleTimeLeft, resolveCandleBurnWindow } from "@/lib/candle-burn";
 import { cn } from "@/lib/cn";
 
 export type CandleItem = {
@@ -34,6 +34,7 @@ export function CandleWall({
   embedded,
   showViewAllHref,
   durationHours,
+  afterglowMs,
   dense,
   muralDark,
   rail,
@@ -49,6 +50,8 @@ export function CandleWall({
   rail?: boolean;
   showViewAllHref?: string;
   durationHours: number;
+  /** Quanto tempo a vela apagada continua no mural. */
+  afterglowMs?: number;
 }) {
   const onPhoto = banner === true;
   const velario = dark === true && !banner;
@@ -95,7 +98,12 @@ export function CandleWall({
       <ul className={cn(gridClass, "relative z-[1]")}>
         {candles.map((c, i) => {
           const burn = resolveCandleBurnWindow(c.litAt, c.expiresAt, durationHours);
-          const timeLeft = formatCandleTimeLeft(c.litAt, c.expiresAt, durationHours);
+          const timeLeft = formatCandleTimeLeft(
+            c.litAt,
+            c.expiresAt,
+            durationHours,
+            afterglowMs ?? CANDLE_AFTERGLOW_MS,
+          );
           const name = normalizeLine(c.donorName);
           const intention = normalizeLine(c.intention);
           const prayer = c.prayer ? normalizeLine(c.prayer) : null;
@@ -148,7 +156,9 @@ export function CandleWall({
                 <div
                   className={cn(
                     "flex flex-col overflow-hidden text-center",
-                    uniformMural
+                    rail
+                      ? "h-[9.75rem] shrink-0 border-t border-white/10 px-2.5 pb-2.5 pt-2.5 text-amber-50"
+                      : uniformMural
                       ? "h-[9.75rem] shrink-0 border-t border-amber-900/30 bg-black/25 px-3 pb-2 pt-3 text-amber-50"
                       : cn(
                           "min-h-0 flex-1",

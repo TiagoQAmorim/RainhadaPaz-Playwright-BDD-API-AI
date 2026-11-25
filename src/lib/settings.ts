@@ -52,6 +52,8 @@ const DEFAULT_SITE_SETTINGS: SiteSettings = {
   candleWeekEmailIntro: null,
   candleWeekEmailItem: null,
   candleExpiryNoticeMinutes: 60,
+  candleAfterglowAmount: 2,
+  candleAfterglowUnit: "days",
 };
 
 /** Cria a linha id=1 se o banco estiver vazio. Sem isso, o admin não consegue gravar manutenção. */
@@ -128,6 +130,27 @@ export async function getCandlesNotifyEmail(): Promise<string | null> {
   if (dedicated) return dedicated;
   const general = settings.email?.trim();
   return general || null;
+}
+
+const MAX_AFTERGLOW_DAYS = 365;
+
+/** Prazo em que a vela apagada continua no mural. Zero some na hora. */
+export function candleAfterglowMsFrom(
+  amount: number | null | undefined,
+  unit: string | null | undefined,
+): number {
+  const raw = Number(amount);
+  const n = Number.isFinite(raw) ? Math.round(raw) : 2;
+  const hours =
+    unit === "hours"
+      ? Math.min(MAX_AFTERGLOW_DAYS * 24, Math.max(0, n))
+      : Math.min(MAX_AFTERGLOW_DAYS, Math.max(0, n)) * 24;
+  return hours * 60 * 60 * 1000;
+}
+
+export async function getCandleAfterglowMs(): Promise<number> {
+  const settings = await getSiteSettings();
+  return candleAfterglowMsFrom(settings.candleAfterglowAmount, settings.candleAfterglowUnit);
 }
 
 /** Duração da vela no mural (horas), a partir do admin ou .env. */

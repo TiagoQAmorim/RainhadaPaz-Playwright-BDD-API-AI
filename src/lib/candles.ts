@@ -1,7 +1,7 @@
-import { CANDLE_AFTERGLOW_MS, isCandleOnMural } from "@/lib/candle-burn";
+import { isCandleOnMural } from "@/lib/candle-burn";
 import type { PublicCandle } from "@/lib/candle-public";
 import { prisma } from "@/lib/prisma";
-import { getCandleDurationHours } from "@/lib/settings";
+import { getCandleAfterglowMs, getCandleDurationHours } from "@/lib/settings";
 import { sendCandlePrayerToParish } from "@/lib/candle-parish-email";
 
 export {
@@ -59,8 +59,8 @@ export async function activateCandle(candleId: string) {
 
 export async function listLitCandles(options: { skip?: number; take: number }) {
   const now = new Date();
-  const hours = await getCandleDurationHours();
-  const smokeSince = new Date(now.getTime() - CANDLE_AFTERGLOW_MS);
+  const [hours, afterglowMs] = await Promise.all([getCandleDurationHours(), getCandleAfterglowMs()]);
+  const smokeSince = new Date(now.getTime() - afterglowMs);
   const rows = await prisma.virtualCandle.findMany({
     where: {
       litAt: { not: null },
@@ -69,12 +69,13 @@ export async function listLitCandles(options: { skip?: number; take: number }) {
     },
     orderBy: { litAt: "desc" },
   });
-  const lit = rows.filter((c) => isCandleOnMural(c, hours, now.getTime()));
+  const lit = rows.filter((c) => isCandleOnMural(c, hours, now.getTime(), afterglowMs));
   const skip = Math.max(0, options.skip ?? 0);
   return {
     candles: lit.slice(skip, skip + options.take),
     total: lit.length,
     durationHours: hours,
+    afterglowMs,
   };
 }
 

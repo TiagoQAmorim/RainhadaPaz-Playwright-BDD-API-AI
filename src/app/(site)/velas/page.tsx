@@ -101,6 +101,7 @@ export default async function VelasPage({ searchParams }: Props) {
             embedded
             muralDark
             durationHours={durationHours}
+            afterglowMs={mural.afterglowMs}
           />
           {mural.total > 0 && candles.length > 0 ? (
             <p className="mt-4 text-center text-sm text-amber-100/75">

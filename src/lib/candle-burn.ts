@@ -1,4 +1,4 @@
-/** Depois de apagar, a vela fica no mural com fumaça por dois dias. */
+/** Padrão quando o admin ainda não definiu: dois dias de fumaça. */
 export const CANDLE_AFTERGLOW_MS = 2 * 24 * 60 * 60 * 1000;
 
 export const CANDLE_BURN_SCALE_MIN = 0.52;
@@ -60,15 +60,16 @@ export function isCandleLitNow(
   return !!window && window.expiresAt.getTime() > nowMs;
 }
 
-/** No mural: acesa, ou apagada há menos de dois dias. Status EXPIRED sai na hora. */
+/** No mural: acesa, ou apagada dentro do prazo do admin. Status EXPIRED sai na hora. */
 export function isCandleOnMural(
   candle: { status: string; litAt: Date | null; expiresAt: Date | null },
   durationHours: number,
   nowMs = Date.now(),
+  afterglowMs = CANDLE_AFTERGLOW_MS,
 ): boolean {
   if (!candle.litAt || candle.status === "EXPIRED") return false;
   const window = resolveCandleBurnWindow(candle.litAt, candle.expiresAt, durationHours);
-  return !!window && nowMs < window.expiresAt.getTime() + CANDLE_AFTERGLOW_MS;
+  return !!window && nowMs < window.expiresAt.getTime() + Math.max(0, afterglowMs);
 }
 
 /** 1 = recém acesa, 0 = tempo esgotado */
@@ -108,12 +109,13 @@ export function formatCandleTimeLeft(
   litAt: Date | string | null | undefined,
   expiresAt: Date | string | null | undefined,
   durationHours?: number,
+  afterglowMs = CANDLE_AFTERGLOW_MS,
 ): string | null {
   const hours = durationHours ?? DEFAULT_CANDLE_DURATION_HOURS;
   const window = resolveCandleBurnWindow(litAt, expiresAt, hours);
   if (!window) return null;
   const ms = window.expiresAt.getTime() - Date.now();
-  if (ms <= 0) return ms > -CANDLE_AFTERGLOW_MS ? "Apagada" : null;
+  if (ms <= 0) return ms > -Math.max(0, afterglowMs) ? "Apagada" : null;
   return formatCandleTimeLeftMs(ms);
 }
 
