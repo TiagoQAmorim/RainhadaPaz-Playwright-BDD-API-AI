@@ -38,25 +38,27 @@ function parseDate(v: Date | string | null | undefined): Date | null {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
+function readBurn(litMs: number, expMs: number) {
+  const lit = litMs ? new Date(litMs) : null;
+  const exp = expMs ? new Date(expMs) : null;
+  const ratio = candleRemainingRatio(lit, exp);
+  const remainingMs = lit && exp ? Math.max(0, exp.getTime() - Date.now()) : 0;
+  return { ratio, remainingMs };
+}
+
 function useWaxRemaining(litAt: Date | null, expiresAt: Date | null) {
   const litMs = litAt?.getTime() ?? 0;
   const expMs = expiresAt?.getTime() ?? 0;
-  const [remaining, setRemaining] = useState(() =>
-    candleRemainingRatio(litAt, expiresAt),
-  );
+  const [burn, setBurn] = useState(() => readBurn(litMs, expMs));
 
   useEffect(() => {
-    const lit = litMs ? new Date(litMs) : null;
-    const exp = expMs ? new Date(expMs) : null;
-    setRemaining(candleRemainingRatio(lit, exp));
-    if (!lit || !exp) return;
-    const id = window.setInterval(() => {
-      setRemaining(candleRemainingRatio(lit, exp));
-    }, 8_000);
+    setBurn(readBurn(litMs, expMs));
+    if (!litMs || !expMs) return;
+    const id = window.setInterval(() => setBurn(readBurn(litMs, expMs)), 8_000);
     return () => window.clearInterval(id);
   }, [litMs, expMs]);
 
-  return remaining;
+  return burn;
 }
 
 export function CandleVisual({
@@ -73,9 +75,10 @@ export function CandleVisual({
   const burnWindow = resolveCandleBurnWindow(litAtProp, expiresAtProp, durationHours);
   const litAt = burnWindow ? burnWindow.litAt : parseDate(litAtProp);
   const expiresAt = burnWindow ? burnWindow.expiresAt : parseDate(expiresAtProp);
-  const waxRemaining = useWaxRemaining(litAt, expiresAt);
+  const wax = useWaxRemaining(litAt, expiresAt);
+  const waxRemaining = wax.ratio;
   const isLit = waxRemaining > 0 && !!litAt && !!expiresAt;
-  const step = isLit ? candleBurnStep(waxRemaining) : waxRemaining > 0 ? 100 : null;
+  const step = isLit ? candleBurnStep(waxRemaining, wax.remainingMs) : waxRemaining > 0 ? 100 : null;
 
   if (step === null) {
     const puddle = candleSpentLayout(w);
