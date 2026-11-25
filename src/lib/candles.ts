@@ -1,4 +1,4 @@
-import { isCandleLitNow } from "@/lib/candle-burn";
+import { CANDLE_AFTERGLOW_MS, isCandleOnMural } from "@/lib/candle-burn";
 import type { PublicCandle } from "@/lib/candle-public";
 import { prisma } from "@/lib/prisma";
 import { getCandleDurationHours } from "@/lib/settings";
@@ -60,15 +60,16 @@ export async function activateCandle(candleId: string) {
 export async function listLitCandles(options: { skip?: number; take: number }) {
   const now = new Date();
   const hours = await getCandleDurationHours();
+  const smokeSince = new Date(now.getTime() - CANDLE_AFTERGLOW_MS);
   const rows = await prisma.virtualCandle.findMany({
     where: {
       litAt: { not: null },
       NOT: { status: "EXPIRED" },
-      OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+      OR: [{ expiresAt: null }, { expiresAt: { gt: smokeSince } }],
     },
     orderBy: { litAt: "desc" },
   });
-  const lit = rows.filter((c) => isCandleLitNow(c, hours, now.getTime()));
+  const lit = rows.filter((c) => isCandleOnMural(c, hours, now.getTime()));
   const skip = Math.max(0, options.skip ?? 0);
   return {
     candles: lit.slice(skip, skip + options.take),
@@ -94,6 +95,7 @@ export function toPublicCandle(candle: {
   litAt: Date | null;
   expiresAt: Date | null;
   amountCents: number;
+  prayerTogetherCount?: number;
 }): PublicCandle {
   return {
     id: candle.id,
@@ -105,5 +107,6 @@ export function toPublicCandle(candle: {
     litAt: (candle.litAt ?? new Date()).toISOString(),
     expiresAt: candle.expiresAt ? candle.expiresAt.toISOString() : null,
     paid: candle.amountCents > 0,
+    prayerTogetherCount: candle.prayerTogetherCount ?? 0,
   };
 }

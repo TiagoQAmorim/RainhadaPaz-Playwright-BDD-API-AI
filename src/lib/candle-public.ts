@@ -8,4 +8,5 @@ export type PublicCandle = {
   litAt: string;
   expiresAt: string | null;
   paid: boolean;
+  prayerTogetherCount: number;
 };

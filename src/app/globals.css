@@ -240,6 +240,68 @@ body {
   }
 }
 
+.candle-photo__smoke {
+  position: absolute;
+  left: 50%;
+  bottom: 28%;
+  width: 42%;
+  height: 78%;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.candle-photo__smoke::before {
+  content: "";
+  position: absolute;
+  left: 28%;
+  bottom: 0;
+  width: 44%;
+  height: 78%;
+  border-radius: 50% 50% 40% 40%;
+  background: linear-gradient(to top, rgba(232, 232, 232, 0.5), rgba(232, 232, 232, 0) 78%);
+  filter: blur(2px);
+}
+
+.candle-photo__smoke span {
+  position: absolute;
+  bottom: 0;
+  width: 34%;
+  height: 34%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(236, 236, 236, 0.72) 0%, rgba(190, 190, 190, 0.08) 70%);
+  filter: blur(1.5px);
+  opacity: 0;
+  animation: candle-smoke 3.4s ease-out infinite;
+}
+
+.candle-photo__smoke span:nth-child(1) {
+  left: 34%;
+}
+
+.candle-photo__smoke span:nth-child(2) {
+  left: 14%;
+  animation-delay: 1.15s;
+}
+
+.candle-photo__smoke span:nth-child(3) {
+  left: 52%;
+  animation-delay: 2.15s;
+}
+
+@keyframes candle-smoke {
+  0% {
+    transform: translateY(0) scale(0.55);
+    opacity: 0;
+  }
+  18% {
+    opacity: 0.62;
+  }
+  100% {
+    transform: translateY(-230%) scale(1.25);
+    opacity: 0;
+  }
+}
+
 .candle-velario--sanctuary {
   position: relative;
   overflow: hidden;
@@ -321,6 +383,12 @@ body {
 
   .candle-photo__glow::after {
     animation: none;
+  }
+
+  .candle-photo__smoke span {
+    animation: none;
+    opacity: 0.4;
+    transform: translateY(-80%) scale(0.9);
   }
 }
 

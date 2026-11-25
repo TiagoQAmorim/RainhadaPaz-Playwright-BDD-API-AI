@@ -19,6 +19,7 @@ function toItem(candle: PublicCandle): CandleItem {
     litAt: new Date(candle.litAt),
     expiresAt: candle.expiresAt ? new Date(candle.expiresAt) : null,
     paid: candle.paid,
+    prayerTogetherCount: candle.prayerTogetherCount,
   };
 }
 
@@ -175,6 +176,18 @@ export function HomeCandleRail({
   }
 
   function onPointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    const target = e.target instanceof Element ? e.target : null;
+    if (target?.closest("button, a")) {
+      paused.current = true;
+      const resume = () => {
+        paused.current = false;
+        window.removeEventListener("pointerup", resume);
+        window.removeEventListener("pointercancel", resume);
+      };
+      window.addEventListener("pointerup", resume);
+      window.addEventListener("pointercancel", resume);
+      return;
+    }
     if (fitsRef.current) return;
     if (e.pointerType === "mouse" && e.button !== 0) return;
     dragging.current = true;

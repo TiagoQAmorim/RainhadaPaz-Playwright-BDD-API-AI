@@ -35,6 +35,17 @@ export function candleStageImage(step: CandleBurnStep): string {
   return stageImages[step];
 }
 
+/** Cera derretida: mais larga que a vela em pé, para a poça aparecer inteira. */
+export function candleSpentLayout(candleWidthPx: number) {
+  const width = Math.round(candleWidthPx * 1.85);
+  const height = Math.max(30, Math.round(width * 0.4));
+  return { width, height };
+}
+
+export function candleSpentPixelHeight(widthPx: number) {
+  return candleSpentLayout(widthPx).height;
+}
+
 /** Altura visual da vela em px (base fixa na largura). */
 export function candleStagePixelHeight(step: CandleBurnStep, widthPx: number): number {
   const ratio = heightRatioByStep.get(step) ?? 1.35;

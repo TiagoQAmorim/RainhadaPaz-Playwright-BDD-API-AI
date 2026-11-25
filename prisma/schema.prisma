@@ -206,7 +206,19 @@ model VirtualCandle {
   litAt           DateTime?
   expiresAt       DateTime?
   expiryReminderSentAt DateTime?
+  prayerTogetherCount Int       @default(0)
   createdAt       DateTime       @default(now())
+  prayerMarks     CandlePrayerMark[]
+}
+
+// Uma oração por vela para o mesmo navegador (cookie), sem conta de usuário.
+model CandlePrayerMark {
+  candleId  String
+  visitorId String
+  createdAt DateTime      @default(now())
+  candle    VirtualCandle @relation(fields: [candleId], references: [id], onDelete: Cascade)
+
+  @@id([candleId, visitorId])
 }
 
 // ——— Rifa dos Santos ———

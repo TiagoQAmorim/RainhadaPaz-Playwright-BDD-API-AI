@@ -6,6 +6,7 @@ import { CANDLE_ASSETS } from "@/lib/candle-assets";
 import {
   candleBurnStep,
   candleFlameScale,
+  candleSpentLayout,
   candleStageImage,
   candleStagePixelHeight,
 } from "@/lib/candle-stages";
@@ -77,12 +78,36 @@ export function CandleVisual({
   const step = isLit ? candleBurnStep(waxRemaining) : waxRemaining > 0 ? 100 : null;
 
   if (step === null) {
+    const puddle = candleSpentLayout(w);
+    const smokeH = Math.round(w * 0.9);
     return (
       <div
-        className="candle-photo candle-photo--extinguished mx-auto shrink-0"
-        style={{ width: w, height: 0 }}
+        className={cn(
+          "candle-photo candle-photo--out relative mx-auto shrink-0",
+          mural && "candle-photo--mural",
+        )}
+        style={{ width: puddle.width, height: puddle.height + smokeH }}
         aria-hidden
-      />
+      >
+        <div className="candle-photo__smoke" style={{ height: smokeH, bottom: puddle.height }}>
+          <span />
+          <span />
+          <span />
+        </div>
+        <div
+          className="candle-photo__wax-slot absolute bottom-0 left-0 right-0"
+          style={{ height: puddle.height }}
+        >
+          <Image
+            src={CANDLE_ASSETS.stage0}
+            alt=""
+            width={puddle.width}
+            height={puddle.height}
+            unoptimized
+            className="pointer-events-none mx-auto block h-full w-full select-none object-contain object-bottom"
+          />
+        </div>
+      </div>
     );
   }
 

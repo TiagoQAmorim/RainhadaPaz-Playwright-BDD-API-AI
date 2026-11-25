@@ -1,3 +1,6 @@
+/** Depois de apagar, a vela fica no mural com fumaça por dois dias. */
+export const CANDLE_AFTERGLOW_MS = 2 * 24 * 60 * 60 * 1000;
+
 export const CANDLE_BURN_SCALE_MIN = 0.52;
 export const CANDLE_BURN_SCALE_MAX = 1.15;
 export const DEFAULT_CANDLE_DURATION_HOURS = 8;
@@ -57,6 +60,17 @@ export function isCandleLitNow(
   return !!window && window.expiresAt.getTime() > nowMs;
 }
 
+/** No mural: acesa, ou apagada há menos de dois dias. Status EXPIRED sai na hora. */
+export function isCandleOnMural(
+  candle: { status: string; litAt: Date | null; expiresAt: Date | null },
+  durationHours: number,
+  nowMs = Date.now(),
+): boolean {
+  if (!candle.litAt || candle.status === "EXPIRED") return false;
+  const window = resolveCandleBurnWindow(candle.litAt, candle.expiresAt, durationHours);
+  return !!window && nowMs < window.expiresAt.getTime() + CANDLE_AFTERGLOW_MS;
+}
+
 /** 1 = recém acesa, 0 = tempo esgotado */
 export function candleRemainingRatio(
   litAt: Date | null,
@@ -99,6 +113,7 @@ export function formatCandleTimeLeft(
   const window = resolveCandleBurnWindow(litAt, expiresAt, hours);
   if (!window) return null;
   const ms = window.expiresAt.getTime() - Date.now();
+  if (ms <= 0) return ms > -CANDLE_AFTERGLOW_MS ? "Apagada" : null;
   return formatCandleTimeLeftMs(ms);
 }
 
@@ -115,7 +130,7 @@ export function formatCandleTimeLeftMs(ms: number): string | null {
       return `Faltam ${days} ${dayWord}`;
     }
     const hourWord = hours === 1 ? "hora" : "horas";
-    return `Faltam ${days} ${dayWord} e ${hours} ${hourWord}`;
+    return `Faltam ${days} ${dayWord}\ne ${hours} ${hourWord}`;
   }
 
   const hours = Math.floor(totalMin / 60);
@@ -123,7 +138,7 @@ export function formatCandleTimeLeftMs(ms: number): string | null {
   if (hours > 0 && minutes > 0) {
     const hourWord = hours === 1 ? "hora" : "horas";
     const minWord = minutes === 1 ? "minuto" : "minutos";
-    return `Faltam ${hours} ${hourWord} e ${minutes} ${minWord}`;
+    return `Faltam ${hours} ${hourWord}\ne ${minutes} ${minWord}`;
   }
   if (hours > 0) {
     const hourWord = hours === 1 ? "hora" : "horas";

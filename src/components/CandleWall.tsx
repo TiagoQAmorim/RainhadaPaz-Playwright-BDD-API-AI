@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CandlePrayerButton } from "@/components/CandlePrayerButton";
 import { CandleVisual } from "@/components/CandleVisual";
 import { candleVisualSlotHeight, type CandleVisualSize } from "@/lib/candle-visual-size";
 import { formatCandleTimeLeft, resolveCandleBurnWindow } from "@/lib/candle-burn";
@@ -15,6 +16,7 @@ export type CandleItem = {
   expiresAt?: Date | null;
   /** Contribuição em dinheiro. A vela gratuita acesa não leva auréola. */
   paid?: boolean;
+  prayerTogetherCount?: number;
 };
 
 const textBlock =
@@ -58,8 +60,7 @@ export function CandleWall({
   const visualSize: CandleVisualSize = onPhoto ? "xs" : dense || compact ? "sm" : "lg";
   const candleSize: CandleVisualSize = uniformMural ? "sm" : visualSize;
   const slotHeight = candleVisualSlotHeight(candleSize);
-  const wellHeight =
-    onPhoto || !dense ? slotHeight : Math.round(slotHeight * 0.9);
+  const wellHeight = onPhoto || !dense ? slotHeight : Math.round(slotHeight * 0.9);
 
   if (candles.length === 0) {
     return (
@@ -148,7 +149,7 @@ export function CandleWall({
                   className={cn(
                     "flex flex-col overflow-hidden text-center",
                     uniformMural
-                      ? "h-[8.75rem] shrink-0 border-t border-amber-900/30 bg-black/25 px-3 pb-3 pt-3 text-amber-50"
+                      ? "h-[9.75rem] shrink-0 border-t border-amber-900/30 bg-black/25 px-3 pb-2 pt-3 text-amber-50"
                       : cn(
                           "min-h-0 flex-1",
                           tightText ? "min-h-[6.25rem] px-2.5 pb-2.5 pt-2.5" : "border-t border-parish-100 px-3 pb-4 pt-3",
@@ -252,23 +253,26 @@ export function CandleWall({
                     ) : null}
                   </div>
 
-                  {timeLeft ? (
-                    <p
-                      className={cn(
-                        "shrink-0 font-medium uppercase tracking-wide",
-                        uniformMural
-                          ? "pt-2 text-[11px] leading-snug sm:text-xs"
-                          : tightText
-                            ? "pt-1.5 text-[11px] leading-snug sm:text-xs"
-                            : roomyText
-                              ? "pt-3 text-sm"
-                              : "pt-3 text-xs",
-                        nightText ? "text-gold-400/90" : "text-amber-700/80",
-                      )}
-                    >
-                      {timeLeft}
-                    </p>
-                  ) : null}
+                  <div className="mt-auto flex shrink-0 items-center justify-between gap-2 pt-2">
+                    {timeLeft ? (
+                      <p
+                        className={cn(
+                          "min-w-0 flex-1 whitespace-pre-line text-left font-medium uppercase leading-tight tracking-wide",
+                          uniformMural || tightText ? "text-[11px] sm:text-xs" : roomyText ? "text-sm" : "text-xs",
+                          nightText ? "text-gold-400/90" : "text-amber-700/80",
+                        )}
+                      >
+                        {timeLeft}
+                      </p>
+                    ) : (
+                      <span className="flex-1" />
+                    )}
+                    <CandlePrayerButton
+                      candleId={c.id}
+                      count={c.prayerTogetherCount ?? 0}
+                      className="shrink-0"
+                    />
+                  </div>
                 </div>
               </div>
             </li>

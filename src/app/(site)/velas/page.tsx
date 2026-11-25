@@ -96,6 +96,7 @@ export default async function VelasPage({ searchParams }: Props) {
               litAt: c.litAt,
               expiresAt: c.expiresAt,
               paid: c.amountCents > 0,
+              prayerTogetherCount: c.prayerTogetherCount,
             }))}
             embedded
             muralDark
