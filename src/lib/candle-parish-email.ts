@@ -32,6 +32,9 @@ export async function sendViaSmtp(params: { to: string; subject: string; text: s
     host,
     port,
     secure: port === 465,
+    connectionTimeout: 8_000,
+    greetingTimeout: 8_000,
+    socketTimeout: 10_000,
     auth: user && pass ? { user, pass } : undefined,
   });
 

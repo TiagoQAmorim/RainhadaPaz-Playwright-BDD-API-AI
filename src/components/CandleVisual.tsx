@@ -79,17 +79,21 @@ export function CandleVisual({
 
   if (step === null) {
     const puddle = candleSpentLayout(w);
-    const smokeH = Math.round(w * 0.9);
+    const smokeGap = Math.max(16, Math.round(w * 0.42));
+    const smokeH = Math.round(w * 1.05);
     return (
       <div
         className={cn(
           "candle-photo candle-photo--out relative mx-auto shrink-0",
           mural && "candle-photo--mural",
         )}
-        style={{ width: puddle.width, height: puddle.height + smokeH }}
+        style={{ width: puddle.width, height: puddle.height + smokeGap + smokeH }}
         aria-hidden
       >
-        <div className="candle-photo__smoke" style={{ height: smokeH, bottom: puddle.height }}>
+        <div
+          className="candle-photo__smoke"
+          style={{ height: smokeH, bottom: puddle.height + smokeGap }}
+        >
           <span />
           <span />
           <span />

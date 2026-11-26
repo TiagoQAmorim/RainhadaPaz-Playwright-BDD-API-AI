@@ -35,10 +35,10 @@ export function candleStageImage(step: CandleBurnStep): string {
   return stageImages[step];
 }
 
-/** Cera derretida: mais larga que a vela em pé, para a poça aparecer inteira. */
+/** Cera derretida, só um pouco mais larga que a vela em pé. */
 export function candleSpentLayout(candleWidthPx: number) {
-  const width = Math.round(candleWidthPx * 1.85);
-  const height = Math.max(30, Math.round(width * 0.4));
+  const width = Math.round(candleWidthPx * 1.2);
+  const height = Math.max(16, Math.round(width * 0.42));
   return { width, height };
 }
 

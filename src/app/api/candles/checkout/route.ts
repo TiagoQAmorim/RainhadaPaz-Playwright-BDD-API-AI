@@ -1,3 +1,4 @@
+import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { activateCandle } from "@/lib/candles";
@@ -153,6 +154,8 @@ export async function POST(req: Request) {
 
     if (free) {
       await activateCandle(candle.id);
+      revalidatePath("/velas");
+      revalidatePath("/");
       return NextResponse.json({ free: true, candleId: candle.id });
     }
 

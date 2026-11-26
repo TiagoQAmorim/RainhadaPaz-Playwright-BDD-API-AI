@@ -46,21 +46,20 @@ export function CandleForm({ commerce }: Props) {
         try {
           data = JSON.parse(raw) as typeof data;
         } catch {
-          throw new Error("Resposta inválida do servidor. Reinicie o site (dev) e tente novamente.");
+          throw new Error("A confirmação não chegou. Atualize o mural: a vela pode já estar acesa.");
         }
       } else if (!res.ok) {
         throw new Error("Erro no servidor ao acender a vela.");
       }
       if (!res.ok) throw new Error(data.error ?? "Não foi possível acender a vela.");
       if (data.paymentPath) {
-        window.location.href = data.paymentPath;
+        window.location.assign(data.paymentPath);
         return;
       }
       const q = data.candleId ? `?candle=${data.candleId}` : data.free ? "?gratis=1" : "";
-      window.location.href = `/velas/sucesso${q}`;
+      window.location.assign(`/velas/sucesso${q}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro inesperado.");
-    } finally {
       setLoading(false);
     }
   }
@@ -89,8 +88,12 @@ export function CandleForm({ commerce }: Props) {
         body: JSON.stringify({ code }),
       });
       if (!res.ok) continue;
-      const body = (await res.json()) as { text?: string };
-      if (body.text) return body.text;
+      try {
+        const body = (await res.json()) as { text?: string };
+        if (body.text) return body.text;
+      } catch {
+        continue;
+      }
     }
     return null;
   }
@@ -98,11 +101,15 @@ export function CandleForm({ commerce }: Props) {
   async function submitFromButton(e: React.MouseEvent<HTMLButtonElement>) {
     const form = e.currentTarget.form;
     if (!form) return;
-    const note = await privateNoteFromForm(form);
-    if (note) {
-      setPrivateNote(note);
-      setError(null);
-      return;
+    try {
+      const note = await privateNoteFromForm(form);
+      if (note) {
+        setPrivateNote(note);
+        setError(null);
+        return;
+      }
+    } catch {
+      // Falha no recado não impede acender a vela.
     }
     if (!form.reportValidity()) return;
     void onSubmit({

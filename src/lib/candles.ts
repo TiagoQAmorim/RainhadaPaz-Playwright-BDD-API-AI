@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import { isCandleOnMural } from "@/lib/candle-burn";
 import type { PublicCandle } from "@/lib/candle-public";
 import { prisma } from "@/lib/prisma";
@@ -32,25 +33,33 @@ export async function activateCandle(candleId: string) {
   });
 
   if (!existing.parishNotifiedAt) {
+    const notify = async () => {
+      try {
+        await sendCandlePrayerToParish({
+          donorName: candle.donorName,
+          intention: candle.intention,
+          prayer: candle.prayer,
+          intentionPublic: candle.intentionPublic,
+          prayerPublic: candle.prayerPublic,
+          email: candle.email,
+          phone: candle.phone,
+          amountCents: candle.amountCents,
+          litAt: candle.litAt,
+          expiresAt: candle.expiresAt,
+        });
+        await prisma.virtualCandle.update({
+          where: { id: candleId },
+          data: { parishNotifiedAt: new Date() },
+        });
+      } catch (e) {
+        console.error("[vela-email]", e);
+      }
+    };
     try {
-      await sendCandlePrayerToParish({
-        donorName: candle.donorName,
-        intention: candle.intention,
-        prayer: candle.prayer,
-        intentionPublic: candle.intentionPublic,
-        prayerPublic: candle.prayerPublic,
-        email: candle.email,
-        phone: candle.phone,
-        amountCents: candle.amountCents,
-        litAt: candle.litAt,
-        expiresAt: candle.expiresAt,
-      });
-      await prisma.virtualCandle.update({
-        where: { id: candleId },
-        data: { parishNotifiedAt: new Date() },
-      });
+      after(notify);
     } catch (e) {
-      console.error("[vela-email]", e);
+      console.error("[vela-email] aviso depois da resposta", e);
+      void notify();
     }
   }
 
