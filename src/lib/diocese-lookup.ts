@@ -41,12 +41,14 @@ export function placeForTerritory(
   return pool.sort((a, b) => distance(lon, lat, a) - distance(lon, lat, b))[0] ?? null;
 }
 
-export async function lookupParishByAddress(query: string): Promise<ParishAddressLookup | null> {
-  const point = await geocodeAddress(query);
-  if (!point) return null;
+export async function lookupParishAt(
+  lat: number,
+  lon: number,
+  addressLabel: string,
+): Promise<ParishAddressLookup> {
   const [{ places }, territories] = await Promise.all([getDiocesePlaces(), getDioceseTerritories()]);
-  const territory = territoryAt(territories, point.lon, point.lat);
-  const matched = territory ? placeForTerritory(places, territory, point.lon, point.lat) : null;
+  const territory = territoryAt(territories, lon, lat);
+  const matched = territory ? placeForTerritory(places, territory, lon, lat) : null;
   const place =
     matched ??
     (territory
@@ -54,17 +56,18 @@ export async function lookupParishByAddress(query: string): Promise<ParishAddres
           id: territory.id,
           title: territory.title,
           sector: territory.sector,
-          lat: point.lat,
-          lon: point.lon,
+          lat,
+          lon,
           siteUrl: "",
           phone: "",
           address: "",
         }
       : null);
-  return {
-    addressLabel: point.label,
-    lat: point.lat,
-    lon: point.lon,
-    place,
-  };
+  return { addressLabel, lat, lon, place };
+}
+
+export async function lookupParishByAddress(query: string): Promise<ParishAddressLookup | null> {
+  const point = await geocodeAddress(query);
+  if (!point) return null;
+  return lookupParishAt(point.lat, point.lon, point.label);
 }

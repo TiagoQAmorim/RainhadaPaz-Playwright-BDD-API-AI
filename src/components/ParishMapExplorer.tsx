@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { geocodeAddress } from "@/lib/diocese-geocode";
 import { dioceseMapEmbedSrc, type DiocesePlace } from "@/lib/diocese-map-embed";
 
 type LookupResult = {
@@ -100,7 +101,15 @@ export function ParishMapExplorer() {
     setSearching(true);
     setLookupError(null);
     try {
-      const response = await fetch(`/api/diocese-map/lookup?q=${encodeURIComponent(query)}`);
+      const point = await geocodeAddress(query);
+      if (!point) {
+        setLookup(null);
+        setLookupError("Não encontramos esse endereço. Use o CEP ou escreva rua, número e bairro.");
+        return;
+      }
+      const response = await fetch(
+        `/api/diocese-map/lookup?lat=${point.lat}&lon=${point.lon}&label=${encodeURIComponent(point.label)}`,
+      );
       const data = (await response.json()) as LookupResult & { error?: string };
       if (!response.ok) {
         setLookup(null);
