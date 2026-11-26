@@ -1,21 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useState, type FormEvent } from "react";
 import { dioceseMapEmbedSrc, type DiocesePlace } from "@/lib/diocese-map-embed";
 
-function fold(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
-}
-
-function matches(place: DiocesePlace, query: string) {
-  const words = fold(query).split(/\s+/).filter(Boolean);
-  if (words.length === 0) return false;
-  const text = fold(place.title);
-  return words.every((word) => text.includes(word));
-}
+type LookupResult = {
+  addressLabel: string;
+  lat: number;
+  lon: number;
+  place: DiocesePlace | null;
+};
 
 function telHref(part: string) {
   const digits = part.replace(/\D/g, "");
@@ -78,51 +71,15 @@ function routeLinks(lat: number, lon: number) {
 }
 
 export function ParishMapExplorer() {
-  const [places, setPlaces] = useState<DiocesePlace[]>([]);
-  const [listState, setListState] = useState<"loading" | "partial" | "ready" | "error">("loading");
   const [mapReady, setMapReady] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [draft, setDraft] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [view, setView] = useState<{ lat: number; lon: number; zoom: number } | null>(null);
+  const [searching, setSearching] = useState(false);
+  const [lookup, setLookup] = useState<LookupResult | null>(null);
+  const [lookupError, setLookupError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    let timer = 0;
-
-    async function pull() {
-      try {
-        const response = await fetch("/api/diocese-map");
-        if (!response.ok) throw new Error("lista");
-        const data = (await response.json()) as DiocesePlace[];
-        if (cancelled) return;
-        setPlaces(Array.isArray(data) ? data : []);
-        if (response.headers.get("x-diocese-complete") === "1") {
-          setListState("ready");
-          return;
-        }
-        setListState("partial");
-        timer = window.setTimeout(() => {
-          void pull();
-        }, 3000);
-      } catch {
-        if (!cancelled) setListState("error");
-      }
-    }
-
-    void pull();
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
-  }, []);
-
-  const query = draft.trim();
-  const listLoading = listState === "loading" || listState === "partial";
-  const results = useMemo(
-    () => (query ? places.filter((place) => matches(place, query)) : []),
-    [places, query],
-  );
   const mapSrc = view
     ? dioceseMapEmbedSrc(view.lat, view.lon, view.zoom)
     : dioceseMapEmbedSrc();
@@ -132,45 +89,71 @@ export function ParishMapExplorer() {
     setView({ lat: place.lat, lon: place.lon, zoom: 16 });
   }
 
-  const list =
-    query.length > 0 ? (
-      <section
-        aria-label="Resultados da busca"
-        className={expanded ? "max-h-[38%] overflow-y-auto border-t border-parish-200 bg-white" : "mt-4"}
-      >
-        {listState === "loading" ? (
-          <h2 className="px-1 text-sm font-semibold text-parish-800">Carregando a lista de paróquias…</h2>
-        ) : (
+  async function onSearch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const query = draft.trim();
+    if (query.length < 3) {
+      setLookup(null);
+      setLookupError("Informe o endereço ou o CEP.");
+      return;
+    }
+    setSearching(true);
+    setLookupError(null);
+    try {
+      const response = await fetch(`/api/diocese-map/lookup?q=${encodeURIComponent(query)}`);
+      const data = (await response.json()) as LookupResult & { error?: string };
+      if (!response.ok) {
+        setLookup(null);
+        setLookupError(data.error ?? "Não foi possível buscar esse endereço.");
+        return;
+      }
+      setLookup(data);
+      setView({ lat: data.lat, lon: data.lon, zoom: 15 });
+      setSelectedId(data.place?.id ?? null);
+    } catch {
+      setLookup(null);
+      setLookupError("Não foi possível buscar esse endereço.");
+    } finally {
+      setSearching(false);
+    }
+  }
+
+  const place = lookup?.place ?? null;
+  const list = lookup || lookupError ? (
+    <section
+      aria-label="Paróquia do endereço"
+      className={expanded ? "max-h-[38%] overflow-y-auto border-t border-parish-200 bg-white" : "mt-4"}
+    >
+      {lookupError ? <p className="px-1 text-sm text-parish-700">{lookupError}</p> : null}
+      {lookup ? (
+        <>
           <h2 className="px-1 text-sm font-semibold text-parish-800">
-            {results.length === 1 ? "1 resultado encontrado" : `${results.length} resultados encontrados`}
+            {place ? "Paróquia deste endereço" : "Endereço fora da diocese"}
           </h2>
-        )}
-        {listState === "loading" ? null : results.length === 0 ? (
-          <p className="mt-2 text-sm text-parish-600">Nenhuma paróquia ou comunidade com esse nome.</p>
-        ) : (
-          <ul className="mt-2 divide-y divide-parish-100 overflow-hidden rounded-2xl border border-parish-200 bg-white">
-            {results.map((place) => {
-              const active = selectedId === place.id;
-              return (
-                <li key={place.id} className={active ? "bg-parish-100 px-4 py-3" : "px-4 py-3"}>
-                  <button type="button" onClick={() => showOnMap(place)} className="w-full text-left">
-                    <span className="block font-semibold text-parish-900">{place.title}</span>
-                    {place.address ? (
-                      <span className="mt-0.5 block text-sm text-parish-800">{place.address}</span>
-                    ) : null}
-                    {place.sector ? (
-                      <span className="mt-0.5 block text-sm text-parish-600">{place.sector}</span>
-                    ) : null}
-                  </button>
-                  {place.phone ? <PhoneLine phone={place.phone} /> : null}
-                  {routeLinks(place.lat, place.lon)}
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
-    ) : null;
+          <p className="mt-1 px-1 text-sm text-parish-600">{lookup.addressLabel}</p>
+          {place ? (
+            <div className={selectedId === place.id ? "mt-2 rounded-2xl border border-parish-200 bg-parish-100 px-4 py-3" : "mt-2 rounded-2xl border border-parish-200 bg-white px-4 py-3"}>
+              <button type="button" onClick={() => showOnMap(place)} className="w-full text-left">
+                <span className="block font-semibold text-parish-900">{place.title}</span>
+                {place.address ? (
+                  <span className="mt-0.5 block text-sm text-parish-800">{place.address}</span>
+                ) : null}
+                {place.sector ? (
+                  <span className="mt-0.5 block text-sm text-parish-600">{place.sector}</span>
+                ) : null}
+              </button>
+              {place.phone ? <PhoneLine phone={place.phone} /> : null}
+              {routeLinks(place.lat, place.lon)}
+            </div>
+          ) : (
+            <p className="mt-2 text-sm text-parish-600">
+              Esse endereço não fica no território de uma paróquia da Diocese de Santo Amaro.
+            </p>
+          )}
+        </>
+      ) : null}
+    </section>
+  ) : null;
 
   return (
     <div className={expanded ? "fixed inset-0 z-[80] flex flex-col bg-parish-50" : "mt-6"}>
@@ -193,19 +176,32 @@ export function ParishMapExplorer() {
           </button>
         )}
       </div>
-      <label className={expanded ? "block border-b border-parish-200 bg-white px-3 py-2" : "mb-3 block"}>
-        <span className="sr-only">Buscar paróquia</span>
-        <input
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          placeholder={
-            listState === "loading"
-              ? "Carregando paróquias…"
-              : "Buscar paróquia pelo nome, mesmo que seja longo"
-          }
-          className="w-full rounded-xl border border-parish-200 bg-white px-3 py-2 text-base text-parish-900 outline-none focus:ring-2 focus:ring-parish-500"
-        />
-      </label>
+      <form
+        onSubmit={onSearch}
+        className={
+          expanded
+            ? "flex flex-col gap-2 border-b border-parish-200 bg-white px-3 py-2 sm:flex-row"
+            : "mb-3 flex flex-col gap-2 sm:flex-row"
+        }
+      >
+        <label className="min-w-0 flex-1">
+          <span className="sr-only">Endereço ou CEP</span>
+          <input
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            placeholder="Endereço ou CEP. Ex.: Rua das Flores, 100, Santo Amaro"
+            enterKeyHint="search"
+            className="w-full rounded-xl border border-parish-200 bg-white px-3 py-2 text-base text-parish-900 outline-none focus:ring-2 focus:ring-parish-500"
+          />
+        </label>
+        <button
+          type="submit"
+          disabled={searching}
+          className="rounded-xl bg-parish-600 px-4 py-2 text-sm font-semibold text-white hover:bg-parish-500 disabled:opacity-60"
+        >
+          {searching ? "Buscando…" : "Buscar paróquia"}
+        </button>
+      </form>
       <div
         className={
           expanded
@@ -224,16 +220,6 @@ export function ParishMapExplorer() {
             </div>
           </div>
         )}
-        {mapReady && listLoading ? (
-          <p className="absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-full bg-white/95 px-3 py-1 text-sm font-semibold text-parish-800 shadow">
-            {listState === "partial" ? "Carregando endereços…" : "Carregando paróquias…"}
-          </p>
-        ) : null}
-        {mapReady && listState === "error" ? (
-          <p className="absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-full bg-white/95 px-3 py-1 text-sm font-semibold text-parish-800 shadow">
-            Não foi possível carregar a lista.
-          </p>
-        ) : null}
         <iframe
           key={mapSrc}
           title="Mapa de Paróquias da Diocese de Sto. Amaro"

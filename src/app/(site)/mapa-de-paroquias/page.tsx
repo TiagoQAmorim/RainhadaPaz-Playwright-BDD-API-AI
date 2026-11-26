@@ -5,7 +5,7 @@ import { DIOCESE_MAP_ID } from "@/lib/diocese-map-embed";
 export const metadata = {
   title: "Mapa de Paróquias da Diocese de Sto. Amaro",
   description:
-    "Mapa territorial da Diocese de Santo Amaro, com busca pelo nome da paróquia ou comunidade.",
+    "Mapa territorial da Diocese de Santo Amaro, com busca por endereço ou CEP.",
 };
 
 export default function MapaDeParoquiasPage() {
@@ -17,8 +17,8 @@ export default function MapaDeParoquiasPage() {
         Mapa de Paróquias da Diocese de Sto. Amaro
       </h1>
       <p className="mt-2 max-w-2xl text-base leading-relaxed text-parish-700">
-        Procure pelo nome da paróquia ou da comunidade. Os resultados aparecem na lista abaixo do
-        mapa; toque em um nome para abrir o lugar no mapa.
+        Informe um endereço ou CEP. A busca mostra a paróquia da Diocese de Santo Amaro responsável
+        por esse lugar e abre o ponto no mapa.
       </p>
       <ParishMapExplorer />
       <p className="mt-3 text-sm text-parish-600">

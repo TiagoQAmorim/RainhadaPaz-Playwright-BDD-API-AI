@@ -3,17 +3,24 @@ import os from "node:os";
 import path from "node:path";
 import { getDioceseDirectory, matchParish, parseParishAddress } from "./diocese-directory";
 import { DIOCESE_MAP_ID, type DiocesePlace } from "./diocese-map-embed";
+import { parseDioceseTerritories, type DioceseTerritory } from "./diocese-territory";
 
 export { DIOCESE_MAP_ID, DIOCESE_MAP_VIEW, dioceseMapEmbedSrc, type DiocesePlace } from "./diocese-map-embed";
 
 const KML_URL = `https://www.google.com/maps/d/kml?mid=${DIOCESE_MAP_ID}&forcekml=1`;
 const TTL_MS = 60 * 60 * 1000;
 
-type PlaceCache = { at: number; places: DiocesePlace[]; complete: boolean };
+type PlaceCache = {
+  at: number;
+  places: DiocesePlace[];
+  complete: boolean;
+  territories?: DioceseTerritory[];
+};
 
 let cache: PlaceCache | null = null;
 let quickTask: Promise<DiocesePlace[]> | null = null;
 let addressTask: Promise<void> | null = null;
+let lastTerritories: DioceseTerritory[] = [];
 
 function decodeXml(value: string) {
   return value
@@ -102,7 +109,10 @@ async function fetchQuick(publish = true) {
     getDioceseDirectory().catch(() => []),
   ]);
   if (!response.ok) throw new Error(`Mapa da diocese respondeu ${response.status}`);
-  const places = parseDioceseKml(await response.text());
+  const xml = await response.text();
+  const places = parseDioceseKml(xml);
+  const territories = parseDioceseTerritories(xml);
+  lastTerritories = territories;
   if (places.length === 0) throw new Error("Mapa da diocese sem paróquias");
   for (const place of places) {
     const entry = matchParish(place, directory);
@@ -111,7 +121,7 @@ async function fetchQuick(publish = true) {
       if (!place.siteUrl && entry.url) place.siteUrl = entry.url;
     }
   }
-  const next = { at: Date.now(), places, complete: false };
+  const next = { at: Date.now(), places, territories, complete: false };
   if (publish) {
     cache = next;
     await writeDisk(next);
@@ -132,6 +142,7 @@ function fillAddresses() {
       const next = {
         at: Date.now(),
         complete: true,
+        territories: cache?.territories,
         places: places.map((place) => ({
           ...place,
           address: place.siteUrl ? addresses.get(place.siteUrl) ?? "" : "",
@@ -161,6 +172,7 @@ export async function getDiocesePlaces(): Promise<{ places: DiocesePlace[]; comp
           const next = {
             at: Date.now(),
             complete: true,
+            territories: lastTerritories.length > 0 ? lastTerritories : cache?.territories,
             places: places.map((place) => ({
               ...place,
               address: place.siteUrl ? addresses.get(place.siteUrl) ?? "" : "",
@@ -186,6 +198,30 @@ export async function getDiocesePlaces(): Promise<{ places: DiocesePlace[]; comp
   const places = await quickTask;
   fillAddresses();
   return { places, complete: false };
+}
+
+/** Polígonos do território. Servem para achar a paróquia de um endereço. */
+export async function getDioceseTerritories(): Promise<DioceseTerritory[]> {
+  const stored = cache ?? (await readDisk());
+  if (stored?.territories?.length) {
+    remember(stored);
+    return stored.territories;
+  }
+  if (cache?.places.length && lastTerritories.length > 0) return lastTerritories;
+
+  const response = await fetch(KML_URL, {
+    cache: "no-store",
+    signal: AbortSignal.timeout(20000),
+    headers: { Accept: "application/xml,text/xml" },
+  });
+  if (!response.ok) throw new Error(`Mapa da diocese respondeu ${response.status}`);
+  const territories = parseDioceseTerritories(await response.text());
+  lastTerritories = territories;
+  if (cache) {
+    cache = { ...cache, territories };
+    await writeDisk(cache);
+  }
+  return territories;
 }
 
 async function addressesByUrl(urls: string[]) {
