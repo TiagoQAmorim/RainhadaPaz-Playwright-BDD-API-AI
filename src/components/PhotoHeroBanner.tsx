@@ -11,6 +11,7 @@ type Props = {
   wide?: boolean;
   /** Overlay azul mais fechado (ex.: mural de velas). */
   deepOverlay?: boolean;
+  unoptimized?: boolean;
   children: React.ReactNode;
 };
 
@@ -24,6 +25,7 @@ export function PhotoHeroBanner({
   minHeightClass = "min-h-[240px] sm:min-h-[280px] md:min-h-[320px]",
   wide,
   deepOverlay,
+  unoptimized,
   children,
 }: Props) {
   return (
@@ -35,6 +37,7 @@ export function PhotoHeroBanner({
         priority={priority}
         className={cn("object-cover object-center", deepOverlay ? "scale-110 brightness-[0.55]" : "scale-105")}
         sizes="100vw"
+        unoptimized={unoptimized}
       />
       {deepOverlay ? (
         <>

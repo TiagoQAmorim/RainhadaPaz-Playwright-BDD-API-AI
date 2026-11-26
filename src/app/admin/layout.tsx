@@ -20,6 +20,7 @@ const links = [
   { href: "/admin/terco-online", label: "Terço online" },
   { href: "/admin/velas", label: "Velas" },
   { href: "/admin/rifas", label: "Rifas" },
+  { href: "/admin/obra", label: "Obra" },
   { href: "/admin/usuarios", label: "Administradores" },
 ];
 

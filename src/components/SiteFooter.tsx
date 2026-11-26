@@ -58,6 +58,8 @@ export function SiteFooter({
             <li><Link href="/velas" className="hover:text-gold-300">Vela virtual</Link></li>
             <li><Link href="/rifas" className="hover:text-gold-300">Rifas dos Santos</Link></li>
             <li><Link href="/sacramentos" className="hover:text-gold-300">Sacramentos</Link></li>
+            <li><Link href="/obra" className="hover:text-gold-300">A obra</Link></li>
+            <li><Link href="/doacoes" className="hover:text-gold-300">Doações</Link></li>
             <li><Link href="/admin/login" className="text-parish-400 hover:text-parish-200">Área admin</Link></li>
           </ul>
         </div>

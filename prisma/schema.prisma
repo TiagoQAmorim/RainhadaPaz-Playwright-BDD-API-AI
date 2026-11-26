@@ -347,3 +347,45 @@ model RafflePayment {
   rawPayload           String?
   createdAt            DateTime    @default(now())
 }
+
+// Obra da paróquia: texto, fotos, comparativos e etapas. Um único registro.
+model WorkProject {
+  id              Int      @id @default(1)
+  title           String   @default("A obra da paróquia")
+  intro           String   @default("")
+  progressPercent Int      @default(0)
+  progressLabel   String   @default("")
+  published       Boolean  @default(true)
+  showHeroCta     Boolean  @default(false)
+  updatedAt       DateTime @updatedAt
+}
+
+model WorkComparison {
+  id        String   @id @default(cuid())
+  title     String
+  beforeUrl String
+  afterUrl  String
+  caption   String   @default("")
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+model WorkMoment {
+  id         String   @id @default(cuid())
+  title      String
+  body       String   @default("")
+  imageUrl   String?
+  happenedOn String   @default("")
+  // planned | doing | done
+  status     String   @default("doing")
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+}
+
+model WorkPhoto {
+  id        String   @id @default(cuid())
+  imageUrl  String
+  caption   String   @default("")
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+}

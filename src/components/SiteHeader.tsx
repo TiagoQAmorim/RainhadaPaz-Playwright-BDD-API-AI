@@ -20,6 +20,7 @@ const links = [
   { href: "/avisos", label: "Avisos" },
   { href: "/velas", label: "Velas" },
   { href: "/rifas", label: "Rifas" },
+  { href: "/doacoes", label: "Doações" },
   { href: "/contato", label: "Contato" },
 ];
 

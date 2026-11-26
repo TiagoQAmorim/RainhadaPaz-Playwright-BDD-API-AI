@@ -3,7 +3,7 @@ import { PARISH_PAYMENT, RAFFLE_SICREDI_PAYMENT } from "@/lib/parish-payments";
 
 type PixAccount = typeof PARISH_PAYMENT | typeof RAFFLE_SICREDI_PAYMENT;
 
-export type PixPaymentKind = "VELA" | "RIFA" | "DIZIMO";
+export type PixPaymentKind = "VELA" | "RIFA" | "DIZIMO" | "OBRA";
 
 /** Identificador para o fiél colar na mensagem do PIX (conferência na secretaria). */
 export function buildPixReference(kind: PixPaymentKind, id: string): string {

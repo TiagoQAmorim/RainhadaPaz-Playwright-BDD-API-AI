@@ -43,6 +43,11 @@ const sections = [
     desc: "Criar rifas, cotas e santos (até 2.000)",
   },
   {
+    href: "/admin/obra",
+    title: "Obra",
+    desc: "Fotos, antes e depois, evolução e texto da página /obra",
+  },
+  {
     href: "/admin/usuarios",
     title: "Administradores",
     desc: "Criar ou remover acessos ao painel",
