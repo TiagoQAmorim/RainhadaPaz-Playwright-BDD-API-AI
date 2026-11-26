@@ -3,6 +3,7 @@ import {
   confirmCandlePixPayment,
   deleteCandle,
   extinguishCandle,
+  sendWeeklyCandleEmailTest,
   updateCandleSettings,
 } from "@/app/admin/actions";
 import { AdminConfirmDeleteForm } from "@/components/admin/AdminConfirmDeleteForm";
@@ -239,6 +240,18 @@ export default async function AdminVelasPage({
           Envio automático exige SMTP no arquivo <code className="text-parish-700">.env</code>{" "}
           (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM).
         </p>
+        <form action={sendWeeklyCandleEmailTest} className="mt-4">
+          <button
+            type="submit"
+            className="rounded-xl border border-parish-300 bg-white px-4 py-2 text-sm font-semibold text-parish-800 hover:bg-parish-50"
+          >
+            Enviar e-mail da semana agora
+          </button>
+          <p className="mt-1.5 text-xs text-parish-500">
+            Teste: manda a lista de domingo a sexta desta semana para o e-mail das velas, com
+            [Teste] no assunto. Não conta como o envio automático de sexta às 23h.
+          </p>
+        </form>
       </section>
 
       <div className="overflow-x-auto rounded-2xl bg-white p-4 shadow-sm">

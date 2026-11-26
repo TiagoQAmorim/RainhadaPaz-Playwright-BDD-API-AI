@@ -116,6 +116,18 @@ export type WeeklyReportWindow = {
   end: Date;
 };
 
+/** Domingo 00h até sábado 00h em São Paulo: as velas de domingo a sexta. */
+export function currentParishWeekWindow(now = new Date()): WeeklyReportWindow {
+  const sunday = sundayOfParishWeek(parishClock(now));
+  const weekKey = weekKeyFromSunday(sunday);
+  const nextSunday = shiftCivilDate(sunday.year, sunday.month, sunday.day, 6);
+  return {
+    weekKey,
+    start: parishWallTimeToUtc(sunday.year, sunday.month, sunday.day, 0, 0),
+    end: parishWallTimeToUtc(nextSunday.year, nextSunday.month, nextSunday.day, 0, 0),
+  };
+}
+
 /** Sexta às 23h, ou sábado de manhã se a sexta passou sem envio. */
 export function weeklyReportWindow(now = new Date(), sentWeekKey: string | null = null): WeeklyReportWindow | null {
   const clock = parishClock(now);
@@ -123,16 +135,9 @@ export function weeklyReportWindow(now = new Date(), sentWeekKey: string | null 
   const saturdayCatchUp = clock.weekday === "Sat" && clock.hour < 12;
   if (!fridayEvening && !saturdayCatchUp) return null;
 
-  const sunday = sundayOfParishWeek(clock);
-  const weekKey = weekKeyFromSunday(sunday);
-  if (sentWeekKey === weekKey) return null;
-
-  const nextSunday = shiftCivilDate(sunday.year, sunday.month, sunday.day, 6);
-  return {
-    weekKey,
-    start: parishWallTimeToUtc(sunday.year, sunday.month, sunday.day, 0, 0),
-    end: parishWallTimeToUtc(nextSunday.year, nextSunday.month, nextSunday.day, 0, 0),
-  };
+  const window = currentParishWeekWindow(now);
+  if (sentWeekKey === window.weekKey) return null;
+  return window;
 }
 
 export function candleNeedsExpiryReminder(

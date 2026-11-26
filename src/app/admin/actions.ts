@@ -712,6 +712,14 @@ export async function updateCandleSettings(formData: FormData) {
   await redirectWithAdminFlash("/admin/velas", "updated");
 }
 
+export async function sendWeeklyCandleEmailTest() {
+  await requireAdmin();
+  const { sendWeeklyReportTest } = await import("@/lib/candle-mail-run");
+  const result = await sendWeeklyReportTest();
+  if (!result.ok) redirectCandleSettingsError(result.message);
+  await redirectWithAdminFlash("/admin/velas", "weekmail");
+}
+
 export async function deleteCandle(formData: FormData) {
   await requireAdmin();
   const id = String(formData.get("id") ?? "");

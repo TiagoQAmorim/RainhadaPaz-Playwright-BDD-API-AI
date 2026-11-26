@@ -12,6 +12,7 @@ import {
   candleNeedsExpiryReminder,
   expiryNoticeLabel,
   expiryNoticeMinutes,
+  currentParishWeekWindow,
   weeklyReportWindow,
 } from "@/lib/candle-mail";
 let running = false;
@@ -42,18 +43,8 @@ export function startCandleMailLoop() {
   setInterval(tick, 60 * 1000);
 }
 
-async function sendWeeklyReport() {
+async function weekEmail(window: { start: Date; end: Date }) {
   const settings = await getSiteSettings();
-  const window = weeklyReportWindow(new Date(), settings.candleWeekReportKey);
-  if (!window) return false;
-
-  const claimed = await prisma.siteSettings.updateMany({
-    where: { id: 1, NOT: { candleWeekReportKey: window.weekKey } },
-    data: { candleWeekReportKey: window.weekKey },
-  });
-  if (claimed.count !== 1) return false;
-
-  const to = await getCandlesNotifyEmail();
   const candles = await prisma.virtualCandle.findMany({
     where: { litAt: { gte: window.start, lt: window.end } },
     orderBy: { litAt: "asc" },
@@ -84,6 +75,49 @@ async function sendWeeklyReport() {
     ),
     window,
   );
+  return { settings, rendered };
+}
+
+/** Envia a lista desta semana agora, sem marcar a sexta como já enviada. */
+export async function sendWeeklyReportTest() {
+  const to = await getCandlesNotifyEmail();
+  if (!to) {
+    return { ok: false as const, message: "Cadastre o e-mail em Admin → Velas antes de testar." };
+  }
+  const window = currentParishWeekWindow();
+  const { rendered } = await weekEmail(window);
+  try {
+    const sent = await sendViaSmtp({
+      to,
+      subject: `[Teste] ${rendered.subject}`,
+      text: rendered.text,
+    });
+    if (!sent) {
+      return {
+        ok: false as const,
+        message: "O servidor não enviou o e-mail. Confira SMTP_HOST, SMTP_USER e SMTP_PASS nas variáveis.",
+      };
+    }
+  } catch (error) {
+    console.error("[vela-mail] teste da semana", error);
+    return { ok: false as const, message: "O envio do e-mail de teste falhou. Tente de novo em instantes." };
+  }
+  return { ok: true as const };
+}
+
+async function sendWeeklyReport() {
+  const settings = await getSiteSettings();
+  const window = weeklyReportWindow(new Date(), settings.candleWeekReportKey);
+  if (!window) return false;
+
+  const claimed = await prisma.siteSettings.updateMany({
+    where: { id: 1, NOT: { candleWeekReportKey: window.weekKey } },
+    data: { candleWeekReportKey: window.weekKey },
+  });
+  if (claimed.count !== 1) return false;
+
+  const to = await getCandlesNotifyEmail();
+  const { rendered } = await weekEmail(window);
 
   if (!to) {
     console.warn("[vela-mail] Relatório da semana sem e-mail cadastrado em Admin → Velas.");

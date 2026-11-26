@@ -9,7 +9,8 @@ export type AdminFlashKind =
   | "backed"
   | "hidden"
   | "shown"
-  | "image";
+  | "image"
+  | "weekmail";
 
 const MESSAGES: Record<AdminFlashKind, string> = {
   created: "Cadastro realizado com sucesso.",
@@ -22,6 +23,8 @@ const MESSAGES: Record<AdminFlashKind, string> = {
   hidden: "Página oculta. Ela saiu do site e continua nesta lista.",
   shown: "Página visível de novo no site.",
   image: "A foto não foi salva. Envie JPEG, PNG ou WebP. Fotos HEIC do celular precisam ser convertidas para JPEG.",
+  weekmail:
+    "E-mail de teste da semana enviado para o endereço das velas. O envio automático de sexta às 23h continua valendo.",
 };
 
 export function adminFlashMessage(kind: AdminFlashKind): string {

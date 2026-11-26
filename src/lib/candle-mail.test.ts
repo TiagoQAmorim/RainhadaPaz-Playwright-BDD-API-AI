@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   candleNeedsExpiryReminder,
+  currentParishWeekWindow,
   parishWallTimeToUtc,
   weeklyCandleReportText,
   weeklyReportWindow,
@@ -30,6 +31,14 @@ describe("weeklyReportWindow", () => {
 
   it("não repete a mesma semana", () => {
     expect(weeklyReportWindow(fridayLate, "2026-11-22")).toBeNull();
+  });
+
+  it("o teste de quinta usa a mesma semana da sexta", () => {
+    const thursday = new Date("2026-11-26T19:00:00-03:00");
+    expect(currentParishWeekWindow(thursday).weekKey).toBe("2026-11-22");
+    expect(currentParishWeekWindow(thursday).start.toISOString()).toBe(
+      weeklyReportWindow(fridayLate, null)?.start.toISOString(),
+    );
   });
 });
 
