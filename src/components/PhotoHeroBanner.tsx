@@ -7,6 +7,8 @@ type Props = {
   priority?: boolean;
   className?: string;
   contentClassName?: string;
+  /** Substitui o padding vertical padrão do conteúdo. */
+  paddingClassName?: string;
   minHeightClass?: string;
   wide?: boolean;
   /** Overlay azul mais fechado (ex.: mural de velas). */
@@ -22,6 +24,7 @@ export function PhotoHeroBanner({
   priority,
   className,
   contentClassName,
+  paddingClassName = "py-10 md:py-12",
   minHeightClass = "min-h-[240px] sm:min-h-[280px] md:min-h-[320px]",
   wide,
   deepOverlay,
@@ -53,7 +56,8 @@ export function PhotoHeroBanner({
       )}
       <div
         className={cn(
-          "relative mx-auto px-4 py-10 md:py-12",
+          "relative mx-auto px-4",
+          paddingClassName,
           wide ? "max-w-7xl" : "max-w-6xl",
           contentClassName,
         )}

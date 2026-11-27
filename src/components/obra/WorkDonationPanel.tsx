@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { PixPaymentInstructions } from "@/components/payment/PixPaymentInstructions";
+import { WorkPixRow } from "@/components/obra/WorkPixRow";
 import { WORK_HELP_AMOUNTS_BRL } from "@/lib/parish-work";
 import { formatBrl, type parishPixPayload } from "@/lib/parish-pix";
+import { isSicrediCardEnabled } from "@/lib/sicredi-payments";
 
 type Pix = ReturnType<typeof parishPixPayload>;
 
@@ -9,32 +10,62 @@ type Props = {
   pix: Pix | null;
   amountError: string | null;
   selectedCents: number | null;
+  method: "pix" | "cartao";
 };
 
-export function WorkDonationPanel({ pix, amountError, selectedCents }: Props) {
+function ajudaHref(method: "pix" | "cartao", cents: number | null) {
+  const params = new URLSearchParams({ meio: method });
+  if (cents != null) params.set("ajuda", String(cents / 100));
+  return `/obra?${params.toString()}#ajuda`;
+}
+
+export function WorkDonationPanel({ pix, amountError, selectedCents, method }: Props) {
+  const cardLive = isSicrediCardEnabled();
+
   return (
-    <section id="ajuda" className="scroll-mt-24 overflow-hidden rounded-3xl bg-parish-700 text-white shadow-xl">
-      <div className="grid gap-8 p-6 md:p-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-start">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-gold-300">Ajuda à obra</p>
-          <h2 className="mt-2 font-[family-name:var(--font-display)] text-3xl font-semibold">
-            Participe desta etapa
-          </h2>
-          <p className="mt-3 text-sm leading-relaxed text-white/85">
-            O PIX cai na conta da paróquia, a mesma do dízimo. No comprovante fica o identificador da
-            obra para a secretaria conferir.
-          </p>
-          <ul className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3">
+    <section id="ajuda" className="scroll-mt-24 rounded-2xl bg-white px-4 py-3 text-parish-900 shadow-lg sm:px-5">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-3">
+            <h2 className="font-[family-name:var(--font-display)] text-xl font-semibold text-parish-900">
+              Ajude a obra
+            </h2>
+            <div className="flex rounded-full bg-parish-50 p-0.5 ring-1 ring-parish-200">
+              <Link
+                href={ajudaHref("pix", selectedCents)}
+                className={
+                  method === "pix"
+                    ? "rounded-full bg-parish-700 px-4 py-1.5 text-sm font-bold text-white"
+                    : "rounded-full px-4 py-1.5 text-sm font-bold text-parish-700 hover:bg-white"
+                }
+                aria-current={method === "pix" ? "true" : undefined}
+              >
+                PIX
+              </Link>
+              <Link
+                href={ajudaHref("cartao", selectedCents)}
+                className={
+                  method === "cartao"
+                    ? "rounded-full bg-parish-700 px-4 py-1.5 text-sm font-bold text-white"
+                    : "rounded-full px-4 py-1.5 text-sm font-bold text-parish-700 hover:bg-white"
+                }
+                aria-current={method === "cartao" ? "true" : undefined}
+              >
+                Cartão
+              </Link>
+            </div>
+          </div>
+          <ul className="mt-3 flex flex-wrap gap-2">
             {WORK_HELP_AMOUNTS_BRL.map((amount) => {
               const active = selectedCents === amount * 100;
               return (
                 <li key={amount}>
                   <Link
-                    href={`/obra?ajuda=${amount}#ajuda`}
+                    href={`/obra?meio=${method}&ajuda=${amount}#ajuda`}
                     className={
                       active
-                        ? "flex min-h-14 items-center justify-center rounded-2xl bg-gold-400 px-3 text-base font-bold text-parish-950"
-                        : "flex min-h-14 items-center justify-center rounded-2xl bg-white/10 px-3 text-base font-bold text-white ring-1 ring-white/20 hover:bg-white/15"
+                        ? "inline-flex min-h-9 items-center rounded-full bg-gold-400 px-3 text-sm font-bold text-parish-950"
+                        : "inline-flex min-h-9 items-center rounded-full bg-parish-50 px-3 text-sm font-bold text-parish-800 ring-1 ring-parish-200 hover:bg-parish-100"
                     }
                   >
                     {formatBrl(amount)}
@@ -43,57 +74,50 @@ export function WorkDonationPanel({ pix, amountError, selectedCents }: Props) {
               );
             })}
           </ul>
-          <form action="/obra#ajuda" method="get" className="mt-4 flex flex-wrap items-end gap-2">
-            <label className="min-w-[10rem] flex-1 text-sm">
-              <span className="mb-1 block text-white/80">Outro valor (R$)</span>
+          <form action="/obra#ajuda" method="get" className="mt-2 flex flex-wrap items-center gap-2">
+            <input type="hidden" name="meio" value={method} />
+            <label className="text-xs text-parish-600">
+              Outro valor
               <input
                 name="ajuda"
                 inputMode="decimal"
                 placeholder="80"
-                className="w-full rounded-xl border border-white/20 bg-white px-3 py-2 text-parish-900 outline-none"
+                className="ml-2 w-24 rounded-full border border-parish-200 bg-white px-3 py-1.5 text-sm text-parish-900 outline-none"
               />
             </label>
             <button
               type="submit"
-              className="rounded-xl bg-white px-4 py-2 text-sm font-bold text-parish-800 hover:bg-gold-100"
+              className="rounded-full bg-parish-700 px-3 py-1.5 text-sm font-bold text-white hover:bg-parish-600"
             >
-              Gerar PIX
+              {method === "cartao" ? "Usar valor" : "Gerar PIX"}
             </button>
+            {amountError ? <p className="text-sm text-red-700">{amountError}</p> : null}
           </form>
-          {amountError ? <p className="mt-3 text-sm text-gold-200">{amountError}</p> : null}
-          <div className="mt-6 rounded-2xl border border-white/15 bg-white/5 p-4">
-            <p className="text-sm font-semibold text-gold-200">Cartão</p>
-            <p className="mt-1 text-sm leading-relaxed text-white/80">
-              O cartão entra quando a Sicredi liberar o checkout. Até lá, a ajuda é pelo PIX.
-            </p>
-          </div>
         </div>
 
-        <div className="rounded-2xl bg-parish-50 p-1 text-parish-900">
-          {pix?.pixCopiaECola ? (
-            <PixPaymentInstructions
-              legalName={pix.legalName}
-              pixKey={pix.pixKey}
-              pixKeyType={pix.pixKeyType}
-              bank={pix.bank}
-              amountLabel={pix.amountLabel}
-              reference={pix.reference}
-              messageSuggestion={pix.messageSuggestion}
-              pixCopiaECola={pix.pixCopiaECola}
-              title="Pague a ajuda com PIX"
-              afterPayNote="Guarde o comprovante. A secretaria confere o identificador da obra no extrato."
-              backHref="/obra"
-              backLabel="Voltar ao topo da obra"
-            />
-          ) : (
-            <div className="px-6 py-10 text-center">
-              <p className="font-[family-name:var(--font-display)] text-2xl font-semibold text-parish-900">
-                Escolha um valor
+        <div className="shrink-0 lg:max-w-sm lg:border-l lg:border-parish-100 lg:pl-4">
+          {method === "cartao" ? (
+            <div>
+              <p className="text-sm font-semibold text-parish-900">Cartão Sicredi</p>
+              <p className="mt-1 max-w-xs text-xs leading-relaxed text-parish-600">
+                {cardLive
+                  ? "A cobrança no cartão usa este botão."
+                  : "O botão já fica aqui. A cobrança entra quando a Sicredi liberar."}
               </p>
-              <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-parish-600">
-                O QR Code aparece aqui, com o valor já preenchido para o app do banco.
-              </p>
+              <button
+                type="button"
+                disabled={!cardLive}
+                className="mt-2 rounded-full bg-parish-800 px-4 py-1.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:bg-parish-300"
+              >
+                Pagar com cartão
+              </button>
             </div>
+          ) : pix?.pixCopiaECola ? (
+            <WorkPixRow amountLabel={pix.amountLabel} pixCopiaECola={pix.pixCopiaECola} />
+          ) : (
+            <p className="max-w-xs text-xs leading-relaxed text-parish-500">
+              Escolha um valor para ver o QR Code. O PIX cai na conta da paróquia.
+            </p>
           )}
         </div>
       </div>

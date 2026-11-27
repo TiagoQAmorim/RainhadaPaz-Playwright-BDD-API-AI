@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CandleAltarNote } from "@/components/CandleAltarNote";
 import { CandleForm } from "@/components/CandleForm";
 import { CandleWall } from "@/components/CandleWall";
 import { PageContainer } from "@/components/PageContainer";
@@ -66,6 +67,7 @@ export default async function VelasPage({ searchParams }: Props) {
           title="Velas virtuais"
           description={bannerDescription}
         />
+        <CandleAltarNote className="mt-3 max-w-3xl text-white" />
       </PhotoHeroBanner>
 
       <PageContainer wide className="bg-parish-50 py-6 md:py-8">
@@ -85,6 +87,7 @@ export default async function VelasPage({ searchParams }: Props) {
             title="Mural de velas"
             description={`Cada vela permanece acesa por ${muralDurationText}. Por padrão, intenção e oração ficam em sigilo; você pode optar por exibi-las no mural ao acender.`}
           />
+          <CandleAltarNote className="mb-4 text-center text-amber-50" />
           <CandleWall
             candles={candles.map((c) => ({
               id: c.id,

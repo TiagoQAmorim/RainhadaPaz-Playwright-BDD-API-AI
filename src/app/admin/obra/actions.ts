@@ -8,7 +8,7 @@ import { formCheckboxOn } from "@/lib/datetime-local";
 import { prisma } from "@/lib/prisma";
 import { setObraHeroCtaVisible } from "@/lib/home-hero-ctas";
 import { clampProgress, getParishWork } from "@/lib/parish-work";
-import { imageUrlFromForm } from "@/lib/uploads";
+import { imageUrlFromForm, resolveImageFromForm } from "@/lib/uploads";
 
 function fail(message: string): never {
   redirect(`/admin/obra?erro=${encodeURIComponent(message)}`);
@@ -28,6 +28,17 @@ async function nextSort(kind: "comparison" | "moment" | "photo", raw: string) {
         ? await prisma.workMoment.aggregate({ _max: { sortOrder: true } })
         : await prisma.workPhoto.aggregate({ _max: { sortOrder: true } });
   return (rows._max.sortOrder ?? 0) + 1;
+}
+
+function sortOrKeep(raw: string, current: number) {
+  const typed = Number(raw);
+  if (Number.isFinite(typed) && raw.trim() !== "") return Math.round(typed);
+  return current;
+}
+
+function momentStatus(raw: FormDataEntryValue | null) {
+  const status = String(raw ?? "doing");
+  return status === "planned" || status === "done" ? status : "doing";
 }
 
 function uploadErrorMessage(error: unknown): string {
@@ -94,12 +105,41 @@ export async function deleteWorkComparison(formData: FormData) {
   await redirectWithAdminFlash("/admin/obra", "deleted");
 }
 
+export async function updateWorkComparison(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const current = id ? await prisma.workComparison.findUnique({ where: { id } }) : null;
+  if (!current) fail("Comparativo não encontrado.");
+  const title = clip(formData.get("title"), 120);
+  if (!title) fail("Dê um nome ao comparativo. Ex.: Fachada, Salão, Telhado.");
+  let beforeUrl: string | null = null;
+  let afterUrl: string | null = null;
+  try {
+    beforeUrl = await resolveImageFromForm(formData, "beforeUrl", "beforeFile", current.beforeUrl);
+    afterUrl = await resolveImageFromForm(formData, "afterUrl", "afterFile", current.afterUrl);
+  } catch (error) {
+    fail(uploadErrorMessage(error));
+  }
+  if (!beforeUrl || !afterUrl) fail("Mantenha ou envie a foto do antes e a foto do depois.");
+  await prisma.workComparison.update({
+    where: { id: current.id },
+    data: {
+      title,
+      beforeUrl,
+      afterUrl,
+      caption: clip(formData.get("caption"), 300),
+      sortOrder: sortOrKeep(String(formData.get("sortOrder") ?? ""), current.sortOrder),
+    },
+  });
+  revalidatePath("/obra");
+  await redirectWithAdminFlash("/admin/obra", "updated");
+}
+
 export async function createWorkMoment(formData: FormData) {
   await requireAdmin();
   const title = clip(formData.get("title"), 120);
   if (!title) fail("Escreva o nome da etapa.");
-  const status = String(formData.get("status") ?? "doing");
-  const safeStatus = status === "planned" || status === "done" ? status : "doing";
+  const safeStatus = momentStatus(formData.get("status"));
   let imageUrl: string | null = null;
   try {
     imageUrl = await imageUrlFromForm(formData, "imageUrl", "imageFile");
@@ -128,6 +168,34 @@ export async function deleteWorkMoment(formData: FormData) {
   await redirectWithAdminFlash("/admin/obra", "deleted");
 }
 
+export async function updateWorkMoment(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const current = id ? await prisma.workMoment.findUnique({ where: { id } }) : null;
+  if (!current) fail("Etapa não encontrada.");
+  const title = clip(formData.get("title"), 120);
+  if (!title) fail("Escreva o nome da etapa.");
+  let imageUrl: string | null = current.imageUrl;
+  try {
+    imageUrl = await resolveImageFromForm(formData, "imageUrl", "imageFile", current.imageUrl);
+  } catch (error) {
+    fail(uploadErrorMessage(error));
+  }
+  await prisma.workMoment.update({
+    where: { id: current.id },
+    data: {
+      title,
+      body: clip(formData.get("body"), 2000),
+      happenedOn: clip(formData.get("happenedOn"), 40),
+      status: momentStatus(formData.get("status")),
+      imageUrl,
+      sortOrder: sortOrKeep(String(formData.get("sortOrder") ?? ""), current.sortOrder),
+    },
+  });
+  revalidatePath("/obra");
+  await redirectWithAdminFlash("/admin/obra", "updated");
+}
+
 export async function createWorkPhoto(formData: FormData) {
   await requireAdmin();
   let imageUrl: string | null = null;
@@ -154,4 +222,28 @@ export async function deleteWorkPhoto(formData: FormData) {
   if (id) await prisma.workPhoto.delete({ where: { id } }).catch(() => null);
   revalidatePath("/obra");
   await redirectWithAdminFlash("/admin/obra", "deleted");
+}
+
+export async function updateWorkPhoto(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const current = id ? await prisma.workPhoto.findUnique({ where: { id } }) : null;
+  if (!current) fail("Foto não encontrada.");
+  let imageUrl: string | null = null;
+  try {
+    imageUrl = await resolveImageFromForm(formData, "imageUrl", "imageFile", current.imageUrl);
+  } catch (error) {
+    fail(uploadErrorMessage(error));
+  }
+  if (!imageUrl) fail("Mantenha ou envie a foto da obra.");
+  await prisma.workPhoto.update({
+    where: { id: current.id },
+    data: {
+      imageUrl,
+      caption: clip(formData.get("caption"), 300),
+      sortOrder: sortOrKeep(String(formData.get("sortOrder") ?? ""), current.sortOrder),
+    },
+  });
+  revalidatePath("/obra");
+  await redirectWithAdminFlash("/admin/obra", "updated");
 }

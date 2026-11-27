@@ -20,6 +20,8 @@ type Props = {
   pixCopiaECola?: string | null;
   depositTitle?: string;
   cardNote?: string;
+  /** Cartão menor, para caber ao lado do título da obra. */
+  compact?: boolean;
 };
 
 export function PixPaymentInstructions(props: Props) {
@@ -35,18 +37,40 @@ export function PixPaymentInstructions(props: Props) {
     }
   }
 
+  const compact = props.compact === true;
+
   return (
-    <div className="w-full space-y-6">
-      <div className="rounded-2xl border border-parish-200 bg-white p-6 shadow-sm md:p-8">
-        <h1 className="font-[family-name:var(--font-display)] text-2xl font-semibold text-parish-900">
+    <div className={compact ? "w-full" : "w-full space-y-6"}>
+      <div
+        className={
+          compact
+            ? "rounded-xl border border-parish-200 bg-parish-50/70 p-3"
+            : "rounded-2xl border border-parish-200 bg-white p-6 shadow-sm md:p-8"
+        }
+      >
+        <h1
+          className={
+            compact
+              ? "text-sm font-semibold text-parish-900"
+              : "font-[family-name:var(--font-display)] text-2xl font-semibold text-parish-900"
+          }
+        >
           {props.title}
         </h1>
-        <p className="mt-2 text-sm text-parish-600">{props.legalName}</p>
+        {compact ? null : <p className="mt-2 text-sm text-parish-600">{props.legalName}</p>}
 
-        <p className="mt-6 text-3xl font-bold tabular-nums text-parish-900">{props.amountLabel}</p>
+        <p className={compact ? "mt-1 text-xl font-bold tabular-nums text-parish-900" : "mt-6 text-3xl font-bold tabular-nums text-parish-900"}>
+          {props.amountLabel}
+        </p>
 
         {props.pixCopiaECola ? (
-          <div className="mt-6 flex w-full flex-col items-center rounded-xl border border-parish-200 bg-parish-50/80 px-4 py-5 text-center">
+          <div
+            className={
+              compact
+                ? "mt-3 flex w-full flex-col items-center text-center"
+                : "mt-6 flex w-full flex-col items-center rounded-xl border border-parish-200 bg-parish-50/80 px-4 py-5 text-center"
+            }
+          >
             <p className="w-full text-sm font-semibold text-parish-900">QR Code PIX</p>
             <p className="mt-1 w-full text-xs text-parish-600">
               Abra o app do banco e escaneie (valor já preenchido).
@@ -55,9 +79,13 @@ export function PixPaymentInstructions(props: Props) {
               <div className="rounded-xl bg-white p-3 shadow-sm">
                 <QRCode
                   value={props.pixCopiaECola}
-                  size={200}
+                  size={compact ? 148 : 200}
                   level="M"
-                  className="mx-auto block h-auto w-[200px] max-w-full"
+                  className={
+                    compact
+                      ? "mx-auto block h-auto w-[148px] max-w-full"
+                      : "mx-auto block h-auto w-[200px] max-w-full"
+                  }
                   aria-label="QR Code para pagamento PIX"
                 />
               </div>
@@ -71,6 +99,10 @@ export function PixPaymentInstructions(props: Props) {
           </div>
         ) : null}
 
+        {compact ? (
+          <p className="mt-3 text-xs leading-relaxed text-parish-600">{props.afterPayNote}</p>
+        ) : (
+        <>
         <dl className="mt-6 space-y-4 text-sm text-parish-800">
           <div>
             <dt className="font-semibold text-parish-900">Chave PIX ({props.pixKeyType})</dt>
@@ -132,6 +164,8 @@ export function PixPaymentInstructions(props: Props) {
         >
           {props.backLabel}
         </Link>
+        </>
+        )}
       </div>
     </div>
   );

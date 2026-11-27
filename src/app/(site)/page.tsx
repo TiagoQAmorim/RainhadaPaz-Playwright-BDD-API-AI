@@ -15,6 +15,7 @@ import { getHomeHeroCtas } from "@/lib/home-hero-ctas";
 import { getPublishedNotices } from "@/lib/notices";
 import { prisma } from "@/lib/prisma";
 import { VaticanNewsCard } from "@/components/VaticanNewsCard";
+import { CandleAltarNote } from "@/components/CandleAltarNote";
 import { PhotoHeroBanner } from "@/components/PhotoHeroBanner";
 import { CANDLES_BANNER_PATH } from "@/lib/parish-brand";
 import { getSiteSettings } from "@/lib/settings";
@@ -133,7 +134,9 @@ export default async function HomePage() {
           title="Mural de velas virtuais"
           description="Intenções acesas pela comunidade."
         />
+        <CandleAltarNote className="mb-3 max-w-3xl text-white" />
         <div className="overflow-visible rounded-2xl border border-white/15 bg-black/40 p-2 pt-3 backdrop-blur-sm md:p-3 md:pt-4">
+          <CandleAltarNote className="mb-3 px-2 text-center text-amber-50" />
           <HomeCandleRail
             initial={candleMural.candles.map(toPublicCandle)}
             total={candleMural.total}

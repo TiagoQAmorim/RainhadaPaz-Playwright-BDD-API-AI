@@ -1,7 +1,7 @@
 import Image from "next/image";
-import Link from "next/link";
-import { BeforeAfterCompare } from "@/components/obra/BeforeAfterCompare";
+import { BeforeAfterCarousel } from "@/components/obra/BeforeAfterCarousel";
 import { WorkDonationPanel } from "@/components/obra/WorkDonationPanel";
+import { WorkImageLightbox } from "@/components/obra/WorkImageLightbox";
 import { PageContainer } from "@/components/PageContainer";
 import { PhotoHeroBanner } from "@/components/PhotoHeroBanner";
 import { hasValidAdminSession } from "@/lib/auth";
@@ -11,7 +11,7 @@ import { getParishWork, parseHelpAmountCents, workStatusLabel } from "@/lib/pari
 export const dynamic = "force-dynamic";
 
 type Props = {
-  searchParams: Promise<{ ajuda?: string }>;
+  searchParams: Promise<{ ajuda?: string; meio?: string }>;
 };
 
 export async function generateMetadata() {
@@ -29,11 +29,12 @@ function upload(src: string) {
 }
 
 export default async function ObraPage({ searchParams }: Props) {
-  const [{ project, comparisons, moments, photos }, { ajuda }, admin] = await Promise.all([
+  const [{ project, comparisons, moments, photos }, { ajuda, meio }, admin] = await Promise.all([
     getParishWork(),
     searchParams,
     hasValidAdminSession(),
   ]);
+  const method = meio === "cartao" ? "cartao" : "pix";
 
   if (!project.published && !admin) {
     return (
@@ -51,7 +52,7 @@ export default async function ObraPage({ searchParams }: Props) {
   const cents = parseHelpAmountCents(ajuda);
   const amountError = ajuda && cents == null ? "Informe um valor entre R$ 1 e R$ 100.000." : null;
   const pix =
-    cents == null
+    method !== "pix" || cents == null
       ? null
       : parishPixPayload({
           kind: "OBRA",
@@ -68,35 +69,40 @@ export default async function ObraPage({ searchParams }: Props) {
         imageSrc={heroImage}
         priority
         unoptimized={upload(heroImage)}
-        minHeightClass="min-h-[320px] sm:min-h-[380px]"
+        wide
+        minHeightClass="min-h-0"
+        paddingClassName="py-4 md:py-5"
       >
-        <p className="text-xs font-bold uppercase tracking-[0.22em] text-gold-300">Paróquia Rainha da Paz</p>
-        <h1 className="mt-2 max-w-3xl font-[family-name:var(--font-display)] text-4xl font-semibold text-white md:text-5xl">
-          {project.title}
-        </h1>
-        {project.intro ? (
-          <p className="mt-3 max-w-2xl text-base leading-relaxed text-white/90">{project.intro}</p>
-        ) : null}
-        {progress > 0 || project.progressLabel ? (
-          <div className="mt-6 max-w-md">
-            <div className="flex items-end justify-between gap-3 text-sm text-white">
-              <span className="font-semibold">{project.progressLabel || "Evolução da obra"}</span>
-              <span className="text-lg font-bold tabular-nums text-gold-300">{progress}%</span>
+        <div className="text-center">
+          <h1 className="font-[family-name:var(--font-display)] text-3xl font-semibold leading-tight text-white md:text-4xl">
+            {project.title}
+          </h1>
+          {project.intro ? (
+            <p className="mx-auto mt-2 max-w-5xl text-sm leading-snug text-white/90 md:text-base">{project.intro}</p>
+          ) : null}
+          {progress > 0 || project.progressLabel ? (
+            <div className="mx-auto mt-3 max-w-3xl">
+              <div className="flex items-center justify-center gap-3 text-sm text-white">
+                <span className="font-semibold">{project.progressLabel || "Evolução da obra"}</span>
+                <span className="text-lg font-bold tabular-nums text-gold-300">{progress}%</span>
+              </div>
+              <div className="mx-auto mt-2 h-4 w-full overflow-hidden rounded-full bg-white/25 md:h-5">
+                <div className="h-full rounded-full bg-gold-400" style={{ width: `${progress}%` }} />
+              </div>
             </div>
-            <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-white/25">
-              <div className="h-full rounded-full bg-gold-400" style={{ width: `${progress}%` }} />
-            </div>
+          ) : null}
+          <div className="mt-3 text-left">
+            <WorkDonationPanel
+              pix={pix}
+              amountError={amountError}
+              selectedCents={cents}
+              method={method}
+            />
           </div>
-        ) : null}
-        <Link
-          href="#ajuda"
-          className="mt-6 inline-flex rounded-full bg-gold-500 px-6 py-3 text-sm font-bold text-parish-950 hover:bg-gold-400"
-        >
-          Ajudar esta obra
-        </Link>
+        </div>
       </PhotoHeroBanner>
 
-      <PageContainer wide className="space-y-16 py-14 md:py-16">
+      <PageContainer wide className="space-y-10 py-8 md:py-10">
         {moments.length > 0 ? (
           <section>
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-gold-600">Evolução</p>
@@ -121,16 +127,18 @@ export default async function ObraPage({ searchParams }: Props) {
                   <article className="mb-8 overflow-hidden rounded-2xl border border-parish-100 bg-white shadow-sm">
                     <div className={moment.imageUrl ? "grid md:grid-cols-[16rem_minmax(0,1fr)]" : ""}>
                       {moment.imageUrl ? (
-                        <div className="relative min-h-48">
-                          <Image
-                            src={moment.imageUrl}
-                            alt=""
-                            fill
-                            className="object-cover"
-                            sizes="256px"
-                            unoptimized={upload(moment.imageUrl)}
-                          />
-                        </div>
+                        <WorkImageLightbox src={moment.imageUrl} alt={moment.title} className="h-full min-h-48">
+                          <span className="relative block h-full min-h-48">
+                            <Image
+                              src={moment.imageUrl}
+                              alt=""
+                              fill
+                              className="object-cover"
+                              sizes="256px"
+                              unoptimized={upload(moment.imageUrl)}
+                            />
+                          </span>
+                        </WorkImageLightbox>
                       ) : null}
                       <div className="p-5">
                         <p className="text-xs font-bold uppercase tracking-wide text-parish-500">
@@ -157,17 +165,15 @@ export default async function ObraPage({ searchParams }: Props) {
             <h2 className="mt-2 font-[family-name:var(--font-display)] text-3xl font-semibold text-parish-900">
               O que já mudou
             </h2>
-            <div className="mt-8 grid gap-6 lg:grid-cols-2">
-              {comparisons.map((item) => (
-                <BeforeAfterCompare
-                  key={item.id}
-                  title={item.title}
-                  beforeUrl={item.beforeUrl}
-                  afterUrl={item.afterUrl}
-                  caption={item.caption}
-                />
-              ))}
-            </div>
+            <BeforeAfterCarousel
+              items={comparisons.map((item) => ({
+                id: item.id,
+                title: item.title,
+                beforeUrl: item.beforeUrl,
+                afterUrl: item.afterUrl,
+                caption: item.caption,
+              }))}
+            />
           </section>
         ) : null}
 
@@ -177,19 +183,29 @@ export default async function ObraPage({ searchParams }: Props) {
             <h2 className="mt-2 font-[family-name:var(--font-display)] text-3xl font-semibold text-parish-900">
               Fotos da obra
             </h2>
-            <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <ul
+              className={
+                photos.length === 1
+                  ? "mt-6 grid max-w-3xl gap-4"
+                  : photos.length === 2
+                    ? "mt-6 grid gap-4 sm:grid-cols-2"
+                    : "mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+              }
+            >
               {photos.map((photo) => (
                 <li key={photo.id} className="overflow-hidden rounded-2xl bg-white shadow-md ring-1 ring-black/5">
-                  <div className="relative aspect-[4/3]">
-                    <Image
-                      src={photo.imageUrl}
-                      alt={photo.caption || "Foto da obra"}
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 640px) 100vw, 33vw"
-                      unoptimized={upload(photo.imageUrl)}
-                    />
-                  </div>
+                  <WorkImageLightbox src={photo.imageUrl} alt={photo.caption || "Foto da obra"}>
+                    <span className="relative block aspect-[4/3]">
+                      <Image
+                        src={photo.imageUrl}
+                        alt=""
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 640px) 100vw, 33vw"
+                        unoptimized={upload(photo.imageUrl)}
+                      />
+                    </span>
+                  </WorkImageLightbox>
                   {photo.caption ? (
                     <p className="px-4 py-3 text-sm text-parish-700">{photo.caption}</p>
                   ) : null}
@@ -198,8 +214,6 @@ export default async function ObraPage({ searchParams }: Props) {
             </ul>
           </section>
         ) : null}
-
-        <WorkDonationPanel pix={pix} amountError={amountError} selectedCents={cents} />
       </PageContainer>
     </>
   );

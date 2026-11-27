@@ -8,18 +8,19 @@ type Props = {
   beforeUrl: string;
   afterUrl: string;
   caption?: string;
+  wide?: boolean;
 };
 
 function localUpload(src: string) {
   return src.startsWith("/uploads/");
 }
 
-export function BeforeAfterCompare({ title, beforeUrl, afterUrl, caption }: Props) {
+export function BeforeAfterCompare({ title, beforeUrl, afterUrl, caption, wide }: Props) {
   const [pos, setPos] = useState(52);
 
   return (
     <figure className="overflow-hidden rounded-3xl bg-white shadow-xl ring-1 ring-parish-200/80">
-      <div className="relative aspect-[4/3] select-none bg-parish-900">
+      <div className={wide ? "relative aspect-[16/9] select-none bg-parish-900" : "relative aspect-[4/3] select-none bg-parish-900"}>
         <Image
           src={afterUrl}
           alt={`Depois — ${title}`}
