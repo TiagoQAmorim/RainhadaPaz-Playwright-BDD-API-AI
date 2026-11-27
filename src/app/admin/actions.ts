@@ -11,6 +11,7 @@ import {
   validateNewAdminPassword,
 } from "@/lib/admin-users";
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@prisma/client";
 import { redirectWithAdminFlash } from "@/lib/admin-flash";
 import {
   formCheckboxOn,
@@ -20,6 +21,7 @@ import {
 import { imageUrlFromForm, resolveImageFromForm } from "@/lib/uploads";
 import { sanitizeAdminHtml } from "@/lib/sanitize-admin-html";
 import { ensureSiteSettings } from "@/lib/settings";
+import { normalizeNotifyEmailList } from "@/lib/candle-notify-emails";
 function slugify(text: string) {
   return text
     .toLowerCase()
@@ -566,15 +568,6 @@ export async function deletePage(formData: FormData) {
   await redirectWithAdminFlash(returnTo || "/admin/informacoes/paginas", "deleted");
 }
 
-function normalizeOptionalEmail(raw: FormDataEntryValue | null): string | null {
-  const v = String(raw ?? "").trim();
-  if (!v) return null;
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) {
-    throw new Error("Informe um e-mail válido para receber as velas.");
-  }
-  return v;
-}
-
 function readAfterglow(formData: FormData) {
   const amount = Number(String(formData.get("candleAfterglowAmount") ?? "").trim());
   const unit = String(formData.get("candleAfterglowUnit") ?? "days");
@@ -596,7 +589,7 @@ function readAfterglow(formData: FormData) {
 function readExpiryNoticeMinutes(formData: FormData) {
   const minutes = Number(String(formData.get("candleExpiryNoticeMinutes") ?? "").trim());
   if (!Number.isInteger(minutes) || minutes < 1 || minutes > 1440) {
-    redirectCandleSettingsError("Informe de 1 a 1440 minutos para o aviso da vela.");
+    redirectCandleSettingsError("Informe de 1 a 1440 minutos para o aviso da vela.", "emails");
   }
   return minutes;
 }
@@ -611,13 +604,39 @@ function readCandleEmailTemplate(formData: FormData, name: string, max: number) 
       max <= 180
         ? "O assunto do e-mail está longo demais."
         : "O texto do e-mail está longo demais.",
+      "emails",
     );
   }
   return value;
 }
 
-function redirectCandleSettingsError(message: string): never {
-  redirect(`/admin/velas?erro=${encodeURIComponent(message)}`);
+function redirectCandleSettingsError(message: string, aba?: "emails"): never {
+  const base = aba === "emails" ? "/admin/velas?aba=emails" : "/admin/velas";
+  const sep = base.includes("?") ? "&" : "?";
+  redirect(`${base}${sep}erro=${encodeURIComponent(message)}`);
+}
+
+const candleSettingsCreate = {
+  id: 1,
+  parishName: "Paróquia Nossa Senhora Rainha da Paz",
+  diocese: "Diocese de Santo Amaro",
+  address: "São Paulo — SP",
+  phone: "",
+  heroTitle: "Unidos pela fé, guiados por Maria.",
+  heroSubtitle: "Uma comunidade que acolhe e vive o amor de Cristo.",
+  aboutHtml: "",
+  massScheduleHtml: "",
+};
+
+async function saveCandleSettings(candleData: Prisma.SiteSettingsUncheckedUpdateInput) {
+  await prisma.siteSettings.upsert({
+    where: { id: 1 },
+    update: candleData,
+    create: {
+      ...candleSettingsCreate,
+      ...candleData,
+    } as Prisma.SiteSettingsUncheckedCreateInput,
+  });
 }
 
 export async function updateCandleSettings(formData: FormData) {
@@ -625,14 +644,6 @@ export async function updateCandleSettings(formData: FormData) {
   try {
     const amount = Number(String(formData.get("candleDurationAmount") ?? "").trim());
     const unit = String(formData.get("candleDurationUnit") ?? "hours");
-    let candlesNotifyEmail: string | null;
-    try {
-      candlesNotifyEmail = normalizeOptionalEmail(formData.get("candlesNotifyEmail"));
-    } catch (e) {
-      redirectCandleSettingsError(
-        e instanceof Error ? e.message : "E-mail de notificação inválido.",
-      );
-    }
     const accessMode = String(formData.get("candleAccessMode") ?? "paid");
     const priceRaw = String(formData.get("candlePriceBrl") ?? "").trim().replace(",", ".");
     const priceBrl = priceRaw ? Number(priceRaw) : NaN;
@@ -666,40 +677,14 @@ export async function updateCandleSettings(formData: FormData) {
       );
     }
 
-    const candleData = {
+    await saveCandleSettings({
       candleDurationAmount: Math.round(amount),
       candleDurationUnit: unit,
-      candlesNotifyEmail,
       candleAccessMode: accessMode,
       candlePriceCents,
       candlePaymentPix,
       candlePaymentSicredi,
-      candleLitEmailSubject: readCandleEmailTemplate(formData, "candleLitEmailSubject", 180),
-      candleLitEmailBody: readCandleEmailTemplate(formData, "candleLitEmailBody", 8000),
-      candleExpiryEmailSubject: readCandleEmailTemplate(formData, "candleExpiryEmailSubject", 180),
-      candleExpiryEmailBody: readCandleEmailTemplate(formData, "candleExpiryEmailBody", 8000),
-      candleWeekEmailSubject: readCandleEmailTemplate(formData, "candleWeekEmailSubject", 180),
-      candleWeekEmailIntro: readCandleEmailTemplate(formData, "candleWeekEmailIntro", 8000),
-      candleWeekEmailItem: readCandleEmailTemplate(formData, "candleWeekEmailItem", 8000),
-      candleExpiryNoticeMinutes: readExpiryNoticeMinutes(formData),
       ...readAfterglow(formData),
-    };
-
-    await prisma.siteSettings.upsert({
-      where: { id: 1 },
-      update: candleData,
-      create: {
-        id: 1,
-        parishName: "Paróquia Nossa Senhora Rainha da Paz",
-        diocese: "Diocese de Santo Amaro",
-        address: "São Paulo — SP",
-        phone: "",
-        heroTitle: "Unidos pela fé, guiados por Maria.",
-        heroSubtitle: "Uma comunidade que acolhe e vive o amor de Cristo.",
-        aboutHtml: "",
-        massScheduleHtml: "",
-        ...candleData,
-      },
     });
   } catch (e) {
     if (e && typeof e === "object" && "digest" in e) throw e;
@@ -712,12 +697,36 @@ export async function updateCandleSettings(formData: FormData) {
   await redirectWithAdminFlash("/admin/velas", "updated");
 }
 
+export async function updateCandleEmailSettings(formData: FormData) {
+  await requireAdmin();
+  try {
+    const emails = normalizeNotifyEmailList(String(formData.get("candlesNotifyEmail") ?? ""));
+    if (!emails.ok) redirectCandleSettingsError(emails.message, "emails");
+    await saveCandleSettings({
+      candlesNotifyEmail: emails.stored,
+      candleExpiryEmailEnabled: formData.get("candleExpiryEmailEnabled") === "on",
+      candleWeekEmailEnabled: formData.get("candleWeekEmailEnabled") === "on",
+      candleExpiryEmailSubject: readCandleEmailTemplate(formData, "candleExpiryEmailSubject", 180),
+      candleExpiryEmailBody: readCandleEmailTemplate(formData, "candleExpiryEmailBody", 8000),
+      candleWeekEmailSubject: readCandleEmailTemplate(formData, "candleWeekEmailSubject", 180),
+      candleWeekEmailIntro: readCandleEmailTemplate(formData, "candleWeekEmailIntro", 8000),
+      candleExpiryNoticeMinutes: readExpiryNoticeMinutes(formData),
+    });
+  } catch (e) {
+    if (e && typeof e === "object" && "digest" in e) throw e;
+    const msg = e instanceof Error ? e.message : "Não foi possível salvar os e-mails.";
+    redirectCandleSettingsError(msg, "emails");
+  }
+  revalidatePath("/admin/velas");
+  await redirectWithAdminFlash("/admin/velas?aba=emails", "updated");
+}
+
 export async function sendWeeklyCandleEmailTest() {
   await requireAdmin();
   const { sendWeeklyReportTest } = await import("@/lib/candle-mail-run");
   const result = await sendWeeklyReportTest();
-  if (!result.ok) redirectCandleSettingsError(result.message);
-  await redirectWithAdminFlash("/admin/velas", "weekmail");
+  if (!result.ok) redirectCandleSettingsError(result.message, "emails");
+  await redirectWithAdminFlash("/admin/velas?aba=emails", "weekmail");
 }
 
 export async function deleteCandle(formData: FormData) {

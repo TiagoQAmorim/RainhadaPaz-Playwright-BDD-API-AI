@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, type ReactNode } from "react";
 import { adminInput, adminTextarea } from "@/components/admin/AdminFormStyles";
 
 type Tag = readonly [string, string];
@@ -22,36 +22,49 @@ function TagButtons({ tags, onInsert }: { tags: readonly Tag[]; onInsert: (tag: 
         <button
           key={tag}
           type="button"
-          title={label}
+          title={`Inserir ${tag}`}
           onMouseDown={(event) => event.preventDefault()}
           onClick={() => onInsert(tag)}
-          className="rounded-full border border-parish-200 bg-parish-50 px-2 py-0.5 font-mono text-xs text-parish-800 hover:bg-parish-100"
+          className="inline-flex items-baseline gap-1.5 rounded-lg border border-parish-200 bg-white px-2 py-1 text-left hover:border-parish-400"
         >
-          {tag}
+          <span className="font-mono text-[11px] text-parish-900">{tag}</span>
+          <span className="text-[11px] text-parish-500">{label}</span>
         </button>
       ))}
     </div>
   );
 }
 
-function EmailTemplate({
+function EmailLayout({
+  enabledName,
+  enabledDefault,
+  kicker,
   title,
   hint,
   subjectName,
   bodyName,
+  bodyLabel,
   subject,
   body,
   tags,
   rows,
+  details,
+  children,
 }: {
+  enabledName: string;
+  enabledDefault: boolean;
+  kicker: string;
   title: string;
   hint: string;
   subjectName: string;
   bodyName: string;
+  bodyLabel: string;
   subject: string;
   body: string;
   tags: readonly Tag[];
   rows: number;
+  details?: ReactNode;
+  children?: ReactNode;
 }) {
   const subjectRef = useRef<HTMLInputElement>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
@@ -62,14 +75,25 @@ function EmailTemplate({
   }
 
   return (
-    <fieldset className="space-y-2 border-t border-parish-100 pt-4">
-      <legend className="text-sm font-semibold text-parish-900">{title}</legend>
-      <p className="text-xs text-parish-500">{hint}</p>
-      <TagButtons
-        tags={tags}
-        onInsert={(tag) => insertTag(lastRef.current ?? bodyRef.current, tag)}
-      />
-      <label className="block text-sm font-medium">
+    <article className="rounded-2xl border border-parish-200 bg-white p-4 shadow-sm">
+      <label className="flex cursor-pointer items-center gap-2 text-sm font-semibold text-parish-900">
+        <input type="checkbox" name={enabledName} defaultChecked={enabledDefault} />
+        Enviar este e-mail
+      </label>
+      <p className="mt-3 text-[11px] font-bold uppercase tracking-[0.16em] text-parish-500">{kicker}</p>
+      <h3 className="mt-1 text-base font-semibold text-parish-900">{title}</h3>
+      <p className="mt-1 text-sm text-parish-600">{hint}</p>
+      {details}
+      <div className="mt-3">
+        <p className="mb-1.5 text-xs font-medium text-parish-700">
+          Clique para inserir no campo que estiver selecionado
+        </p>
+        <TagButtons
+          tags={tags}
+          onInsert={(tag) => insertTag(lastRef.current ?? bodyRef.current, tag)}
+        />
+      </div>
+      <label className="mt-4 block text-sm font-medium text-parish-900">
         Assunto
         <input
           ref={subjectRef}
@@ -79,8 +103,8 @@ function EmailTemplate({
           className={`${adminInput} mt-1`}
         />
       </label>
-      <label className="block text-sm font-medium">
-        Texto
+      <label className="mt-3 block text-sm font-medium text-parish-900">
+        {bodyLabel}
         <textarea
           ref={bodyRef}
           onFocus={(event) => remember(event.currentTarget)}
@@ -90,83 +114,112 @@ function EmailTemplate({
           className={`${adminTextarea} mt-1`}
         />
       </label>
-    </fieldset>
+      {children}
+    </article>
   );
 }
 
 export function CandleEmailFields({
-  litSubject,
-  litBody,
+  expiryEnabled,
+  expiryMinutes,
   expirySubject,
   expiryBody,
+  weekEnabled,
+  notifyEmails,
+  generalEmail,
   weekSubject,
   weekIntro,
-  weekItem,
   personTags,
   weekIntroTags,
-  weekItemTags,
 }: {
-  litSubject: string;
-  litBody: string;
+  expiryEnabled: boolean;
+  expiryMinutes: number;
   expirySubject: string;
   expiryBody: string;
+  weekEnabled: boolean;
+  notifyEmails: string;
+  generalEmail: string | null;
   weekSubject: string;
   weekIntro: string;
-  weekItem: string;
   personTags: readonly Tag[];
   weekIntroTags: readonly Tag[];
-  weekItemTags: readonly Tag[];
 }) {
-  const itemRef = useRef<HTMLTextAreaElement>(null);
 
   return (
     <div className="space-y-4">
-      <h2 className="text-sm font-semibold text-parish-900">Textos dos e-mails</h2>
-      <p className="text-xs text-parish-500">
-        Clique numa tag para colocá-la onde o cursor estiver. Apague o texto de um campo para voltar
-        ao modelo original.
-      </p>
-      <EmailTemplate
-        title="Quando a vela acende, para a paróquia"
-        hint="Chega no e-mail de receber velas e orações."
-        subjectName="candleLitEmailSubject"
-        bodyName="candleLitEmailBody"
-        subject={litSubject}
-        body={litBody}
-        tags={personTags}
-        rows={12}
-      />
-      <EmailTemplate
-        title="Antes de apagar, para quem acendeu"
-        hint="O tempo está no campo de minutos acima. Use <antecedencia> no texto para citar esse prazo."
+      <div>
+        <h2 className="text-sm font-semibold text-parish-900">Os dois e-mails</h2>
+        <p className="mt-1 text-sm text-parish-600">
+          Cada cartão só sai se “Enviar este e-mail” estiver marcado. Apague um campo de texto e
+          salve para voltar ao modelo original.
+        </p>
+      </div>
+      <EmailLayout
+        enabledName="candleExpiryEmailEnabled"
+        enabledDefault={expiryEnabled}
+        kicker="Para quem acendeu"
+        title="Antes de apagar"
+        hint="Vai para o e-mail que a pessoa informou ao acender a vela. Use <antecedencia> para citar o prazo."
         subjectName="candleExpiryEmailSubject"
         bodyName="candleExpiryEmailBody"
+        bodyLabel="Texto"
         subject={expirySubject}
         body={expiryBody}
         tags={personTags}
-        rows={10}
+        rows={8}
+        details={
+          <div className="mt-3 max-w-xs">
+            <label className="mb-1 block text-sm font-medium text-parish-900">Avisar antes de apagar</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                name="candleExpiryNoticeMinutes"
+                min={1}
+                max={1440}
+                step={1}
+                defaultValue={expiryMinutes}
+                className={adminInput}
+                required
+              />
+              <span className="shrink-0 text-sm text-parish-600">minutos</span>
+            </div>
+            <p className="mt-1.5 text-xs text-parish-500">A vela precisa durar mais do que esse prazo.</p>
+          </div>
+        }
       />
-      <EmailTemplate
-        title="Sexta-feira, lista da semana"
-        hint="Use <velas> no lugar em que a lista de velas deve aparecer."
+      <EmailLayout
+        enabledName="candleWeekEmailEnabled"
+        enabledDefault={weekEnabled}
+        kicker="Para a paróquia · sexta às 23h"
+        title="Lista da semana"
+        hint="Leva as velas e orações de domingo a sexta. Onde estiver <velas>, entra a tabela: uma linha por vela."
         subjectName="candleWeekEmailSubject"
         bodyName="candleWeekEmailIntro"
+        bodyLabel="Texto do e-mail"
         subject={weekSubject}
         body={weekIntro}
         tags={weekIntroTags}
-        rows={10}
+        rows={8}
+        details={
+          <div className="mt-3">
+            <label className="mb-1 block text-sm font-medium text-parish-900">
+              E-mails que recebem a lista
+            </label>
+            <textarea
+              name="candlesNotifyEmail"
+              defaultValue={notifyEmails}
+              rows={4}
+              placeholder={generalEmail ?? "contato@paroquia.exemplo"}
+              className={adminTextarea}
+            />
+            <p className="mt-1.5 text-xs text-parish-500">
+              Um e-mail por linha. Pode separar por vírgula. Se ficar vazio, usa o e-mail geral de
+              Informações
+              {generalEmail ? ` (${generalEmail})` : " (ainda não configurado)"}.
+            </p>
+          </div>
+        }
       />
-      <fieldset className="space-y-2">
-        <legend className="text-sm font-semibold text-parish-900">Modelo de cada vela na lista</legend>
-        <TagButtons tags={weekItemTags} onInsert={(tag) => insertTag(itemRef.current, tag)} />
-        <textarea
-          ref={itemRef}
-          name="candleWeekEmailItem"
-          defaultValue={weekItem}
-          rows={10}
-          className={adminTextarea}
-        />
-      </fieldset>
     </div>
   );
 }

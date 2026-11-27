@@ -1,4 +1,5 @@
 import type { SiteSettings } from "@prisma/client";
+import { parseNotifyEmails } from "@/lib/candle-notify-emails";
 import { PARISH_LOGO_PATH } from "@/lib/parish-brand";
 import { prisma } from "@/lib/prisma";
 
@@ -36,6 +37,8 @@ const DEFAULT_SITE_SETTINGS: SiteSettings = {
   candleDurationAmount: 8,
   candleDurationUnit: "hours",
   candlesNotifyEmail: null,
+  candleExpiryEmailEnabled: true,
+  candleWeekEmailEnabled: true,
   candleAccessMode: "paid",
   candlePriceCents: 1000,
   candlePaymentPix: true,
@@ -123,13 +126,12 @@ function envCandleDurationHours(): number {
   return Number.isFinite(h) && h > 0 ? h : 8;
 }
 
-/** E-mail que recebe intenções e orações ao acender vela (admin → Velas). */
-export async function getCandlesNotifyEmail(): Promise<string | null> {
+/** E-mails que recebem a lista semanal de velas e orações. */
+export async function getCandlesNotifyEmails(): Promise<string[]> {
   const settings = await getSiteSettings();
-  const dedicated = settings.candlesNotifyEmail?.trim();
-  if (dedicated) return dedicated;
-  const general = settings.email?.trim();
-  return general || null;
+  const dedicated = parseNotifyEmails(settings.candlesNotifyEmail);
+  if (dedicated.length) return dedicated;
+  return parseNotifyEmails(settings.email);
 }
 
 const MAX_AFTERGLOW_DAYS = 365;

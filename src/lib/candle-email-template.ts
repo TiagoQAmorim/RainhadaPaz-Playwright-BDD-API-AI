@@ -16,7 +16,7 @@ export const CANDLE_EMAIL_TAGS = [
 export const CANDLE_WEEK_INTRO_TAGS = [
   ["<periodo>", "Domingo a sexta da semana"],
   ["<quantidade>", "Frase com quantas velas acenderam"],
-  ["<velas>", "Lista, uma vela depois da outra"],
+  ["<velas>", "Tabela da semana, uma vela por linha"],
 ] as const;
 
 export const CANDLE_WEEK_ITEM_TAGS = [["<numero>", "Número na lista"], ...CANDLE_EMAIL_TAGS] as const;
@@ -161,28 +161,91 @@ export function renderCandleEmail(template: string | null | undefined, fallback:
   return applyCandleEmailTemplate(template?.trim() || fallback, candleEmailValues(source));
 }
 
+const WEEK_TABLE_COLUMNS = [
+  ["Nº", "numero"],
+  ["Nome", "nome"],
+  ["E-mail", "email"],
+  ["Telefone", "telefone"],
+  ["Intenção", "intencao"],
+  ["Intenção no mural", "mural-intencao"],
+  ["Oração", "oracao"],
+  ["Oração no mural", "mural-oracao"],
+  ["Valor", "valor"],
+  ["Acendida", "acesa"],
+  ["Apaga", "apaga"],
+] as const;
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function weekTableRows(candles: CandleEmailSource[]) {
+  return candles.map((candle, index) => {
+    const values: Record<string, string> = {
+      ...candleEmailValues(candle),
+      numero: String(index + 1),
+    };
+    return WEEK_TABLE_COLUMNS.map(([, key]) => (values[key] ?? "").replace(/\s+/g, " ").trim());
+  });
+}
+
+function weekTableText(rows: string[][]) {
+  const header = WEEK_TABLE_COLUMNS.map(([label]) => label).join("\t");
+  const body = rows.map((row) => row.join("\t")).join("\n");
+  return body ? `${header}\n${body}` : header;
+}
+
+function weekTableHtml(rows: string[][]) {
+  const cell = "border:1px solid #d5d5d5;padding:6px 8px;text-align:left;vertical-align:top";
+  const heads = WEEK_TABLE_COLUMNS.map(
+    ([label]) => `<th style="${cell};background:#f3f4f6;font-weight:600">${escapeHtml(label)}</th>`,
+  ).join("");
+  const body = rows
+    .map((row) => `<tr>${row.map((value) => `<td style="${cell}">${escapeHtml(value)}</td>`).join("")}</tr>`)
+    .join("");
+  return `<table style="border-collapse:collapse;width:100%;font-family:sans-serif;font-size:13px"><thead><tr>${heads}</tr></thead><tbody>${body}</tbody></table>`;
+}
+
+function insertWeekList(template: string, list: string, asHtml: boolean) {
+  if (!/<velas>/i.test(template)) {
+    if (!asHtml) return `${template}\n\n${list}`;
+    return `${escapeHtml(template).replace(/\n/g, "<br>")}<br>${list}`;
+  }
+  if (!asHtml) return template.replace(/<velas>/gi, list);
+  return template
+    .split(/<velas>/i)
+    .map((part) => escapeHtml(part).replace(/\n/g, "<br>"))
+    .join(list);
+}
+
 export function renderCandleWeekEmail(
-  templates: { subject?: string | null; intro?: string | null; item?: string | null },
+  templates: { subject?: string | null; intro?: string | null },
   candles: CandleEmailSource[],
   window: { start: Date; end: Date },
 ) {
   const periodo = weekPeriodLabel(window.start, window.end);
   const quantidade = weekQuantitySentence(candles.length);
-  const itemTemplate = templates.item?.trim() || DEFAULT_CANDLE_WEEK_EMAIL_ITEM;
-  const velas = candles
-    .map((candle, index) =>
-      applyCandleEmailTemplate(
-        itemTemplate,
-        candleEmailValues(candle, { numero: String(index + 1), periodo, quantidade }),
-      ),
-    )
-    .join("\n\n");
+  const rows = weekTableRows(candles);
+  const tableText = weekTableText(rows);
   const introTemplate = templates.intro?.trim() || DEFAULT_CANDLE_WEEK_EMAIL_INTRO;
-  let text = applyCandleEmailTemplate(introTemplate, { periodo, quantidade, velas });
-  if (!/<velas>/i.test(introTemplate) && velas) text = `${text}\n\n${velas}`;
-  const subject = applyCandleEmailTemplate(
-    templates.subject?.trim() || DEFAULT_CANDLE_WEEK_EMAIL_SUBJECT,
-    { periodo, quantidade, velas },
+  const text = insertWeekList(
+    applyCandleEmailTemplate(introTemplate, { periodo, quantidade, velas: "<velas>" }),
+    tableText,
+    false,
   );
-  return { subject, text };
+  const html = insertWeekList(
+    applyCandleEmailTemplate(introTemplate, { periodo, quantidade, velas: "<velas>" }),
+    weekTableHtml(rows),
+    true,
+  );
+  const subject = applyCandleEmailTemplate(templates.subject?.trim() || DEFAULT_CANDLE_WEEK_EMAIL_SUBJECT, {
+    periodo,
+    quantidade,
+    velas: candles.length ? `${candles.length} vela(s)` : "nenhuma vela",
+  });
+  return { subject, text, html };
 }

@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { publicSiteUrl } from "@/lib/site-url";
-import { getCandlesNotifyEmail, getSiteSettings } from "@/lib/settings";
-import { sendViaSmtp, SmtpSendError } from "@/lib/candle-parish-email";
+import { getCandlesNotifyEmails, getSiteSettings } from "@/lib/settings";
+import { sendZohoMail, ZohoMailError } from "@/lib/zoho-mail";
 import {
   DEFAULT_CANDLE_EXPIRY_EMAIL_BODY,
   DEFAULT_CANDLE_EXPIRY_EMAIL_SUBJECT,
@@ -36,7 +36,7 @@ export function startCandleMailLoop() {
   loopStarted = true;
   const tick = () => {
     void runCandleMailCycle().catch((error) => {
-      console.error("[vela-mail]", error);
+      console.error("[vela-mail]", error instanceof Error ? error.message : "erro");
     });
   };
   setTimeout(tick, 20_000);
@@ -53,7 +53,6 @@ async function weekEmail(window: { start: Date; end: Date }) {
     {
       subject: settings.candleWeekEmailSubject,
       intro: settings.candleWeekEmailIntro,
-      item: settings.candleWeekEmailItem,
     },
     candles.flatMap((candle) =>
       candle.litAt
@@ -80,27 +79,29 @@ async function weekEmail(window: { start: Date; end: Date }) {
 
 /** Envia a lista desta semana agora, sem marcar a sexta como já enviada. */
 export async function sendWeeklyReportTest() {
-  const to = await getCandlesNotifyEmail();
-  if (!to) {
-    return { ok: false as const, message: "Cadastre o e-mail em Admin → Velas antes de testar." };
+  const recipients = await getCandlesNotifyEmails();
+  if (!recipients.length) {
+    return { ok: false as const, message: "Cadastre ao menos um e-mail em Admin → Velas → E-mails antes de testar." };
   }
   const window = currentParishWeekWindow();
   const { rendered } = await weekEmail(window);
   try {
-    const sent = await sendViaSmtp({
-      to,
+    const sent = await sendZohoMail({
+      to: recipients.join(","),
       subject: `[Teste] ${rendered.subject}`,
       text: rendered.text,
+      html: rendered.html,
     });
     if (!sent) {
       return {
         ok: false as const,
-        message: "O servidor não enviou o e-mail. Confira SMTP_HOST, SMTP_USER e SMTP_PASS nas variáveis.",
+        message:
+          "O servidor não enviou o e-mail. Confira ZOHO_CLIENT_ID, ZOHO_CLIENT_SECRET, ZOHO_REFRESH_TOKEN, ZOHO_ACCOUNT_ID, ZOHO_FROM_EMAIL, ZOHO_ACCOUNTS_URL e ZOHO_MAIL_API_URL.",
       };
     }
   } catch (error) {
     const message =
-      error instanceof SmtpSendError
+      error instanceof ZohoMailError
         ? error.message
         : "O envio do e-mail de teste falhou. Tente de novo em instantes.";
     console.error("[vela-mail] teste da semana", message);
@@ -111,6 +112,7 @@ export async function sendWeeklyReportTest() {
 
 async function sendWeeklyReport() {
   const settings = await getSiteSettings();
+  if (!settings.candleWeekEmailEnabled) return false;
   const window = weeklyReportWindow(new Date(), settings.candleWeekReportKey);
   if (!window) return false;
 
@@ -120,10 +122,10 @@ async function sendWeeklyReport() {
   });
   if (claimed.count !== 1) return false;
 
-  const to = await getCandlesNotifyEmail();
+  const recipients = await getCandlesNotifyEmails();
   const { rendered } = await weekEmail(window);
 
-  if (!to) {
+  if (!recipients.length) {
     console.warn("[vela-mail] Relatório da semana sem e-mail cadastrado em Admin → Velas.");
     await prisma.siteSettings.update({
       where: { id: 1 },
@@ -133,13 +135,14 @@ async function sendWeeklyReport() {
   }
 
   try {
-    const sent = await sendViaSmtp({
-      to,
+    const sent = await sendZohoMail({
+      to: recipients.join(","),
       subject: rendered.subject,
       text: rendered.text,
+      html: rendered.html,
     });
     if (!sent) {
-      console.info("[vela-mail] SMTP não configurado. Relatório da semana:\n", rendered.text);
+      console.info("[vela-mail] Zoho não configurado. Relatório da semana não enviado.");
       await prisma.siteSettings.update({
         where: { id: 1 },
         data: { candleWeekReportKey: settings.candleWeekReportKey },
@@ -159,6 +162,7 @@ async function sendWeeklyReport() {
 async function sendExpiryReminders() {
   const now = new Date();
   const settings = await getSiteSettings();
+  if (!settings.candleExpiryEmailEnabled) return 0;
   const noticeMinutes = expiryNoticeMinutes(settings.candleExpiryNoticeMinutes);
   const leadMs = noticeMinutes * 60 * 1000;
   const rows = await prisma.virtualCandle.findMany({
@@ -195,7 +199,7 @@ async function sendExpiryReminders() {
       notice: expiryNoticeLabel(noticeMinutes),
     };
     try {
-      const sent = await sendViaSmtp({
+      const sent = await sendZohoMail({
         to: candle.email,
         subject: renderCandleEmail(settings.candleExpiryEmailSubject, DEFAULT_CANDLE_EXPIRY_EMAIL_SUBJECT, source),
         text: renderCandleEmail(settings.candleExpiryEmailBody, DEFAULT_CANDLE_EXPIRY_EMAIL_BODY, source),
@@ -213,7 +217,7 @@ async function sendExpiryReminders() {
         where: { id: candle.id },
         data: { expiryReminderSentAt: null },
       });
-      console.error("[vela-mail] aviso de 1 hora", error);
+      console.error("[vela-mail] aviso", error instanceof Error ? error.message : "erro");
     }
   }
 

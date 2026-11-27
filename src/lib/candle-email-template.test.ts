@@ -37,22 +37,28 @@ describe("renderCandleWeekEmail", () => {
     end: new Date("2026-11-28T03:00:00.000Z"),
   };
 
-  it("repete o modelo de cada vela dentro de <velas>", () => {
-    const { text, subject } = renderCandleWeekEmail(
+  it("coloca cada vela numa linha da tabela", () => {
+    const { text, html, subject } = renderCandleWeekEmail(
       {
         subject: "Semana <periodo>",
         intro: "Total: <quantidade>\n\n<velas>",
-        item: "<numero>. <nome> — <oracao>",
       },
       [
-        { donorName: "Ana", intention: "Paz", prayer: "Oração reservada" },
-        { donorName: "João", intention: "Saúde", prayer: null },
+        { donorName: "Ana", intention: "Paz", prayer: "Oração reservada", email: "ana@paroquia.test" },
+        { donorName: "João <script>", intention: "Saúde", prayer: null },
       ],
       window,
     );
+    const ana = text.split("\n").find((line) => line.startsWith("1\t"));
     expect(subject).toContain("Semana");
-    expect(text).toContain("1. Ana — Oração reservada");
-    expect(text).toContain("2. João — (não informada)");
     expect(text).toContain("2 vela(s)");
+    expect(ana).toContain("Ana");
+    expect(ana).toContain("Oração reservada");
+    expect(ana).toContain("ana@paroquia.test");
+    expect(ana).toContain("Paz");
+    expect(html.match(/<tr>/g)).toHaveLength(3);
+    expect(html).toContain("Oração reservada");
+    expect(html).toContain("João &lt;script&gt;");
+    expect(html).not.toContain("João <script>");
   });
 });

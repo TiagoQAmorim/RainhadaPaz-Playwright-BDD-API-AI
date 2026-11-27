@@ -42,12 +42,12 @@ Antes de mudar qualquer coisa: **exporte ou anote a zona DNS completa** no Regis
    - **Mantenha ativo** o serviço de **e-mail** (e o que ele precisa no DNS) enquanto essas caixas forem usadas.
    - Antes de cancelar qualquer coisa na hospedagem antiga, confira de novo os **MX** no Registro.br e repita o teste de envio/recebimento.
 
-### Velas e SMTP no site novo
+### Velas e envio no site novo
 
-O portal pode **enviar** e-mails (ex. intenções de velas) via **SMTP** configurado no admin. Isso **não substitui** as caixas `contato@` / `assistente@` na hospedagem antiga:
+O portal **envia** e-mails (ex. intenções de velas) pela API do Zoho Mail, em HTTPS. Isso **não substitui** as caixas `contato@` / `assistente@` e **não mexe nos MX**:
 
 - Para **receber** no site: configure em Admin → Velas / Informações o endereço de destino (pode ser `contato@...` ou `assistente@...`).
-- Para **enviar** com SPF alinhado, use credenciais SMTP do **mesmo provedor de e-mail** da paróquia (a hospedagem antiga ou o painel de e-mail costuma informar host, porta, usuário e senha). Até lá, o sistema pode só registrar no servidor sem enviar — ver comentários em `.env.example` (`SMTP_*`).
+- Para **enviar**: as variáveis `ZOHO_*` ficam no servidor (veja `.env.example`). O botão de teste em Admin → Velas → E-mails manda a lista da semana.
 
 ## Erros comuns
 

@@ -1,14 +1,17 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   confirmCandlePixPayment,
   deleteCandle,
   extinguishCandle,
   sendWeeklyCandleEmailTest,
+  updateCandleEmailSettings,
   updateCandleSettings,
 } from "@/app/admin/actions";
 import { AdminConfirmDeleteForm } from "@/components/admin/AdminConfirmDeleteForm";
 import { adminBtn, adminCard, adminInput } from "@/components/admin/AdminFormStyles";
 import { CandleEmailFields } from "@/components/admin/CandleEmailFields";
+import { parseNotifyEmails } from "@/lib/candle-notify-emails";
 import { WeeklyCandleEmailButton } from "@/components/admin/WeeklyCandleEmailButton";
 import { getSessionAdmin } from "@/lib/auth";
 import { isCandleActiveOnMural } from "@/lib/candle-report";
@@ -18,28 +21,52 @@ import { getCandleDurationHours, getSiteSettings } from "@/lib/settings";
 import {
   CANDLE_EMAIL_TAGS,
   CANDLE_WEEK_INTRO_TAGS,
-  CANDLE_WEEK_ITEM_TAGS,
   DEFAULT_CANDLE_EXPIRY_EMAIL_BODY,
   DEFAULT_CANDLE_EXPIRY_EMAIL_SUBJECT,
-  DEFAULT_CANDLE_LIT_EMAIL_BODY,
-  DEFAULT_CANDLE_LIT_EMAIL_SUBJECT,
   DEFAULT_CANDLE_WEEK_EMAIL_INTRO,
-  DEFAULT_CANDLE_WEEK_EMAIL_ITEM,
   DEFAULT_CANDLE_WEEK_EMAIL_SUBJECT,
 } from "@/lib/candle-email-template";
+
+function VelasTabs({ current }: { current: "velas" | "emails" }) {
+  const tabs = [
+    { id: "velas" as const, href: "/admin/velas", label: "Velas" },
+    { id: "emails" as const, href: "/admin/velas?aba=emails", label: "E-mails" },
+  ];
+  return (
+    <nav className="flex w-fit gap-1 rounded-2xl bg-white p-1 shadow-sm" aria-label="Seções das velas">
+      {tabs.map((tab) => (
+        <Link
+          key={tab.id}
+          href={tab.href}
+          aria-current={current === tab.id ? "page" : undefined}
+          className={
+            current === tab.id
+              ? "rounded-xl bg-parish-700 px-4 py-2 text-sm font-semibold text-white"
+              : "rounded-xl px-4 py-2 text-sm font-semibold text-parish-700 hover:bg-parish-50"
+          }
+        >
+          {tab.label}
+        </Link>
+      ))}
+    </nav>
+  );
+}
 
 export default async function AdminVelasPage({
   searchParams,
 }: {
-  searchParams: Promise<{ erro?: string }>;
+  searchParams: Promise<{ erro?: string; aba?: string }>;
 }) {
   if (!(await getSessionAdmin())) redirect("/admin/login");
-  const { erro } = await searchParams;
+  const { erro, aba } = await searchParams;
+  const emailsTab = aba === "emails";
   const [candles, settings, durationHours] = await Promise.all([
-    prisma.virtualCandle.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 200,
-    }),
+    emailsTab
+      ? Promise.resolve([])
+      : prisma.virtualCandle.findMany({
+          orderBy: { createdAt: "desc" },
+          take: 200,
+        }),
     getSiteSettings(),
     getCandleDurationHours(),
   ]);
@@ -52,15 +79,95 @@ export default async function AdminVelasPage({
   const accessMode = settings.candleAccessMode ?? "paid";
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
+      <VelasTabs current={emailsTab ? "emails" : "velas"} />
       {erro ? (
         <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">{erro}</p>
       ) : null}
+      {emailsTab ? (
+        <EmailsTab settings={settings} />
+      ) : (
+        <VelasTab
+          settings={settings}
+          candles={candles}
+          durationHours={durationHours}
+          durationLabel={durationLabel}
+          priceBrlDefault={priceBrlDefault}
+          accessMode={accessMode}
+        />
+      )}
+    </div>
+  );
+}
+
+function EmailsTab({
+  settings,
+}: {
+  settings: Awaited<ReturnType<typeof getSiteSettings>>;
+}) {
+  return (
+    <div className="max-w-3xl space-y-6">
+      <section className={adminCard}>
+        <h1 className="text-lg font-semibold text-parish-900">E-mails das velas</h1>
+        <p className="mt-1 text-sm text-parish-600">
+          São dois envios. Desmarque “Enviar este e-mail” para parar um deles sem apagar o texto.
+        </p>
+        <form action={updateCandleEmailSettings} className="mt-5 space-y-6">
+          <CandleEmailFields
+            expiryEnabled={settings.candleExpiryEmailEnabled !== false}
+            expiryMinutes={settings.candleExpiryNoticeMinutes ?? 60}
+            expirySubject={settings.candleExpiryEmailSubject ?? DEFAULT_CANDLE_EXPIRY_EMAIL_SUBJECT}
+            expiryBody={settings.candleExpiryEmailBody ?? DEFAULT_CANDLE_EXPIRY_EMAIL_BODY}
+            weekEnabled={settings.candleWeekEmailEnabled !== false}
+            notifyEmails={parseNotifyEmails(settings.candlesNotifyEmail).join("\n")}
+            generalEmail={settings.email}
+            weekSubject={settings.candleWeekEmailSubject ?? DEFAULT_CANDLE_WEEK_EMAIL_SUBJECT}
+            weekIntro={settings.candleWeekEmailIntro ?? DEFAULT_CANDLE_WEEK_EMAIL_INTRO}
+            personTags={CANDLE_EMAIL_TAGS}
+            weekIntroTags={CANDLE_WEEK_INTRO_TAGS}
+          />
+          <button type="submit" className={adminBtn}>
+            Salvar e-mails
+          </button>
+        </form>
+      </section>
+      <section className={adminCard}>
+        <h2 className="text-sm font-semibold text-parish-900">Teste da lista de sexta</h2>
+        <p className="mt-1 text-sm text-parish-600">
+          Manda a lista de domingo a sexta desta semana para todos os e-mails cadastrados, com
+          [Teste] no assunto. Esse teste sai mesmo com a lista automática desmarcada. A sexta às
+          23h só envia se “Enviar este e-mail” da lista estiver marcado.
+        </p>
+        <form action={sendWeeklyCandleEmailTest} className="mt-4">
+          <WeeklyCandleEmailButton />
+        </form>
+      </section>
+    </div>
+  );
+}
+
+function VelasTab({
+  settings,
+  candles,
+  durationHours,
+  durationLabel,
+  priceBrlDefault,
+  accessMode,
+}: {
+  settings: Awaited<ReturnType<typeof getSiteSettings>>;
+  candles: Awaited<ReturnType<typeof prisma.virtualCandle.findMany>>;
+  durationHours: number;
+  durationLabel: string;
+  priceBrlDefault: number;
+  accessMode: string;
+}) {
+  return (
+    <>
       <section className={adminCard}>
         <h1 className="text-lg font-semibold text-parish-900">Velas virtuais</h1>
         <p className="mt-1 text-sm text-parish-600">
           Duração atual no mural: <strong>{durationLabel}</strong>. Intenções e orações ficam em
-          sigilo no mural público; a paróquia vê tudo aqui e por e-mail ao acender.
+          sigilo no mural público. Os textos dos e-mails ficam na aba E-mails.
         </p>
         <form action={updateCandleSettings} className="mt-4 space-y-4">
           <div className="flex flex-wrap items-end gap-3">
@@ -122,17 +229,16 @@ export default async function AdminVelasPage({
             <h2 className="text-sm font-semibold text-parish-900">Pagamento e valor</h2>
             <div className="space-y-2">
               <label className="mb-1 block text-sm font-medium">Modo</label>
-              <select
-                name="candleAccessMode"
-                className={adminInput}
-                defaultValue={accessMode}
-              >
+              <select name="candleAccessMode" className={adminInput} defaultValue={accessMode}>
                 <option value="paid">Paga (PIX ou cartão)</option>
                 <option value="free_donation">Gratuita com oferta opcional</option>
                 <option value="free">Gratuita (sem pagamento)</option>
               </select>
               <p className="text-xs text-parish-500">
-                Atual: <strong>{candleAccessModeLabel(accessMode as "free" | "free_donation" | "paid")}</strong>
+                Atual:{" "}
+                <strong>
+                  {candleAccessModeLabel(accessMode as "free" | "free_donation" | "paid")}
+                </strong>
                 {accessMode === "paid" ? (
                   <>
                     {" "}
@@ -187,66 +293,9 @@ export default async function AdminVelasPage({
               e as credenciais estiverem no servidor. Até lá, marque Cartão aqui para preparar e use PIX na prática.
             </p>
           </div>
-          <div className="max-w-xs">
-            <label className="mb-1 block text-sm font-medium">Avisar antes de apagar (minutos)</label>
-            <input
-              type="number"
-              name="candleExpiryNoticeMinutes"
-              min={1}
-              max={1440}
-              step={1}
-              defaultValue={settings.candleExpiryNoticeMinutes ?? 60}
-              className={adminInput}
-              required
-            />
-            <p className="mt-1.5 text-xs text-parish-500">
-              O e-mail sai quando falta esse tempo. Para testar, use 5. A vela precisa durar mais
-              do que esse prazo, senão o aviso sairia no instante em que ela acende. No site
-              publicado, a conferência roda cerca de uma vez por minuto.
-            </p>
-          </div>
-          <div className="max-w-md">
-            <label className="mb-1 block text-sm font-medium">
-              E-mail para receber velas e orações
-            </label>
-            <input
-              type="email"
-              name="candlesNotifyEmail"
-              defaultValue={settings.candlesNotifyEmail ?? ""}
-              placeholder={settings.email ?? "contato@paroquia.exemplo"}
-              className={`${adminInput} w-full`}
-            />
-            <p className="mt-1.5 text-xs text-parish-500">
-              Destino dos avisos da paróquia. Se ficar vazio, usa o e-mail geral de Informações
-              {settings.email ? ` (${settings.email})` : " (ainda não configurado)"}.
-            </p>
-          </div>
-          <CandleEmailFields
-            litSubject={settings.candleLitEmailSubject ?? DEFAULT_CANDLE_LIT_EMAIL_SUBJECT}
-            litBody={settings.candleLitEmailBody ?? DEFAULT_CANDLE_LIT_EMAIL_BODY}
-            expirySubject={settings.candleExpiryEmailSubject ?? DEFAULT_CANDLE_EXPIRY_EMAIL_SUBJECT}
-            expiryBody={settings.candleExpiryEmailBody ?? DEFAULT_CANDLE_EXPIRY_EMAIL_BODY}
-            weekSubject={settings.candleWeekEmailSubject ?? DEFAULT_CANDLE_WEEK_EMAIL_SUBJECT}
-            weekIntro={settings.candleWeekEmailIntro ?? DEFAULT_CANDLE_WEEK_EMAIL_INTRO}
-            weekItem={settings.candleWeekEmailItem ?? DEFAULT_CANDLE_WEEK_EMAIL_ITEM}
-            personTags={CANDLE_EMAIL_TAGS}
-            weekIntroTags={CANDLE_WEEK_INTRO_TAGS}
-            weekItemTags={CANDLE_WEEK_ITEM_TAGS}
-          />
           <button type="submit" className={adminBtn}>
-            Salvar configurações
+            Salvar velas
           </button>
-        </form>
-        <p className="mt-3 text-xs text-parish-500">
-          Envio automático exige SMTP no arquivo <code className="text-parish-700">.env</code>{" "}
-          (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM).
-        </p>
-        <form action={sendWeeklyCandleEmailTest} className="mt-4">
-          <WeeklyCandleEmailButton />
-          <p className="mt-1.5 text-xs text-parish-500">
-            Teste: manda a lista de domingo a sexta desta semana para o e-mail das velas, com
-            [Teste] no assunto. Não conta como o envio automático de sexta às 23h.
-          </p>
         </form>
       </section>
 
@@ -281,16 +330,12 @@ export default async function AdminVelasPage({
           <tbody>
             {candles.map((c) => (
               <tr key={c.id} className="border-b border-parish-50 align-top">
-                <td className="py-2 pr-2 whitespace-nowrap">
-                  {c.createdAt.toLocaleString("pt-BR")}
-                </td>
+                <td className="py-2 pr-2 whitespace-nowrap">{c.createdAt.toLocaleString("pt-BR")}</td>
                 <td className="py-2 pr-2">{c.donorName}</td>
                 <td className="max-w-[8rem] break-all py-2 pr-2 text-xs">{c.email ?? "—"}</td>
                 <td className="whitespace-nowrap py-2 pr-2 text-xs">{c.phone ?? "—"}</td>
                 <td className="max-w-xs py-2 pr-2">{c.intention}</td>
-                <td className="max-w-xs py-2 pr-2 text-xs text-parish-700">
-                  {c.prayer ?? "—"}
-                </td>
+                <td className="max-w-xs py-2 pr-2 text-xs text-parish-700">{c.prayer ?? "—"}</td>
                 <td className="py-2 pr-2 text-xs whitespace-nowrap">
                   {c.intentionPublic && c.prayerPublic
                     ? "Pública"
@@ -313,7 +358,10 @@ export default async function AdminVelasPage({
                     {c.status === "PENDING" ? (
                       <form action={confirmCandlePixPayment}>
                         <input type="hidden" name="id" value={c.id} />
-                        <button type="submit" className="text-xs font-semibold text-parish-700 hover:underline">
+                        <button
+                          type="submit"
+                          className="text-xs font-semibold text-parish-700 hover:underline"
+                        >
                           Confirmar pagamento recebido
                         </button>
                       </form>
@@ -356,6 +404,6 @@ export default async function AdminVelasPage({
           </tbody>
         </table>
       </div>
-    </div>
+    </>
   );
 }

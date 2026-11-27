@@ -36,7 +36,7 @@ No painel **Variables** do serviço (produção):
 | `CANDLE_FREE_MODE` | `false` para cobrar velas |
 | `RAFFLE_FREE_MODE` | `false` para cobrar rifas |
 | `CANDLE_PRICE_BRL` | ex. `10` |
-| SMTP (`SMTP_*`) | opcional, e-mails de vela |
+| Zoho Mail (`ZOHO_*`) | e-mails de vela pela API HTTPS; a Railway bloqueia SMTP neste plano |
 | `ALLOW_SITE_BUNDLE_IMPORT` | **omitir** (padrão). Só `true` para import do Git (`site-bundle`) — último recurso |
 | `ALLOW_FORCE_PROD_BACKUP_RESTORE` | **omitir**. Só `true` para sobrescrever banco com backup quando já há conteúdo |
 
