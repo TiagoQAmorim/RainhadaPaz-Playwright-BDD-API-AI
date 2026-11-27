@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { publicSiteUrl } from "@/lib/site-url";
 import { getCandlesNotifyEmail, getSiteSettings } from "@/lib/settings";
-import { sendViaSmtp } from "@/lib/candle-parish-email";
+import { sendViaSmtp, SmtpSendError } from "@/lib/candle-parish-email";
 import {
   DEFAULT_CANDLE_EXPIRY_EMAIL_BODY,
   DEFAULT_CANDLE_EXPIRY_EMAIL_SUBJECT,
@@ -99,8 +99,12 @@ export async function sendWeeklyReportTest() {
       };
     }
   } catch (error) {
-    console.error("[vela-mail] teste da semana", error);
-    return { ok: false as const, message: "O envio do e-mail de teste falhou. Tente de novo em instantes." };
+    const message =
+      error instanceof SmtpSendError
+        ? error.message
+        : "O envio do e-mail de teste falhou. Tente de novo em instantes.";
+    console.error("[vela-mail] teste da semana", message);
+    return { ok: false as const, message };
   }
   return { ok: true as const };
 }
