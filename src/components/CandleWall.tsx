@@ -38,6 +38,7 @@ export function CandleWall({
   dense,
   muralDark,
   rail,
+  nowMs,
 }: {
   candles: CandleItem[];
   dark?: boolean;
@@ -52,6 +53,8 @@ export function CandleWall({
   durationHours: number;
   /** Quanto tempo a vela apagada continua no mural. */
   afterglowMs?: number;
+  /** Relógio fixo do servidor, para o texto bater na hidratação. */
+  nowMs?: number;
 }) {
   const onPhoto = banner === true;
   const velario = dark === true && !banner;
@@ -103,6 +106,7 @@ export function CandleWall({
             c.expiresAt,
             durationHours,
             afterglowMs ?? CANDLE_AFTERGLOW_MS,
+            nowMs,
           );
           const name = normalizeLine(c.donorName);
           const intention = normalizeLine(c.intention);

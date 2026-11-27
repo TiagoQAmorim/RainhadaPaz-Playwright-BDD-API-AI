@@ -139,6 +139,7 @@ export default async function HomePage() {
             total={candleMural.total}
             durationHours={candleMural.durationHours}
             afterglowMs={candleMural.afterglowMs}
+            nowMs={Date.now()}
           />
         </div>
         <div className="mt-4 text-center">

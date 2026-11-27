@@ -1,12 +1,8 @@
-"use client";
-
-import { useSearchParams } from "next/navigation";
 import { adminFlashMessage, isAdminFlashKind } from "@/lib/admin-flash";
 
-export function AdminFlashBanner() {
-  const params = useSearchParams();
-  const flash = params.get("flash");
-  if (!isAdminFlashKind(flash)) return null;
+export function AdminFlashBanner({ kind }: { kind: string | null }) {
+  if (!isAdminFlashKind(kind)) return null;
+  const flash = kind;
   const failed = flash === "image";
 
   return (

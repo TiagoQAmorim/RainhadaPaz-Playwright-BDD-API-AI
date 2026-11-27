@@ -9,6 +9,7 @@ import {
 import { AdminConfirmDeleteForm } from "@/components/admin/AdminConfirmDeleteForm";
 import { adminBtn, adminCard, adminInput } from "@/components/admin/AdminFormStyles";
 import { CandleEmailFields } from "@/components/admin/CandleEmailFields";
+import { WeeklyCandleEmailButton } from "@/components/admin/WeeklyCandleEmailButton";
 import { getSessionAdmin } from "@/lib/auth";
 import { isCandleActiveOnMural } from "@/lib/candle-report";
 import { prisma } from "@/lib/prisma";
@@ -241,12 +242,7 @@ export default async function AdminVelasPage({
           (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM).
         </p>
         <form action={sendWeeklyCandleEmailTest} className="mt-4">
-          <button
-            type="submit"
-            className="rounded-xl border border-parish-300 bg-white px-4 py-2 text-sm font-semibold text-parish-800 hover:bg-parish-50"
-          >
-            Enviar e-mail da semana agora
-          </button>
+          <WeeklyCandleEmailButton />
           <p className="mt-1.5 text-xs text-parish-500">
             Teste: manda a lista de domingo a sexta desta semana para o e-mail das velas, com
             [Teste] no assunto. Não conta como o envio automático de sexta às 23h.

@@ -28,11 +28,13 @@ export function HomeCandleRail({
   total,
   durationHours,
   afterglowMs,
+  nowMs,
 }: {
   initial: PublicCandle[];
   total: number;
   durationHours: number;
   afterglowMs: number;
+  nowMs: number;
 }) {
   const viewport = useRef<HTMLDivElement>(null);
   const track = useRef<HTMLDivElement>(null);
@@ -236,7 +238,17 @@ export function HomeCandleRail({
   }
 
   if (candles.length === 0) {
-    return <CandleWall candles={[]} banner compact dense durationHours={durationHours} afterglowMs={afterglowMs} />;
+    return (
+      <CandleWall
+        candles={[]}
+        banner
+        compact
+        dense
+        durationHours={durationHours}
+        afterglowMs={afterglowMs}
+        nowMs={nowMs}
+      />
+    );
   }
 
   const items = candles.map(toItem);
@@ -285,11 +297,21 @@ export function HomeCandleRail({
                 rail
                 durationHours={durationHours}
                 afterglowMs={afterglowMs}
+                nowMs={nowMs}
               />
             </div>
             {loop ? (
               <div className="w-max shrink-0" aria-hidden>
-                <CandleWall candles={items} banner compact dense rail durationHours={durationHours} afterglowMs={afterglowMs} />
+                <CandleWall
+                  candles={items}
+                  banner
+                  compact
+                  dense
+                  rail
+                  durationHours={durationHours}
+                  afterglowMs={afterglowMs}
+                  nowMs={nowMs}
+                />
               </div>
             ) : null}
           </div>

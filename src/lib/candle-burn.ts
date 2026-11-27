@@ -110,11 +110,12 @@ export function formatCandleTimeLeft(
   expiresAt: Date | string | null | undefined,
   durationHours?: number,
   afterglowMs = CANDLE_AFTERGLOW_MS,
+  nowMs = Date.now(),
 ): string | null {
   const hours = durationHours ?? DEFAULT_CANDLE_DURATION_HOURS;
   const window = resolveCandleBurnWindow(litAt, expiresAt, hours);
   if (!window) return null;
-  const ms = window.expiresAt.getTime() - Date.now();
+  const ms = window.expiresAt.getTime() - nowMs;
   if (ms <= 0) return ms > -Math.max(0, afterglowMs) ? "Apagada" : null;
   return formatCandleTimeLeftMs(ms);
 }

@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import Link from "next/link";
 import { AdminLogoutButton } from "@/components/AdminLogoutButton";
 import { AdminFlashBanner } from "@/components/admin/AdminFlashBanner";
@@ -31,6 +30,7 @@ export default async function AdminLayout({
 }) {
   const h = await headers();
   const pathname = h.get("x-pathname") ?? "";
+  const flash = new URLSearchParams(h.get("x-search")?.replace(/^\?/, "") ?? "").get("flash");
   const isLogin = pathname === "/admin/login";
 
   if (isLogin) {
@@ -79,9 +79,7 @@ export default async function AdminLayout({
               </nav>
             ) : null}
           </div>
-          <Suspense fallback={null}>
-            <AdminFlashBanner />
-          </Suspense>
+          <AdminFlashBanner kind={flash} />
           {children}
         </div>
       </div>

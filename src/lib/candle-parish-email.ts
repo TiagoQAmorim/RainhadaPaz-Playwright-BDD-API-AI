@@ -19,12 +19,24 @@ type CandleEmailPayload = {
   expiresAt?: Date | null;
 };
 
+function smtpEnv(name: string): string | undefined {
+  const direct = process.env[name]?.trim();
+  if (direct) return direct;
+  for (const key of Object.keys(process.env)) {
+    if (key !== name && key.trim() === name) {
+      const value = process.env[key]?.trim();
+      if (value) return value;
+    }
+  }
+  return undefined;
+}
+
 export async function sendViaSmtp(params: { to: string; subject: string; text: string }) {
-  const host = process.env.SMTP_HOST?.trim();
-  const port = Number(process.env.SMTP_PORT ?? "587");
-  const user = process.env.SMTP_USER?.trim();
-  const pass = process.env.SMTP_PASS?.trim();
-  const from = process.env.SMTP_FROM?.trim() || user;
+  const host = smtpEnv("SMTP_HOST");
+  const port = Number(smtpEnv("SMTP_PORT") ?? "587");
+  const user = smtpEnv("SMTP_USER");
+  const pass = smtpEnv("SMTP_PASS");
+  const from = smtpEnv("SMTP_FROM") || user;
   if (!host || !from) return false;
 
   const nodemailer = await import("nodemailer");
